@@ -12,7 +12,7 @@ module.exports = {
 			const apiUrl = 'https://api.challonge.com/v1/tournaments.json';
 			const params = {
 				api_key: process.env.API_KEY,  // Replace with your actual API key
-				state: 'in_progress',                      // Retrieve all states (pending, in_progress, etc.)
+				state: 'in_progress',          // Retrieve in-progress tournaments
 			};
 
 			// Make the GET request to Challonge
@@ -28,14 +28,14 @@ module.exports = {
 			// Create an embed to display tournament details
 			const embed = new EmbedBuilder()
 				.setTitle('Challonge Tournaments')
-				.setDescription('Here are the latest tournaments:')
+				.setDescription('Here are the latest in-progress tournaments:')
 				.setColor(0x00FF99);
 
 			// Add each tournament as a field in the embed
 			tournaments.forEach(tournament => {
 				embed.addFields({
 					name: tournament.tournament.name,
-					value: `State: ${tournament.tournament.state}\nType: ${tournament.tournament.tournament_type}\nURL: [Link](${tournament.tournament.full_challonge_url})`
+					value: `ID: ${tournament.tournament.id}\nState: ${tournament.tournament.state}\nType: ${tournament.tournament.tournament_type}\nURL: [Link](${tournament.tournament.full_challonge_url})`
 				});
 			});
 
