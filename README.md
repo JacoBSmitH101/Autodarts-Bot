@@ -16,3 +16,5 @@ This project is in early development, with basic commands implemented for tourna
 Clone the repository, add your API keys to a `.env` file, and run `npm install` to set up dependencies.
 
 More features and setup details coming soon!
+
+(chat gpt made readme not me)
