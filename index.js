@@ -3,7 +3,7 @@ require("dotenv").config();
 const fs = require('fs');
 const path = require('path');
 
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const TOKEN = process.env.TOKEN;
 
 
@@ -33,7 +33,16 @@ for (const folder of commandFolders) {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
+
+
+    if (interaction.isModalSubmit()) {
+        //modal example
+        await interaction.reply(interaction.fields.fields.get("hobbiesInput").value);
+        return;
+    }
 	if (!interaction.isChatInputCommand()) return;
+
+    
 
 	const command = interaction.client.commands.get(interaction.commandName);
 
