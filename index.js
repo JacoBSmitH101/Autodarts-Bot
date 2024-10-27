@@ -6,6 +6,7 @@ const path = require('path');
 const { Client, Collection, Events, GatewayIntentBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const TOKEN = process.env.TOKEN;
 
+const ALLOWED_USER_IDS = ['414395899570290690', '335970728811954187'];
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -13,6 +14,26 @@ client.commands = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
+
+const { handleConfirmRemove, handleCancelRemove } = require("./util")
+
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./data.db', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+    console.log('Connected to the data.db database.');
+});
+
+db.run(`CREATE TABLE IF NOT EXISTS tournaments (
+    server_id TEXT,
+    tournament_id TEXT,
+    name TEXT,
+    state TEXT,
+    assigned_at INTEGER,
+    PRIMARY KEY (server_id, tournament_id)
+)`);
+
 
 for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
@@ -34,15 +55,33 @@ for (const folder of commandFolders) {
 
 client.on(Events.InteractionCreate, async interaction => {
 
-
+    if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command.autocomplete) return;
+        await command.autocomplete(interaction);
+        return;
+    }
     if (interaction.isModalSubmit()) {
         //modal example
         await interaction.reply(interaction.fields.fields.get("hobbiesInput").value);
         return;
     }
+    if (interaction.isButton()) {
+        // Parse button ID into components
+        const [action, commandName, challongeId] = interaction.customId.split('_');
+
+        // Route based on action and command name
+        if (commandName === 'remove-tournament') {
+            if (action === 'confirm') {
+                await handleConfirmRemove(interaction, challongeId);
+            } else if (action === 'cancel') {
+                await handleCancelRemove(interaction);
+            }
+        }
+        return;
+    }
 	if (!interaction.isChatInputCommand()) return;
 
-    
 
 	const command = interaction.client.commands.get(interaction.commandName);
 
@@ -52,6 +91,10 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 
 	try {
+        if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
+            await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+            return;
+        }
 		await command.execute(interaction);
 	} catch (error) {
 		console.error(error);

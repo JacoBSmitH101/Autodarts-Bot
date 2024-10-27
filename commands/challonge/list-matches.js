@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const { fetchTournamentsFromDatabase } = require('../../util.js');
 require("dotenv").config();
 
 module.exports = {
@@ -7,9 +8,10 @@ module.exports = {
 		.setName('list-matches')
 		.setDescription('Lists all matches for a specified tournament')
 		.addStringOption(option => 
-			option.setName('tournament_id')
+			option.setName('tournament')
 				.setDescription('The ID or URL of the tournament')
-				.setRequired(true)),
+				.setRequired(true)
+				.setAutocomplete(true)),
 	async execute(interaction) {
 		try {
 			// Retrieve the tournament ID from the command options
@@ -69,5 +71,25 @@ module.exports = {
 			console.error(error);
 			await interaction.reply('There was an error retrieving matches. Please check the tournament ID and try again.');
 		}
-	}
+	},
+
+	async autocomplete(interaction) {
+        // Check if the interaction is for the "tournament" option
+        if (interaction.options.getFocused(true).name === 'tournament') {
+            const focusedValue = interaction.options.getFocused();
+            
+            // Fetch tournament names from the database
+            const tournaments = await fetchTournamentsFromDatabase(interaction.guildId);
+
+            // Filter tournaments based on the user's input and limit results to 25 (Discord's max)
+            const filteredTournaments = tournaments
+                .filter(tournament => tournament.name.toLowerCase().includes(focusedValue.toLowerCase()))
+                .slice(0, 25);
+
+            // Respond with formatted choices
+            await interaction.respond(
+                filteredTournaments.map(tournament => ({ name: tournament.name, value: tournament.name }))
+            );
+        }
+    },
 };
