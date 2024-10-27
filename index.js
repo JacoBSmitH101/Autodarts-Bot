@@ -15,6 +15,24 @@ client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./data.db', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+    console.log('Connected to the data.db database.');
+});
+
+db.run(`CREATE TABLE IF NOT EXISTS tournaments (
+    server_id TEXT,
+    tournament_id TEXT,
+    name TEXT,
+    state TEXT,
+    assigned_at INTEGER,
+    PRIMARY KEY (server_id, tournament_id)
+)`);
+
+
 for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
