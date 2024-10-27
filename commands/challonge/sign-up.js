@@ -58,9 +58,9 @@ module.exports = {
         if (!row) {
           // User does not exist; insert into Users table
           const insertUserSql = `
-                    INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg)
-                    VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
-                `;
+                INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg)
+                VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+            `;
           db.run(
             insertUserSql,
             [discordId, interaction.user.tag, autodartUsername, average],
@@ -71,6 +71,19 @@ module.exports = {
               }
             }
           );
+        } else {
+          // User exists; update the autodarts_name
+          const updateUserSql = `
+                UPDATE Users 
+                SET autodarts_name = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            `;
+          db.run(updateUserSql, [autodartUsername, discordId], (err) => {
+            if (err) {
+              console.error("Error updating user autodarts_name:", err.message);
+              return interaction.reply("Failed to update user information.");
+            }
+          });
         }
       }
     );
@@ -111,62 +124,135 @@ module.exports = {
 
           const challongeParticipantId = response.data.participant.id;
 
-          // Step 4: Insert the participant into Participants table
-          const insertParticipantSql = `
-                    INSERT INTO Participants (participant_id, user_id, tournament_id, challonge_id, status, joined_at)
-                    VALUES (?, ?, ?, ?, 'confirmed', CURRENT_TIMESTAMP)
-                `;
-          db.run(
-            insertParticipantSql,
-            [
-              challongeParticipantId,
-              discordId,
-              tournamentId,
-              challongeParticipantId,
-            ],
-            (err) => {
-              if (err) {
-                console.error(
-                  "Error inserting participant into database:",
-                  err.message
-                );
-                return interaction.reply(
-                  "Failed to save participant in the database. Please contact support."
-                );
-              }
-              const embed = new EmbedBuilder()
-                .setColor(0x00ff99) // A bright green color for success
-                .setTitle("Tournament Sign-Up Successful!")
-                .setDescription(
-                  `You've successfully signed up for the tournament **${tournamentName}**!`
-                )
-                .setThumbnail(interaction.user.displayAvatarURL()) // Display the user's avatar
-                .addFields(
-                  {
-                    name: "Participant",
-                    value: `${interaction.user.tag} (${autodartUsername})`,
-                    inline: true,
-                  },
-                  {
-                    name: "Tournament",
-                    value: `${tournamentName}`,
-                    inline: true,
-                  },
-                  {
-                    name: "Challonge ID",
-                    value: `${challongeParticipantId}`,
-                    inline: true,
-                  }
-                )
-                .setFooter({
-                  text: "Good luck!",
-                }) // Replace with an actual icon URL if desired
-                .setTimestamp(); // Adds the current timestamp to the embed
-
-              // Send the embed as the reply
-              interaction.reply({ embeds: [embed] });
+          // Step 4: Check if participant already exists in the Participants table
+          const checkParticipantSql = `SELECT * FROM Participants WHERE user_id = ? AND tournament_id = ?`;
+          db.get(checkParticipantSql, [discordId, tournamentId], (err, row) => {
+            if (err) {
+              console.error(
+                "Error checking participant existence:",
+                err.message
+              );
+              return interaction.reply(
+                "Failed to process registration. Please contact support."
+              );
             }
-          );
+
+            if (row) {
+              // User already exists in this tournament, so we update challonge_id and participant_id
+              const updateParticipantSql = `
+                UPDATE Participants 
+                SET challonge_id = ?, participant_id = ? 
+                WHERE user_id = ? AND tournament_id = ?
+              `;
+              db.run(
+                updateParticipantSql,
+                [
+                  challongeParticipantId,
+                  challongeParticipantId,
+                  discordId,
+                  tournamentId,
+                ],
+                (err) => {
+                  if (err) {
+                    console.error(
+                      "Error updating participant in database:",
+                      err.message
+                    );
+                    return interaction.reply(
+                      "Failed to update participant in the database. Please contact support."
+                    );
+                  }
+
+                  // Create a success embed after updating
+                  const embed = new EmbedBuilder()
+                    .setColor(0x00ff99) // A bright green color for success
+                    .setTitle("Tournament Sign-Up Updated!")
+                    .setDescription(
+                      `Your registration details have been updated for the tournament **${tournamentName}**!`
+                    )
+                    .setThumbnail(interaction.user.displayAvatarURL())
+                    .addFields(
+                      {
+                        name: "Participant",
+                        value: `${interaction.user.tag} (${autodartUsername})`,
+                        inline: true,
+                      },
+                      {
+                        name: "Tournament",
+                        value: `${tournamentName}`,
+                        inline: true,
+                      },
+                      {
+                        name: "100-Leg Average",
+                        value: `${average}`,
+                        inline: true,
+                      }
+                    )
+                    .setFooter({ text: "Good luck!" })
+                    .setTimestamp();
+
+                  interaction.reply({ embeds: [embed] });
+                }
+              );
+            } else {
+              // New participant, insert into Participants table
+              const insertParticipantSql = `
+                INSERT INTO Participants (participant_id, user_id, tournament_id, challonge_id, status, joined_at)
+                VALUES (?, ?, ?, ?, 'confirmed', CURRENT_TIMESTAMP)
+              `;
+              db.run(
+                insertParticipantSql,
+                [
+                  challongeParticipantId,
+                  discordId,
+                  tournamentId,
+                  challongeParticipantId,
+                ],
+                (err) => {
+                  if (err) {
+                    console.error(
+                      "Error inserting participant into database:",
+                      err.message
+                    );
+                    return interaction.reply(
+                      "Failed to save participant in the database. Please contact support."
+                    );
+                  }
+
+                  // Create a success embed after insertion
+                  const embed = new EmbedBuilder()
+                    .setColor(0x00ff99) // A bright green color for success
+                    .setTitle("Tournament Sign-Up Successful!")
+                    .setDescription(
+                      `You've successfully signed up for the tournament **${tournamentName}**!`
+                    )
+                    .setThumbnail(interaction.user.displayAvatarURL())
+                    .addFields(
+                      {
+                        name: "Participant",
+                        value: `${interaction.user.tag} (${autodartUsername})`,
+                        inline: true,
+                      },
+                      {
+                        name: "Tournament",
+                        value: `${tournamentName}`,
+                        inline: true,
+                      },
+                      {
+                        name: "100-Leg Average",
+                        value: `${average}`,
+                        inline: true,
+                      }
+                    )
+                    .setFooter({ text: "Good luck!" })
+                    .setTimestamp();
+
+                  interaction.reply({ embeds: [embed] });
+                }
+              );
+            }
+          });
+
           db.close((err) => {
             if (err) {
               console.error("Error closing the database:", err.message);
