@@ -26,6 +26,12 @@ module.exports = {
         .setName("average")
         .setDescription("100 Leg Average")
         .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("test_user_id")
+        .setDescription("For testing only: Specify a different user ID")
+        .setRequired(false)
     ),
 
   async execute(interaction) {
@@ -35,7 +41,8 @@ module.exports = {
       interaction.options.getString("challonge-username") ||
       interaction.user.username; // Default to Discord username if none provided
     const average = interaction.options.getNumber("average");
-    const discordId = interaction.user.id;
+    const test_user_id = interaction.options.getString("test_user_id");
+    const discordId = test_user_id || interaction.user.id;
 
     // Connect to SQLite database
     const db = new sqlite3.Database("./data.db", (err) => {
@@ -75,15 +82,22 @@ module.exports = {
           // User exists; update the autodarts_name
           const updateUserSql = `
                 UPDATE Users 
-                SET autodarts_name = ?, updated_at = CURRENT_TIMESTAMP
+                SET autodarts_name = ?, avg = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = ?
             `;
-          db.run(updateUserSql, [autodartUsername, discordId], (err) => {
-            if (err) {
-              console.error("Error updating user autodarts_name:", err.message);
-              return interaction.reply("Failed to update user information.");
+          db.run(
+            updateUserSql,
+            [autodartUsername, average, discordId],
+            (err) => {
+              if (err) {
+                console.error(
+                  "Error updating user autodarts_name:",
+                  err.message
+                );
+                return interaction.reply("Failed to update user information.");
+              }
             }
-          });
+          );
         }
       }
     );
