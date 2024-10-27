@@ -152,10 +152,11 @@ module.exports = {
             }
 
             if (row) {
+              console.log("Participant already exists in the database");
               // User already exists in this tournament, so we update challonge_id and participant_id
               const updateParticipantSql = `
                 UPDATE Participants 
-                SET challonge_id = ?, participant_id = ? 
+                SET challonge_id = ?, participant_id = ?, tournament_id = ? 
                 WHERE user_id = ? AND tournament_id = ?
               `;
               db.run(
@@ -163,6 +164,7 @@ module.exports = {
                 [
                   challongeParticipantId,
                   challongeParticipantId,
+                  tournamentId,
                   discordId,
                   tournamentId,
                 ],
