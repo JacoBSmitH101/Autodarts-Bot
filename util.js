@@ -1,24 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
+
 const axios = require('axios');
 
-module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('assign-tournament')
-		.setDescription('Used to assign a challonge tournament to this server')
-        .addStringOption(option =>
-            option.setName('tournament_id')
-                .setDescription('The ID of the tournament')
-                .setRequired(true)),
-
-	async execute(interaction) {
-        const res = await add_tournament(interaction.guildId, interaction.options.getString('tournament_id'));
-        if (res) {
-            await interaction.reply("Tournament assigned to server");
-        } else {
-            await interaction.reply("Error assigning tournament to server");
-        }
-	}
-};
 
 async function add_tournament(serverId, tournamentId)  {
     const sqlite3 = require('sqlite3').verbose();
@@ -80,3 +62,16 @@ async function add_tournament(serverId, tournamentId)  {
     db.close();
     return true;
 }
+// Helper function to fetch tournaments from SQL database
+async function fetchTournamentsFromDatabase(guildId) {
+    // Replace with actual database logic
+    // Example using MySQL
+    const query = 'SELECT name FROM tournaments WHERE guild_id = ?';
+    const [rows] = await db.execute(query, [guildId]);
+    return rows.map(row => ({ name: row.name }));
+}
+
+module.exports = {
+    add_tournament,
+    fetchTournamentsFromDatabase,
+};

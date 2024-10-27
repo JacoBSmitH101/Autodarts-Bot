@@ -5,14 +5,18 @@ require("dotenv").config();
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('list-tournaments')
-		.setDescription('Lists all Challonge tournaments'),
+		.setDescription('Lists all Challonge tournaments')
+		.addStringOption(option =>
+			option.setName('state')
+				.setDescription('State of tournaments')
+				.setRequired(true)),
 	async execute(interaction) {
 		try {
 			// Define the API URL and parameters
 			const apiUrl = 'https://api.challonge.com/v1/tournaments.json';
 			const params = {
 				api_key: process.env.API_KEY,  // Replace with your actual API key
-				state: 'in_progress',          // Retrieve in-progress tournaments
+				state: interaction.options.getString('state'),  // Retrieve in-progress tournaments
 			};
 
 			// Make the GET request to Challonge
