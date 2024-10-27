@@ -16,6 +16,11 @@ module.exports = {
                 .setDescription("Autodart username")
                 .setRequired(true)
         )
+        
+        .addNumberOption(option =>
+            option.setName("average")
+                .setDescription("100 Leg Average")
+                .setRequired(true))
         .addStringOption(option =>
             option.setName("challonge-username")
                 .setDescription("Challonge Username (Optional)")
