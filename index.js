@@ -15,6 +15,8 @@ client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
+const { handleConfirmRemove, handleCancelRemove } = require("./util")
+
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./data.db', (err) => {
     if (err) {
@@ -53,10 +55,29 @@ for (const folder of commandFolders) {
 
 client.on(Events.InteractionCreate, async interaction => {
 
-
+    if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command.autocomplete) return;
+        await command.autocomplete(interaction);
+        return;
+    }
     if (interaction.isModalSubmit()) {
         //modal example
         await interaction.reply(interaction.fields.fields.get("hobbiesInput").value);
+        return;
+    }
+    if (interaction.isButton()) {
+        // Parse button ID into components
+        const [action, commandName, challongeId] = interaction.customId.split('_');
+
+        // Route based on action and command name
+        if (commandName === 'remove-tournament') {
+            if (action === 'confirm') {
+                await handleConfirmRemove(interaction, challongeId);
+            } else if (action === 'cancel') {
+                await handleCancelRemove(interaction);
+            }
+        }
         return;
     }
 	if (!interaction.isChatInputCommand()) return;

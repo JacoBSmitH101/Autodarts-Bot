@@ -1,54 +1,65 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const axios = require('axios');
-require("dotenv").config();
+const sqlite3 = require('sqlite3').verbose();
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('list-tournaments')
-		.setDescription('Lists all Challonge tournaments')
-		.addStringOption(option =>
-			option.setName('state')
-				.setDescription('State of tournaments')
-				.setRequired(true)),
-	async execute(interaction) {
-		try {
-			// Define the API URL and parameters
-			const apiUrl = 'https://api.challonge.com/v1/tournaments.json';
-			const params = {
-				api_key: process.env.API_KEY,  // Replace with your actual API key
-				state: interaction.options.getString('state'),  // Retrieve in-progress tournaments
-			};
+    data: new SlashCommandBuilder()
+        .setName('list-tournaments')
+        .setDescription('Lists all tournaments in the bot’s database'),
+    
+    async execute(interaction) {
+        // Connect to SQLite database
+        const db = new sqlite3.Database('./data.db', (err) => {
+            if (err) {
+                console.error('Database connection error:', err.message);
+                return interaction.reply('Failed to connect to the database.');
+            }
+        });
 
-			// Make the GET request to Challonge
-			const response = await axios.get(apiUrl, { params });
+        // Fetch tournaments from the database
+        const query = `
+            SELECT name, status, start_date, end_date,
+                   (SELECT COUNT(*) FROM Participants WHERE tournament_id = Tournaments.tournament_id) AS participant_count
+            FROM Tournaments
+            ORDER BY start_date;
+        `;
+        
+        db.all(query, [], async (err, rows) => {
+            if (err) {
+                console.error('Database query error:', err.message);
+                return interaction.reply('Failed to retrieve tournaments from the database.');
+            }
 
-			// Check if there are tournaments to list
-			const tournaments = response.data;
-			if (tournaments.length === 0) {
-				await interaction.reply('No tournaments found.');
-				return;
-			}
+            if (rows.length === 0) {
+                await interaction.reply('No tournaments found in the database.');
+                return;
+            }
 
-			// Create an embed to display tournament details
-			const embed = new EmbedBuilder()
-				.setTitle('Challonge Tournaments')
-				.setDescription('Here are the latest in-progress tournaments:')
-				.setColor(0x00FF99);
+            // Create an embed to display the tournaments
+            const embed = new EmbedBuilder()
+                .setTitle('Tournaments List')
+                .setColor(0x00FF99)
+                .setDescription('Here are the current tournaments in the database.');
 
-			// Add each tournament as a field in the embed
-			tournaments.forEach(tournament => {
-				embed.addFields({
-					name: tournament.tournament.name,
-					value: `ID: ${tournament.tournament.id}\nState: ${tournament.tournament.state}\nType: ${tournament.tournament.tournament_type}\nURL: [Link](${tournament.tournament.full_challonge_url})`
-				});
-			});
+            rows.forEach((tournament) => {
+                // Format status and dates for readability
+                const status = tournament.status === 'pending' ? 'Awaiting Start' : 'In Progress';
+                const startDate = tournament.start_date || 'TBD';
+                const endDate = tournament.end_date || 'TBD';
 
-			// Send the embed in response
-			await interaction.reply({ embeds: [embed] });
+                embed.addFields({
+                    name: tournament.name,
+                    value: `**Status:** ${status}\n**Start Date:** ${startDate}\n**End Date:** ${endDate}\n**Participants:** ${tournament.participant_count}`
+                });
+            });
 
-		} catch (error) {
-			console.error(error);
-			await interaction.reply('There was an error retrieving tournaments. Please try again later.');
-		}
-	}
+            await interaction.reply({ embeds: [embed] });
+        });
+
+        // Close the database connection
+        db.close((err) => {
+            if (err) {
+                console.error('Error closing the database:', err.message);
+            }
+        });
+    }
 };

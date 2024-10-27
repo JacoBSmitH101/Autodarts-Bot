@@ -62,16 +62,65 @@ async function add_tournament(serverId, tournamentId)  {
     db.close();
     return true;
 }
-// Helper function to fetch tournaments from SQL database
-async function fetchTournamentsFromDatabase(guildId) {
-    // Replace with actual database logic
-    // Example using MySQL
-    const query = 'SELECT name FROM tournaments WHERE guild_id = ?';
-    const [rows] = await db.execute(query, [guildId]);
-    return rows.map(row => ({ name: row.name }));
+const sqlite3 = require('sqlite3').verbose();
+
+function fetchTournamentsFromDatabase() {
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database('./data.db', (err) => {
+            if (err) {
+                console.error('Failed to connect to the database:', err.message);
+                reject(err);
+            }
+        });
+
+        // Query to fetch all tournaments with status "open"
+        const query = `SELECT name FROM Tournaments WHERE status = 'pending'`;
+        db.all(query, [], (err, rows) => {
+            db.close();
+            if (err) {
+                console.error('Database query error:', err.message);
+                reject(err);
+            } else {
+                resolve(rows.map(row => ({ name: row.name })));
+            }
+        });
+    });
 }
+
+async function handleCancelRemove(interaction) {
+    await interaction.update({
+        content: 'Tournament removal canceled.',
+        components: []
+    });
+}
+async function handleConfirmRemove(interaction, challongeId) {
+    const db = new sqlite3.Database('./data.db', (err) => {
+        if (err) {
+            console.error('Database connection error:', err.message);
+            return interaction.update({ content: 'Failed to connect to the database.', components: [] });
+        }
+    });
+
+    // Delete the tournament from the database
+    const deleteSql = `DELETE FROM Tournaments WHERE challonge_id = ?`;
+    db.run(deleteSql, [challongeId], function(err) {
+        if (err) {
+            console.error('Database deletion error:', err.message);
+            return interaction.update({ content: 'Failed to remove the tournament from the database.', components: [] });
+        }
+        console.log(`Tournament with Challonge ID ${challongeId} removed`);
+        interaction.update({ content: `Tournament with Challonge ID ${challongeId} has been removed from the database.`, components: [] });
+    });
+
+    db.close((err) => {
+        if (err) console.error('Error closing the database:', err.message);
+    });
+}
+
 
 module.exports = {
     add_tournament,
     fetchTournamentsFromDatabase,
+    handleCancelRemove,
+    handleConfirmRemove
 };
