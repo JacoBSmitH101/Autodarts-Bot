@@ -6,6 +6,7 @@ const path = require('path');
 const { Client, Collection, Events, GatewayIntentBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const TOKEN = process.env.TOKEN;
 
+const ALLOWED_USER_IDS = ['414395899570290690', '335970728811954187'];
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -52,6 +53,10 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 
 	try {
+        if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
+            await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+            return;
+        }
 		await command.execute(interaction);
 	} catch (error) {
 		console.error(error);
