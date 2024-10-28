@@ -87,7 +87,7 @@ function fetchTournamentsFromDatabase() {
         });
     });
 }
-
+const { EmbedBuilder } = require("discord.js");
 async function handleCancelRemove(interaction) {
     await interaction.update({
         content: "Tournament removal canceled.",
@@ -347,7 +347,20 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
         });
     }
 };
+async function rejectMatch(interaction) {
+    const scoreEmbed = interaction.message.embeds[0];
+    const updatedEmbed = EmbedBuilder.from(scoreEmbed)
+        .setTitle("Match Rejected")
+        .setFooter({
+            text: "Match Rejected by " + interaction.user.tag,
+        })
+        .setColor(0xff0000); // Set color to red for rejection
 
+    await interaction.update({
+        embeds: [updatedEmbed],
+        components: [], // Removes the buttons
+    });
+}
 // Run the function with a specific tournament ID
 module.exports = {
     add_tournament,
@@ -356,6 +369,6 @@ module.exports = {
     handleConfirmRemove,
     getTournamentIdByName,
     getParticipantMapping,
-
+    rejectMatch,
     updateParticipantMatchPlayerIdsAndMatches,
 };
