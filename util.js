@@ -497,9 +497,6 @@ async function confirmMatch(interaction, extra) {
         try {
             const response = await axios.put(apiUrl, data, { params });
             if (response.status === 200) {
-                interaction.reply(
-                    `Match ${matchId} successfully updated with score ${scoresCsv} and winner set.`
-                );
                 console.log(`Match updated successfully: ${response.data}`);
             } else {
                 console.log(
