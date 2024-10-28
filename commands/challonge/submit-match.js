@@ -175,7 +175,7 @@ module.exports = {
 
         // Create the embed message
         const embed = new EmbedBuilder()
-            .setColor(0x00ff99)
+            .setColor(0x0000ff)
             .setTitle("Match Submission Pending Confirmation")
             .setDescription(`Match Category:`)
             .addFields(

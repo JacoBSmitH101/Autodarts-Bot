@@ -29,6 +29,7 @@ const {
     handleConfirmRemove,
     handleCancelRemove,
     rejectMatch,
+    confirmMatch,
 } = require("./util");
 
 const sqlite3 = require("sqlite3").verbose();
@@ -85,7 +86,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 //first check if interaction.user.id is opponent
                 //if it is, then update the match status to confirmed
 
-                if (interaction.user.id === opponentId) {
+                if (
+                    interaction.user.id === opponentId ||
+                    interaction.user.id === submitterId
+                ) {
+                    confirmMatch(interaction, extra);
                 } else {
                     await interaction.reply({
                         content: "You are not the opponent of this match!",

@@ -361,6 +361,184 @@ async function rejectMatch(interaction) {
         components: [], // Removes the buttons
     });
 }
+async function confirmMatch(interaction, extra) {
+    const [matchId, submitterId, opponentId] = extra.split("_");
+    const scoreEmbed = interaction.message.embeds[0];
+    // [0] - submitter score, [1] - opponent score
+    const score = scoreEmbed.fields[1].value.split(" - ");
+
+    // Open a connection to the SQLite database
+    const db = new sqlite3.Database("./data.db");
+
+    try {
+        // Step 1: Retrieve tournament_id from the Matches table using matchId
+        const tournamentId = await new Promise((resolve, reject) => {
+            db.get(
+                `SELECT tournament_id FROM Matches WHERE match_id = ?`,
+                [matchId],
+                (err, row) => {
+                    if (err) {
+                        console.error("Error fetching tournament_id:", err);
+                        return reject("Failed to retrieve tournament_id.");
+                    }
+                    resolve(row ? row.tournament_id : null);
+                }
+            );
+        });
+
+        if (!tournamentId) {
+            console.log("Tournament ID not found for the given match.");
+            return interaction.reply(
+                "Tournament ID not found for the specified match."
+            );
+        }
+        // Step 2: Retrieve challonge_id for submitter and opponent from the Participants table
+        const [submitterChallongeId, opponentChallongeId] = await Promise.all([
+            new Promise((resolve, reject) => {
+                db.get(
+                    `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
+                    [submitterId, tournamentId],
+                    (err, row) => {
+                        if (err) {
+                            console.error(
+                                "Error fetching submitter challonge_id:",
+                                err
+                            );
+                            return reject(
+                                "Failed to retrieve submitter's challonge_id."
+                            );
+                        }
+                        resolve(row ? row.challonge_id : null);
+                    }
+                );
+            }),
+            new Promise((resolve, reject) => {
+                db.get(
+                    `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
+                    [3 || opponentId, tournamentId],
+                    (err, row) => {
+                        if (err) {
+                            console.error(
+                                "Error fetching opponent challonge_id:",
+                                err
+                            );
+                            return reject(
+                                "Failed to retrieve opponent's challonge_id."
+                            );
+                        }
+                        resolve(row ? row.challonge_id : null);
+                    }
+                );
+            }),
+        ]);
+
+        if (!submitterChallongeId || !opponentChallongeId) {
+            console.log(
+                "Challonge IDs not found for one or both participants."
+            );
+            return interaction.reply(
+                "Challonge IDs not found for one or both participants."
+            );
+        }
+        const match = await new Promise((resolve, reject) => {
+            db.get(
+                `SELECT player1_id, player2_id FROM Matches WHERE match_id = ?`,
+                [matchId],
+                (err, row) => {
+                    if (err) {
+                        console.error("Error fetching match details:", err);
+                        return reject("Failed to retrieve match details.");
+                    }
+                    resolve(row);
+                }
+            );
+        });
+
+        if (!match) {
+            console.log("Match not found.");
+            return interaction.reply("Match not found.");
+        }
+        const isSubmitterPlayer1 = submitterChallongeId === match.player1_id;
+
+        let player1Score, player2Score;
+
+        // Assign scores based on the submitter's position
+        if (isSubmitterPlayer1) {
+            player1Score = parseInt(score[0], 10); // Submitter's score
+            player2Score = parseInt(score[1], 10); // Opponent's score
+        } else {
+            player1Score = parseInt(score[1], 10); // Opponent's score
+            player2Score = parseInt(score[0], 10); // Submitter's score
+        }
+
+        const scoresCsv = `${player1Score}-${player2Score}`;
+
+        let winnerId;
+        if (player1Score > player2Score) {
+            winnerId = submitterChallongeId;
+        } else if (player2Score > player1Score) {
+            winnerId = opponentChallongeId;
+        } else {
+            winnerId = null; // Draw
+        }
+
+        // Update Challonge match
+        const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json`;
+        const params = {
+            api_key: process.env.API_KEY,
+        };
+        const data = {
+            match: {
+                scores_csv: scoresCsv,
+                winner_id: winnerId,
+            },
+        };
+
+        try {
+            const response = await axios.put(apiUrl, data, { params });
+            if (response.status === 200) {
+                interaction.reply(
+                    `Match ${matchId} successfully updated with score ${scoresCsv} and winner set.`
+                );
+                console.log(`Match updated successfully: ${response.data}`);
+            } else {
+                console.log(
+                    `Unexpected response from Challonge: ${response.data}`
+                );
+                interaction.reply(
+                    "Unexpected response from Challonge. Please try again later."
+                );
+            }
+        } catch (error) {
+            console.error(
+                "Error updating match on Challonge:",
+                error.response ? error.response.data : error.message
+            );
+            interaction.reply(
+                "Failed to update match on Challonge. Please try again."
+            );
+        }
+    } catch (error) {
+        console.error("An error occurred:", error);
+        interaction.reply("An error occurred while retrieving Challonge IDs.");
+    } finally {
+        db.close();
+    }
+    //TODO update our database
+
+    console.log(score);
+    const updatedEmbed = EmbedBuilder.from(scoreEmbed)
+        .setTitle("Match Confirmed")
+        .setFooter({
+            text: "Match Confirmed by " + interaction.user.tag,
+        })
+        .setColor(0x00ff00); // Set color to green for confirmation
+
+    await interaction.update({
+        embeds: [updatedEmbed],
+        components: [], // Removes the buttons
+    });
+}
 // Run the function with a specific tournament ID
 module.exports = {
     add_tournament,
@@ -370,5 +548,6 @@ module.exports = {
     getTournamentIdByName,
     getParticipantMapping,
     rejectMatch,
+    confirmMatch,
     updateParticipantMatchPlayerIdsAndMatches,
 };
