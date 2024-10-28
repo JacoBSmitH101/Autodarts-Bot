@@ -1,153 +1,183 @@
-const { SlashCommandBuilder } = require("discord.js");
-const axios = require("axios");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
-require("dotenv").config();
-const {
-  fetchTournamentsFromDatabase,
-  getTournamentIdByName,
-} = require("../../util");
-
-// Helper function to retrieve autodarts name from database
-const getAutodartsName = async (discordId) => {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database("./data.db");
-    db.get(
-      `SELECT autodarts_name FROM Users WHERE user_id = ?`,
-      [discordId],
-      (err, row) => {
-        db.close();
-        if (err) {
-          console.error("Error retrieving Autodarts name:", err.message);
-          reject("Failed to retrieve Autodarts name.");
-        } else {
-          resolve(row ? row.autodarts_name : null);
-        }
-      }
-    );
-  });
-};
-
-// Helper function to fetch participant details and matches from Challonge
-const getParticipantMatches = async (tournamentId, challongeUsername) => {
-  const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
-  const params = { api_key: process.env.API_KEY };
-
-  try {
-    const response = await axios.get(apiUrl, { params });
-    const participants = response.data;
-
-    // Find the participant's ID
-    const participant = participants.find(
-      (p) => p.participant.name === challongeUsername
-    );
-    if (!participant) return null;
-
-    // Fetch participant with matches included
-    const participantId = participant.participant.id;
-    const matchesUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participantId}.json`;
-    const matchResponse = await axios.get(matchesUrl, {
-      params: { api_key: process.env.API_KEY, include_matches: 1 },
-    });
-
-    return matchResponse.data.participant.matches;
-  } catch (error) {
-    console.error("Error fetching participant and matches:", error.message);
-    throw new Error("Failed to fetch participant matches.");
-  }
-};
-
-// Command to list user's matches
+const { fetchTournamentsFromDatabase } = require("../../util");
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("my-matches")
-    .setDescription("Lists your matches in the tournament.")
-    .addStringOption((option) =>
-      option
-        .setName("tournament")
-        .setDescription("Name of the tournament")
-        .setRequired(true)
-        .setAutocomplete(true)
-    ),
-
-  async autocomplete(interaction) {
-    if (interaction.options.getFocused(true).name === "tournament") {
-      const focusedValue = interaction.options.getFocused();
-      const tournaments = await fetchTournamentsFromDatabase(
-        interaction.guildId
-      );
-
-      const filteredTournaments = tournaments
-        .filter((tournament) =>
-          tournament.name.toLowerCase().includes(focusedValue.toLowerCase())
+    data: new SlashCommandBuilder()
+        .setName("my-matches")
+        .setDescription("Lists all your matches in the specified tournament")
+        .addStringOption((option) =>
+            option
+                .setName("tournament")
+                .setDescription("The name of the tournament")
+                .setRequired(true)
+                .setAutocomplete(true)
         )
-        .slice(0, 25);
+        .addIntegerOption((option) =>
+            option
+                .setName("amount")
+                .setDescription("The number of matches to display")
+                .setRequired(false)
+        ),
 
-      await interaction.respond(
-        filteredTournaments.map((tournament) => ({
-          name: tournament.name,
-          value: tournament.name,
-        }))
-      );
-    }
-  },
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused();
 
-  async execute(interaction) {
-    const tournamentName = interaction.options.getString("tournament");
-    const discordTag = interaction.user.tag;
-    const userId = interaction.user.id;
-
-    await interaction.deferReply();
-
-    try {
-      // Retrieve user's Autodarts name and format Challonge username
-      const autodartsName = await getAutodartsName(userId);
-      if (!autodartsName) {
-        return interaction.editReply(
-          "Your Autodarts name could not be found. Please ensure you are registered."
+        // Fetch tournament names from the database
+        const tournaments = await fetchTournamentsFromDatabase(
+            interaction.guildId
         );
-      }
-      const challongeUsername = `${discordTag} (${autodartsName})`;
 
-      // Retrieve the tournament ID
-      const tournamentId = await getTournamentIdByName(tournamentName);
-      if (!tournamentId) {
-        return interaction.editReply("Tournament not found.");
-      }
+        // Filter tournaments based on the user's input and limit results to 25 (Discord's max)
+        const filteredTournaments = tournaments
+            .filter((tournament) =>
+                tournament.name
+                    .toLowerCase()
+                    .includes(focusedValue.toLowerCase())
+            )
+            .slice(0, 25);
 
-      // Fetch user's matches from Challonge
-      const userMatches = await getParticipantMatches(
-        tournamentId,
-        challongeUsername
-      );
-      if (!userMatches || userMatches.length === 0) {
-        return interaction.editReply("You have no matches in this tournament.");
-      }
+        // Respond with formatted choices
+        await interaction.respond(
+            filteredTournaments.map((tournament) => ({
+                name: tournament.name,
+                value: tournament.name,
+            }))
+        );
+    },
 
-      // Format match details
-      let result = `**Your Matches in ${tournamentName}:**\n`;
-      userMatches.forEach((matchData, index) => {
-        const match = matchData.match;
-        const isPlayer1 = match.player1_id === userId;
-        const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
-        const userScore = isPlayer1
-          ? match.scores_csv.split("-")[0]
-          : match.scores_csv.split("-")[1];
-        const opponentScore = isPlayer1
-          ? match.scores_csv.split("-")[1]
-          : match.scores_csv.split("-")[0];
+    async execute(interaction) {
+        const matchAmount = interaction.options.getInteger("amount") || 5;
 
-        result += `\n**Match ${index + 1}:**\n`;
-        result += `- **Opponent ID:** ${opponentId}\n`;
-        result += `- **Score:** ${userScore} - ${opponentScore}\n`;
-        result += `- **Status:** ${match.state}\n`;
-      });
+        const tournamentName = interaction.options.getString("tournament");
+        const discordId = interaction.user.id;
 
-      await interaction.editReply(result);
-    } catch (error) {
-      console.error("Error in my-matches command:", error.message);
-      await interaction.editReply(
-        "An error occurred while retrieving your matches."
-      );
-    }
-  },
+        const db = new sqlite3.Database("./data.db", (err) => {
+            if (err) {
+                console.error("Database connection error:", err.message);
+                return interaction.reply("Failed to connect to the database.");
+            }
+        });
+
+        try {
+            // Step 1: Get tournament ID and participant's match-specific Challonge ID
+            const participantData = await new Promise((resolve, reject) => {
+                db.get(
+                    `SELECT T.tournament_id, P.challonge_id 
+           FROM Tournaments T
+           JOIN Participants P ON T.tournament_id = P.tournament_id
+           WHERE T.name = ? AND P.user_id = ?`,
+                    [tournamentName, discordId],
+                    (err, row) => {
+                        if (err || !row) {
+                            console.error(
+                                "Error fetching tournament/participant data:",
+                                err
+                            );
+                            reject("Tournament or participant not found.");
+                        }
+                        resolve(row);
+                    }
+                );
+            });
+
+            const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
+                participantData;
+
+            // Step 2: Fetch matches for the participant from the Matches table
+            let matches = await new Promise((resolve, reject) => {
+                db.all(
+                    `SELECT M.match_id, M.player1_id, M.player2_id, M.winner_id, M.state, 
+                            M.player1_score, M.player2_score, M.suggested_play_order, 
+                            U1.autodarts_name AS player1_name, U1.discord_tag AS discord_tag, U2.discord_tag as discord_tag, U2.autodarts_name AS player2_name
+                     FROM Matches M
+                     JOIN Participants P1 ON M.player1_id = P1.challonge_id
+                     JOIN Participants P2 ON M.player2_id = P2.challonge_id
+                     JOIN Users U1 ON P1.user_id = U1.user_id
+                     JOIN Users U2 ON P2.user_id = U2.user_id
+                     WHERE M.tournament_id = ? AND (M.player1_id = ? OR M.player2_id = ?)
+                     ORDER BY M.suggested_play_order ASC`, // Order by suggested_play_order directly in SQL
+                    [tournamentId, matchPlayerId, matchPlayerId],
+                    (err, rows) => {
+                        if (err) {
+                            console.error("Error fetching matches:", err);
+                            reject("Failed to retrieve matches.");
+                        }
+                        resolve(rows);
+                    }
+                );
+            });
+
+            matches.sort(
+                (a, b) => a.suggested_play_order - b.suggested_play_order
+            );
+            matches = matches.slice(0, matchAmount);
+
+            // Step 3: Format matches for display
+            const embed = new EmbedBuilder()
+                .setColor(0x3498db)
+                .setTitle(`Matches for ${interaction.user.username}`)
+                .setDescription(`League: **${tournamentName}**`)
+                .setTimestamp();
+
+            if (matches.length === 0) {
+                embed.addFields({
+                    name: "🎯 No Matches Found",
+                    value: "You have no matches scheduled.",
+                });
+            } else {
+                matches.forEach((match, index) => {
+                    // Determine if the user is player 1 or player 2
+                    const isPlayer1 = match.player1_id === matchPlayerId;
+                    const opponentName = isPlayer1
+                        ? match.player2_name
+                        : match.player1_name;
+                    const opponentTag = isPlayer1
+                        ? match.discord_tag
+                        : match.discord_tag;
+
+                    const opponentDisplayName =
+                        opponentTag + " (" + opponentName + ")";
+                    // Parse the score from the `score_csv` field
+                    const scoreCsv = match.score_csv || "0-0";
+                    const [playerScore, opponentScore] = scoreCsv
+                        .split("-")
+                        .map(Number);
+
+                    // Display match result with icons
+                    const result = match.winner_id
+                        ? match.winner_id === matchPlayerId
+                            ? "✅ **Won**"
+                            : "❌ **Lost**"
+                        : "⌛ **Pending**";
+
+                    // Display match state with better labels
+                    const matchStatus =
+                        match.state.charAt(0).toUpperCase() +
+                        match.state.slice(1);
+
+                    // Format each match in an inline style within a full-width field
+                    if (playerScore === 0 && opponentScore === 0) {
+                        embed.addFields({
+                            name: `Match ${index + 1} 🎯`,
+                            value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${result}`,
+                        });
+                    } else {
+                        embed.addFields({
+                            name: `Match ${index + 1} 🎯`,
+                            value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${matchStatus} | **Score**: ${playerScore} - ${opponentScore} | **Result**: ${result}`,
+                        });
+                    }
+                });
+            }
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
+        } catch (error) {
+            console.error("Error retrieving match data:", error);
+            await interaction.reply("Failed to retrieve your matches.");
+        } finally {
+            db.close((err) => {
+                if (err) console.error("Database close error:", err.message);
+            });
+        }
+    },
 };
