@@ -61,7 +61,7 @@ async function add_tournament(serverId, tournamentId) {
   return true;
 }
 const sqlite3 = require("sqlite3").verbose();
-
+require("dotenv").config();
 function fetchTournamentsFromDatabase() {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database("./data.db", (err) => {
@@ -168,6 +168,141 @@ async function getParticipantMapping(tournamentId) {
     throw new Error("Failed to fetch participants.");
   }
 }
+const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
+  const db = new sqlite3.Database("./data.db");
+
+  try {
+    // Fetch all participants in the tournament
+    const participants = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT participant_id, user_id FROM Participants WHERE tournament_id = ?`,
+        [tournamentId],
+        (err, rows) => {
+          if (err) {
+            reject("Failed to retrieve participants.");
+          } else {
+            resolve(rows);
+          }
+        }
+      );
+    });
+    for (const participant of participants) {
+      const { user_id, participant_id } = participant;
+      console.log(`Updating participant ${participant_id} for user ${user_id}`);
+      const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participant_id}.json`;
+      const params = { api_key: process.env.API_KEY, include_matches: 1 };
+
+      const response = await axios.get(apiUrl, { params });
+      const matches = response.data.participant.matches;
+
+      // Identify match-specific player ID
+      const playerIdCount = {};
+      matches.forEach((match) => {
+        const { player1_id, player2_id } = match.match;
+        playerIdCount[player1_id] = (playerIdCount[player1_id] || 0) + 1;
+        playerIdCount[player2_id] = (playerIdCount[player2_id] || 0) + 1;
+      });
+
+      const matchPlayerId = Object.keys(playerIdCount).reduce((a, b) =>
+        playerIdCount[a] > playerIdCount[b] ? a : b
+      );
+
+      // Update participant's match-specific Challonge ID in Participants table
+      await new Promise((resolve, reject) => {
+        db.run(
+          `UPDATE Participants SET challonge_id = ? WHERE user_id = ? AND tournament_id = ?`,
+          [matchPlayerId, user_id, tournamentId],
+          (err) => {
+            if (err) {
+              console.error(
+                "Error updating challonge_id in Participants table:",
+                err.message
+              );
+              reject("Failed to update participant data.");
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+
+      // Step 3: Insert each match into the Matches table if it doesn't exist
+      for (const match of matches) {
+        const {
+          id: challongeMatchId,
+          player1_id,
+          player2_id,
+          winner_id,
+          state,
+          scores_csv,
+          updated_at,
+        } = match.match;
+
+        const player1Score = scores_csv
+          ? parseInt(scores_csv.split("-")[0])
+          : null;
+        const player2Score = scores_csv
+          ? parseInt(scores_csv.split("-")[1])
+          : null;
+
+        // Check if match exists in the Matches table
+        const matchExists = await new Promise((resolve, reject) => {
+          db.get(
+            `SELECT 1 FROM Matches WHERE challonge_match_id = ? AND tournament_id = ?`,
+            [challongeMatchId, tournamentId],
+            (err, row) => {
+              if (err) reject("Error checking match existence.");
+              resolve(!!row);
+            }
+          );
+        });
+
+        if (!matchExists) {
+          await new Promise((resolve, reject) => {
+            db.run(
+              `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                challongeMatchId,
+                tournamentId,
+                player1_id,
+                player2_id,
+                winner_id,
+                challongeMatchId,
+                state,
+                player1Score,
+                player2Score,
+                updated_at,
+              ],
+              (err) => {
+                if (err) {
+                  console.error("Error inserting match:", err.message);
+                  reject("Failed to insert match.");
+                } else {
+                  resolve();
+                }
+              }
+            );
+          });
+          console.log(
+            `Added match ${challongeMatchId} to Matches table for tournament ${tournamentId}.`
+          );
+        }
+      }
+    }
+
+    console.log("All participants and matches have been updated successfully.");
+  } catch (error) {
+    console.error("Error updating participants and matches:", error);
+  } finally {
+    db.close((err) => {
+      if (err) console.error("Error closing the database:", err.message);
+    });
+  }
+};
+
+// Run the function with a specific tournament ID
+//updateParticipantMatchPlayerIdsAndMatches("15309522");
 module.exports = {
   add_tournament,
   fetchTournamentsFromDatabase,
@@ -175,4 +310,6 @@ module.exports = {
   handleConfirmRemove,
   getTournamentIdByName,
   getParticipantMapping,
+
+  updateParticipantMatchPlayerIdsAndMatches,
 };
