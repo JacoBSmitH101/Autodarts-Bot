@@ -1,95 +1,74 @@
-const sqlite3 = require("sqlite3").verbose();
-require("dotenv").config();
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const readline = require("readline");
 
-// Function to retrieve tournament ID by name
-const getTournamentIdByName = async (tournamentName) => {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database("./data.db");
-    db.get(
-      `SELECT tournament_id FROM Tournaments WHERE name = ?`,
-      [tournamentName],
-      (err, row) => {
-        db.close();
-        if (err || !row) {
-          reject("Tournament not found.");
-        } else {
-          resolve(row.tournament_id);
-        }
-      }
+async function loginAndSaveCookies(url, loginUrl, username, password) {
+    const browser = await puppeteer.launch({ headless: false }); // Launch in non-headless mode for debugging
+    const page = await browser.newPage();
+
+    // Navigate to the login page
+    await page.goto(loginUrl, { waitUntil: "networkidle2" });
+
+    // Wait for the username field to be visible, then log in
+    await page.waitForSelector("#username", { visible: true });
+    await page.type("#username", username);
+    await page.type("#password", password);
+    await page.click("#kc-login");
+
+    // Wait for navigation to complete after logging in
+    await page.waitForNavigation({ waitUntil: "networkidle2" });
+
+    // Save cookies after login
+    const cookies = await page.cookies();
+    fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
+    console.log("Cookies saved to 'cookies.json'");
+
+    // Navigate to the match page
+    await page.goto(url, { waitUntil: "networkidle2" });
+
+    const tableData = await page.evaluate(() => {
+        const table = document.querySelector(".css-5605sr");
+        if (!table) return "Table not found";
+
+        // Get all rows within the table
+        const rows = Array.from(table.querySelectorAll("tr"));
+
+        // Extract text content from each cell in each row
+        return rows.map((row) => {
+            const cells = Array.from(row.querySelectorAll("td, th"));
+            return cells.map((cell) => cell.innerText.trim());
+        });
+    });
+
+    console.log("Table Data:", tableData); // Output the table data for inspection
+
+    // Wait for user input to continue (pause)
+    await waitForUserInput("Press Enter to close the browser...");
+
+    await browser.close();
+}
+
+// Helper function to pause until the user presses Enter
+function waitForUserInput(message) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    return new Promise((resolve) =>
+        rl.question(message, () => {
+            rl.close();
+            resolve();
+        })
     );
-  });
-};
+}
 
-// Function to retrieve and sort participants by average score in descending order
-const getSortedParticipants = async (tournamentId) => {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database("./data.db");
-    db.all(
-      `
-      SELECT Participants.challonge_id, Users.autodarts_name, Users.avg 
-      FROM Participants 
-      JOIN Users ON Participants.user_id = Users.user_id 
-      WHERE Participants.tournament_id = ? 
-      ORDER BY avg DESC
-    `,
-      [tournamentId],
-      (err, rows) => {
-        db.close();
-        if (err) {
-          reject("Failed to retrieve participants.");
-        } else {
-          resolve(rows);
-        }
-      }
-    );
-  });
-};
+// Replace these with actual values
+const url =
+    "https://play.autodarts.io/history/matches/d198f529-4f7b-49c6-ae96-257d8a33eeb8";
+const loginUrl = "https://play.autodarts.io";
+const username = "jacobsmith2005@hotmail.com";
+const password = "JacoB101";
 
-// Empty function for your custom seeding logic
-const customSeedingLogic = (players) => {
-  // `players` is an array of objects, each containing:
-  // - challonge_id
-  // - autodarts_name
-  // - avg
-  console.log("Implement your custom seeding logic here.");
-  console.log(players);
-  let sorted = [];
-
-  let groups = 0;
-  const maxGroupSize = 10;
-  const totalPlayers = players.length;
-  if (totalPlayers <= maxGroupSize) {
-    groups = 2;
-  } else {
-    groups = Math.ceil(totalPlayers / maxGroupSize);
-  }
-  const groupSize = Math.ceil(totalPlayers / groups);
-
-  for (let i = 0; i < totalPlayers; i++) {}
-};
-
-// Main function to start the process
-const startSeedingProcess = async (tournamentName) => {
-  try {
-    const tournamentId = await getTournamentIdByName(tournamentName);
-    const participants = await getSortedParticipants(tournamentId);
-
-    if (participants.length === 0) {
-      console.log("No participants found for this tournament.");
-      return;
-    }
-
-    console.log("Participants before seeding:");
-    participants.forEach((p, index) =>
-      console.log(`Rank ${index + 1}: ${p.autodarts_name} (avg: ${p.avg})`)
-    );
-
-    // Pass the participants to the custom seeding logic function
-    customSeedingLogic(participants);
-  } catch (error) {
-    console.error("Error in seeding process:", error);
-  }
-};
-
-// Run the function with a test tournament name
-startSeedingProcess("AUTODARTS TEST");
+loginAndSaveCookies(url, loginUrl, username, password).catch((error) =>
+    console.error("Error:", error)
+);
