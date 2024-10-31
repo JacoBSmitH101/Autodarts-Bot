@@ -365,7 +365,7 @@ async function confirmMatch(interaction, extra) {
     const [matchId, submitterId, opponentId] = extra.split("_");
     const scoreEmbed = interaction.message.embeds[0];
     // [0] - submitter score, [1] - opponent score
-    const score = scoreEmbed.fields[1].value.split(" - ");
+    const score = scoreEmbed.fields[2].value.split(" - ");
 
     // Open a connection to the SQLite database
     const db = new sqlite3.Database("./data.db");
@@ -472,15 +472,28 @@ async function confirmMatch(interaction, extra) {
         }
 
         const scoresCsv = `${player1Score}-${player2Score}`;
+        console.log(`Scores CSV: ${scoresCsv}`);
 
         let winnerId;
+        console.log(`Player 1 Score: ${player1Score}`);
+        console.log(`Player 2 Score: ${player2Score}`);
         if (player1Score > player2Score) {
-            winnerId = submitterChallongeId;
+            if (isSubmitterPlayer1) {
+                winnerId = submitterChallongeId;
+            } else {
+                winnerId = opponentChallongeId;
+            }
         } else if (player2Score > player1Score) {
-            winnerId = opponentChallongeId;
+            if (isSubmitterPlayer1) {
+                winnerId = opponentChallongeId;
+            } else {
+                winnerId = submitterChallongeId;
+            }
         } else {
             winnerId = null; // Draw
         }
+        console.log(`Winner ID: ${winnerId}`);
+        console.log(`Match ID: ${matchId}`);
 
         // Update Challonge match
         const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json`;

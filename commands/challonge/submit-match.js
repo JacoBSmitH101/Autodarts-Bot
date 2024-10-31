@@ -108,7 +108,7 @@ module.exports = {
             const opponentChallongeId = await new Promise((resolve, reject) => {
                 db.get(
                     `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                    [2 || opponent.id, tournamentId],
+                    [3 || opponent.id, tournamentId],
                     (err, row) => {
                         if (err)
                             return reject(
