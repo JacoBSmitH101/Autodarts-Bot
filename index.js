@@ -50,6 +50,8 @@ const keycloakClient = new AutodartsKeycloakClient({
     debug,
 });
 
+client.keycloakClient = keycloakClient;
+
 for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
     const commandFiles = fs
@@ -173,7 +175,7 @@ const subscribeToMatch = async (matchId) => {
         type: "subscribe",
         topic: `${matchId}.state`,
     };
-    keycloakClient.subscribe(
+    client.keycloakClient.subscribe(
         async (message) => {
             console.log("Received message:", message.data.turns);
             const channel = client.channels.cache.get("1295486855378108515");
@@ -193,7 +195,7 @@ const subscribeToMatch = async (matchId) => {
     );
 };
 
-keycloakClient.subscribe(
+client.keycloakClient.subscribe(
     async (message) => {
         console.log("Received message:", message);
         const channel = client.channels.cache.get("1295486855378108515");
@@ -254,7 +256,7 @@ const testApiStats = async () => {
     //example api https://api.autodarts.io/as/v0/users/bb229295-742d-429f-bbbf-fe4a179ef537/stats/x01?limit=100
     const apiURL = `https://api.autodarts.io/as/v0/users/${userId}/stats/x01?limit=100`;
     const headers = {
-        Authorization: `Bearer ${keycloakClient.accessToken}`,
+        Authorization: `Bearer ${client.keycloakClient.accessToken}`,
     };
     const response = await axios.get(apiURL, { headers });
     console.log("Authenticated response:", response.data);
