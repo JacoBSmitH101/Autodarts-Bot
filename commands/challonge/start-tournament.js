@@ -8,7 +8,8 @@ const sqlite3 = require("sqlite3").verbose();
 
 const { getSortedParticipants } = require("./show-seeds");
 const { autocomplete } = require("./sign-up");
-
+const { updateParticipantMatchPlayerIdsAndMatches } = require("../../util");
+const axios = require("axios");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("start-tournament")
@@ -55,22 +56,23 @@ module.exports = {
             );
         }
 
-        const participants = await getSortedParticipants(
-            tournamentId.tournament_id
-        );
+        //use challonge API to start the tournament
+        //and use include_matches=1 to get the matches and put them in the database
+        //POST https://api.challonge.com/v1/tournaments/{tournament}/start.{json|xml}
 
-        const embeds = [];
-        const chunks = splitMessage(
-            participants.map((p) => `${p.autodarts_name} - ${p.avg}`).join("\n")
-        );
+        //TODO
+        //For season 2 we will just start manually and then run this command
+        // const apiURL = `https://api.challonge.com/v1/tournaments/${tournamentId}/start.json`;
+        // const params = {
+        //     api_key: process.env.API_KEY, // Replace with your actual API key
+        // };
+        // const response = await axios.post(apiURL, null, { params });
 
-        for (const chunk of chunks) {
-            const embed = new MessageEmbed()
-                .setTitle(`Seeds for ${tournamentName}`)
-                .setDescription(chunk);
-            embeds.push(embed);
-        }
-
-        await interaction.reply({ embeds });
+        // if (response.status !== 200) {
+        //     return interaction.reply("Failed to start the tournament.");
+        // }
+        // console.log(response.data);
+        updateParticipantMatchPlayerIdsAndMatches(tournamentId);
+        await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };

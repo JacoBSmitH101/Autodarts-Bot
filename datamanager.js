@@ -1,7 +1,7 @@
 const sqlite3 = require("sqlite3").verbose();
 
 /**
- * DataManagers class to handle database operations.
+ * Class representing data management operations.
  */
 class DataManagers {
     /**
@@ -51,5 +51,7 @@ class DataManagers {
         });
     }
 }
+
+const dataManagers = new DataManagers();
 
 module.exports = DataManagers;

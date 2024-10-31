@@ -269,7 +269,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                     await new Promise((resolve, reject) => {
                         db.run(
                             `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at, suggested_play_order)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
                                 challongeMatchId,
                                 tournamentId,
