@@ -21,12 +21,6 @@ module.exports = {
                 .setDescription("Autodart URL")
                 .setRequired(true)
         )
-        .addNumberOption((option) =>
-            option
-                .setName("average")
-                .setDescription("100 Leg Average")
-                .setRequired(true)
-        )
         .addStringOption((option) =>
             option
                 .setName("test_user_id")
@@ -36,12 +30,24 @@ module.exports = {
 
     async execute(interaction) {
         const tournamentName = interaction.options.getString("tournament");
-        const autodartUsername =
-            interaction.options.getString("autodart-username");
-        const challongeUsername =
-            interaction.options.getString("challonge-username") ||
-            interaction.user.username; // Default to Discord username if none provided
-        const average = interaction.options.getNumber("average");
+        const profileUrl = interaction.options.getString(
+            "autodart-profile-url"
+        );
+
+        //if test_user_id is provided, use placeholders for auto-dart username and average
+        let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
+        let average = 25;
+        if (!interaction.options.getString("test_user_id")) {
+            autodartUsername = await getAutodartsUsername(
+                profileUrl,
+                interaction.client.keycloakClient
+            );
+            average = await getLast100Average(
+                profileUrl,
+                interaction.client.keycloakClient
+            );
+        }
+
         const test_user_id = interaction.options.getString("test_user_id");
         const discordId = test_user_id || interaction.user.id;
 
@@ -66,8 +72,8 @@ module.exports = {
                 if (!row) {
                     // User does not exist; insert into Users table
                     const insertUserSql = `
-                INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg)
-                VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+                INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg, autodarts_id)
+                VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)
             `;
                     db.run(
                         insertUserSql,
@@ -76,6 +82,7 @@ module.exports = {
                             interaction.user.tag,
                             autodartUsername,
                             average,
+                            profileUrl.split("/").pop(),
                         ],
                         (err) => {
                             if (err) {
@@ -90,6 +97,7 @@ module.exports = {
                         }
                     );
                 } else {
+                    //TODO probably can be better
                     // User exists; update the autodarts_name
                     const updateUserSql = `
                 UPDATE Users 
@@ -377,4 +385,24 @@ module.exports = {
             );
         }
     },
+};
+
+const getAutodartsUsername = async (profileUrl, keycloakClient) => {
+    //extract userid from last part of the url
+    const userId = profileUrl.split("/").pop();
+    const apiURL = `https://api.autodarts.io/us/v0/users/${userId}`;
+    const headers = { Authorization: `Bearer ${keycloakClient.accessToken}` };
+    const response = await axios.get(apiURL, { headers });
+    return response.data.name;
+};
+
+const getLast100Average = async (profileUrl, keycloakClient) => {
+    const userId = profileUrl.split("/").pop();
+    const apiURL = `https://api.autodarts.io/as/v0/users/${userId}/stats/x01?limit=100`;
+    const headers = { Authorization: `Bearer ${keycloakClient.accessToken}` };
+    const response = await axios.get(apiURL, { headers });
+    let last100Avg = response.data.average.average;
+
+    //round to 2 decimal places
+    return Math.round(last100Avg * 100) / 100;
 };

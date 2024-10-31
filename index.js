@@ -195,55 +195,55 @@ const subscribeToMatch = async (matchId) => {
     );
 };
 
-client.keycloakClient.subscribe(
-    async (message) => {
-        console.log("Received message:", message);
-        const channel = client.channels.cache.get("1295486855378108515");
+// client.keycloakClient.subscribe(
+//     async (message) => {
+//         console.log("Received message:", message);
+//         const channel = client.channels.cache.get("1295486855378108515");
 
-        const matchId = message.data.id;
+//         const matchId = message.data.id;
 
-        if (message.data.event == "create") {
-            //fetch match details
-            // const apiURL =
-            //     "https://api.autodarts.io/as/v0/matches/" + matchId + "/stats";
-            // const headers = {
-            //     Authorization: `Bearer ${keycloakClient.accessToken}`,
-            // };
-            // const response = await axios.get(apiURL, { headers });
-            console.log("Players: ", message.data.body.players);
-            //this has a userId and an id which is used within the matchd
-            //message.data.body.players is array and names are in [x].name
-            //check if the player is in the tournament
-            const players = message.data.body.players;
+//         if (message.data.event == "create") {
+//             //fetch match details
+//             // const apiURL =
+//             //     "https://api.autodarts.io/as/v0/matches/" + matchId + "/stats";
+//             // const headers = {
+//             //     Authorization: `Bearer ${keycloakClient.accessToken}`,
+//             // };
+//             // const response = await axios.get(apiURL, { headers });
+//             console.log("Players: ", message.data.body.players);
+//             //this has a userId and an id which is used within the matchd
+//             //message.data.body.players is array and names are in [x].name
+//             //check if the player is in the tournament
+//             const players = message.data.body.players;
 
-            //just check if the player is in the tournament for now
-            for (let i = 0; i < players.length; i++) {
-                if (playersInTournament.includes(players[i].name)) {
-                    console.log("Player is in the tournament");
-                    channel.send(
-                        `Match created with players: ${players[0].name}`
-                    );
-                    //subscribe to the match
-                    subscribeToMatch(matchId);
-                    break;
-                }
-            }
-            if (channel) {
-            } else {
-                console.log("Channel not found");
-            }
-        }
-    },
-    (ws) => {
-        // Example send after connection opens
-        const paramsSubscribeMatchesEvents = {
-            channel: "autodarts.matches",
-            type: "subscribe",
-            topic: `matches`,
-        };
-        ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
-    }
-);
+//             //just check if the player is in the tournament for now
+//             for (let i = 0; i < players.length; i++) {
+//                 if (playersInTournament.includes(players[i].name)) {
+//                     console.log("Player is in the tournament");
+//                     channel.send(
+//                         `Match created with players: ${players[0].name}`
+//                     );
+//                     //subscribe to the match
+//                     //subscribeToMatch(matchId);
+//                     break;
+//                 }
+//             }
+//             if (channel) {
+//             } else {
+//                 console.log("Channel not found");
+//             }
+//         }
+//     },
+//     (ws) => {
+//         // Example send after connection opens
+//         const paramsSubscribeMatchesEvents = {
+//             channel: "autodarts.matches",
+//             type: "subscribe",
+//             topic: `matches`,
+//         };
+//         ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
+//     }
+// );
 
 //get user stats from profile link, last bit of url is user id
 //example: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
@@ -261,4 +261,4 @@ const testApiStats = async () => {
     const response = await axios.get(apiURL, { headers });
     console.log("Authenticated response:", response.data);
 };
-setTimeout(testApiStats, 2000);
+//setTimeout(testApiStats, 2000);
