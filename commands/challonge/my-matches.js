@@ -88,7 +88,7 @@ module.exports = {
                 db.all(
                     `SELECT M.match_id, M.player1_id, M.player2_id, M.winner_id, M.state, 
                             M.player1_score, M.player2_score, M.suggested_play_order, 
-                            U1.autodarts_name AS player1_name, U1.discord_tag AS discord_tag, U2.discord_tag as discord_tag, U2.autodarts_name AS player2_name
+                            U1.autodarts_name AS player1_name, U1.discord_tag AS discord1_tag, U2.discord_tag as discord2_tag, U2.autodarts_name AS player2_name
                      FROM Matches M
                      JOIN Participants P1 ON M.player1_id = P1.challonge_id
                      JOIN Participants P2 ON M.player2_id = P2.challonge_id
@@ -127,13 +127,13 @@ module.exports = {
             } else {
                 matches.forEach((match, index) => {
                     // Determine if the user is player 1 or player 2
-                    const isPlayer1 = match.player1_id === matchPlayerId;
+                    const isPlayer1 = match.player1_id == matchPlayerId;
                     const opponentName = isPlayer1
                         ? match.player2_name
                         : match.player1_name;
                     const opponentTag = isPlayer1
-                        ? match.discord_tag
-                        : match.discord_tag;
+                        ? match.discord2_tag
+                        : match.discord1_tag;
 
                     const opponentDisplayName =
                         opponentTag + " (" + opponentName + ")";
