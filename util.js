@@ -231,6 +231,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
             if (participant_id == 245565315) {
                 console.log(user_id);
             }
+            console.log(`Match-specific player ID: ${matchPlayerId}`);
             // Update participant's match-specific Challonge ID in Participants table
             await new Promise((resolve, reject) => {
                 db.run(
@@ -313,9 +314,9 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                             }
                         );
                     });
-                    console.log(
-                        `Added match ${challongeMatchId} to Matches table for tournament ${tournamentId}.`
-                    );
+                    // console.log(
+                    //     `Added match ${challongeMatchId} to Matches table for tournament ${tournamentId}.`
+                    // );
                 } else {
                     //update instead of insert
                     await new Promise((resolve, reject) => {
@@ -346,9 +347,9 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                             }
                         );
                     });
-                    console.log(
-                        `Updated match ${challongeMatchId} in Matches table for tournament ${tournamentId}.`
-                    );
+                    // console.log(
+                    //     `Updated match ${challongeMatchId} in Matches table for tournament ${tournamentId}.`
+                    // );
                 }
             }
         }
