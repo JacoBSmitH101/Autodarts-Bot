@@ -11,6 +11,7 @@ const {
     TextInputStyle,
     ActionRowBuilder,
     EmbedBuilder,
+    messageLink,
 } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
@@ -43,6 +44,10 @@ const keycloakClient = new AutodartsKeycloakClient({
     debug,
 });
 client.keycloakClient = keycloakClient;
+
+const MatchHandler = require("./match-handler");
+const { match } = require("assert");
+const matchHandler = new MatchHandler(client);
 
 // Load commands
 const foldersPath = path.join(__dirname, "commands");
@@ -210,16 +215,7 @@ const subscribeToMatch = async (matchId) => {
     };
     client.keycloakClient.subscribe(
         async (message) => {
-            console.log("Received message:", message.data.turns);
-            const channel = client.channels.cache.get("1295486855378108515");
-
-            if (channel) {
-                channel.send(
-                    `Message: ${message.topic}, EVENTS: ${message.data.event}`
-                );
-            } else {
-                console.log("Channel not found");
-            }
+            matchHandler.match_update(message);
         },
         (ws) => {
             ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
