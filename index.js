@@ -181,18 +181,23 @@ const handleNewMatch = async (message) => {
     //for now just use mine
     const userId = "bb229295-742d-429f-bbbf-fe4a179ef537";
 
-    if (message.data.body.players[0].user.id === userId) {
-        const channel = client.channels.cache.get("1295486855378108515");
-        if (channel) {
-            const embed = new EmbedBuilder()
-                .setTitle("New Match")
-                .setDescription(`You have a new match`)
-                .setColor(0x00ff00);
-            channel.send({ embeds: [embed] });
-        } else {
-            console.log("Channel not found");
+    try {
+        if (message.data.body.players[0].user.id === userId) {
+            const channel = client.channels.cache.get("1295486855378108515");
+            if (channel) {
+                const embed = new EmbedBuilder()
+                    .setTitle("New Match")
+                    .setDescription(`You have a new match`)
+                    .setColor(0x00ff00);
+                channel.send({ embeds: [embed] });
+            } else {
+                console.log("Channel not found");
+            }
+            subscribeToMatch(message.data.body.id);
         }
-        subscribeToMatch(message.data.body.id);
+    } catch (error) {
+        console.error("An error occurred:", error);
+        console.log("Original message data:", message.data);
     }
 };
 

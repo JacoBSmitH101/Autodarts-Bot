@@ -173,9 +173,16 @@ async function getParticipantMapping(tournamentId) {
 }
 const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
     const db = new sqlite3.Database("./data.db");
-
+    db.all(`SELECT * FROM Users`, [], (err, rows) => {
+        if (err) {
+            console.error("Error fetching participants:", err.message);
+            return;
+        }
+        console.log(rows);
+    })
     try {
         // Fetch all participants in the tournament
+        console.log(`Fetching participants for tournament ${tournamentId}`);
         const participants = await new Promise((resolve, reject) => {
             db.all(
                 `SELECT participant_id, user_id FROM Participants WHERE tournament_id = ?`,
@@ -183,12 +190,17 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 (err, rows) => {
                     if (err) {
                         reject("Failed to retrieve participants.");
+                        console.error(
+                            "Error fetching participants from database:",
+                            err.message
+                        );
                     } else {
                         resolve(rows);
                     }
                 }
             );
         });
+        console.log(participants);
         for (const participant of participants) {
             const { user_id, participant_id } = participant;
             console.log(
@@ -209,11 +221,16 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 playerIdCount[player2_id] =
                     (playerIdCount[player2_id] || 0) + 1;
             });
+            if (participant_id == 245565315) {
+                console.log(playerIdCount);
+            }
 
             const matchPlayerId = Object.keys(playerIdCount).reduce((a, b) =>
                 playerIdCount[a] > playerIdCount[b] ? a : b
             );
-
+            if (participant_id == 245565315) {
+                console.log(user_id);
+            }
             // Update participant's match-specific Challonge ID in Participants table
             await new Promise((resolve, reject) => {
                 db.run(

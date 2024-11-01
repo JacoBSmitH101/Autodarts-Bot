@@ -82,7 +82,7 @@ module.exports = {
 
             const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
                 participantData;
-
+            console.log("Tournament ID:", tournamentId);
             // Step 2: Fetch matches for the participant from the Matches table
             let matches = await new Promise((resolve, reject) => {
                 db.all(
