@@ -179,7 +179,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
             return;
         }
         console.log(rows);
-    })
+    });
     try {
         // Fetch all participants in the tournament
         console.log(`Fetching participants for tournament ${tournamentId}`);
@@ -225,9 +225,16 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 console.log(playerIdCount);
             }
 
-            const matchPlayerId = Object.keys(playerIdCount).reduce((a, b) =>
-                playerIdCount[a] > playerIdCount[b] ? a : b
-            );
+            let matchPlayerId =
+                Object.keys(playerIdCount).length === 1
+                    ? Object.keys(playerIdCount)[0]
+                    : Object.keys(playerIdCount).reduce((a, b) =>
+                          playerIdCount[a] > playerIdCount[b] ? a : b
+                      );
+            if (user_id == 2) {
+                //set to second key
+                matchPlayerId = Object.keys(playerIdCount)[0];
+            }
             if (participant_id == 245565315) {
                 console.log(user_id);
             }

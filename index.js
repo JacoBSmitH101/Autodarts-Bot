@@ -185,27 +185,125 @@ const handleNewMatch = async (message) => {
     // In future will have list of matches from database with userids to check
     //for now just use mine
     const userId = "bb229295-742d-429f-bbbf-fe4a179ef537";
-    //TODO get this tournament id from the database
-    const tournamentId = 15327336;
+    //get both playerIds from the message
+    let player1_id = "";
+    let player2_id = "";
 
     try {
-        if (message.data.body.players[0].user.id === userId) {
-            const channel = client.channels.cache.get("1295486855378108515");
-            if (channel) {
-                const embed = new EmbedBuilder()
-                    .setTitle("New Match")
-                    .setDescription(`You have a new match`)
-                    .setColor(0x00ff00);
-                channel.send({ embeds: [embed] });
-            } else {
-                console.log("Channel not found");
-            }
-            subscribeToMatch(message.data.body.id, 15327336);
-        }
+        player1_id = message.data.body.players[0].user.id;
+        player2_id = message.data.body.players[1].user.id;
     } catch (error) {
-        console.error("An error occurred:");
-        //console.log("Original message data:", message.data);
+        return;
     }
+    console.log(player1_id, player2_id);
+
+    const db = new sqlite3.Database("./data.db", (err) => {
+        if (err) {
+            console.error("Database connection error:", err.message);
+            return;
+        }
+    });
+
+    const player1_user_id = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT user_id FROM Users WHERE autodarts_id = ?`,
+            [player1_id],
+            (err, row) => {
+                if (err) return reject("Failed to retrieve player1's user_id.");
+                resolve(row ? row.user_id : null);
+            }
+        );
+    });
+
+    const player2_user_id = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT user_id FROM Users WHERE autodarts_id = ?`,
+            [player2_id],
+            (err, row) => {
+                if (err) return reject("Failed to retrieve player2's user_id.");
+                resolve(row ? row.user_id : null);
+            }
+        );
+    });
+
+    if (!player1_user_id || !player2_user_id) {
+        console.log(`Rejection: ${player1_user_id} ${player2_user_id}`);
+        return;
+    }
+
+    //get tournament from participants table
+    let tournamentId = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT tournament_id FROM Participants WHERE user_id = ?`,
+            [player1_user_id],
+            (err, row) => {
+                if (err) return reject("Failed to retrieve tournament_id.");
+                resolve(row ? row.tournament_id : null);
+            }
+        );
+    });
+
+    //use participants table to get challonge_ids using user_ids and tournament_id
+    const player1_challonge_id = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
+            [player1_user_id, tournamentId],
+            (err, row) => {
+                if (err)
+                    return reject("Failed to retrieve player1's challonge_id.");
+                resolve(row ? row.challonge_id : null);
+            }
+        );
+    });
+    const player2_challonge_id = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
+            [player2_user_id, tournamentId],
+            (err, row) => {
+                if (err)
+                    return reject("Failed to retrieve player2's challonge_id.");
+                resolve(row ? row.challonge_id : null);
+            }
+        );
+    });
+
+    //get the match from the matches table
+    const match = await new Promise((resolve, reject) => {
+        db.get(
+            `SELECT * FROM Matches 
+            WHERE tournament_id = ? 
+            AND ((player1_id = ? AND player2_id = ?) 
+            OR (player1_id = ? AND player2_id = ?))`,
+            [
+                tournamentId,
+                player1_challonge_id,
+                player2_challonge_id,
+                player2_challonge_id,
+                player1_challonge_id,
+            ],
+            (err, row) => {
+                if (err) return reject("Failed to retrieve match details.");
+                resolve(row);
+            }
+        );
+    });
+    if (!match) {
+        return console.log("Match not found");
+    }
+
+    //TODO get this tournament id from the database
+
+    const channel = client.channels.cache.get("1295486855378108515");
+    if (channel) {
+        const embed = new EmbedBuilder()
+            .setTitle("New Match")
+            .setDescription(`You have a new match`)
+            .setColor(0x00ff00);
+        channel.send({ embeds: [embed] });
+    } else {
+        console.log("Channel not found");
+    }
+    subscribeToMatch(message.data.body.id, tournamentId);
 };
 
 // Subscribe to a match
