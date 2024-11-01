@@ -164,7 +164,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
         await command.execute(interaction);
     } catch (error) {
-        console.error(error);
+        //console.error(error);
         if (interaction.replied || interaction.deferred) {
             await interaction.followUp({
                 content: "There was an error while executing this command!",
@@ -185,6 +185,8 @@ const handleNewMatch = async (message) => {
     // In future will have list of matches from database with userids to check
     //for now just use mine
     const userId = "bb229295-742d-429f-bbbf-fe4a179ef537";
+    //TODO get this tournament id from the database
+    const tournamentId = 15327336;
 
     try {
         if (message.data.body.players[0].user.id === userId) {
@@ -198,16 +200,16 @@ const handleNewMatch = async (message) => {
             } else {
                 console.log("Channel not found");
             }
-            subscribeToMatch(message.data.body.id);
+            subscribeToMatch(message.data.body.id, 15327336);
         }
     } catch (error) {
-        console.error("An error occurred:", error);
-        console.log("Original message data:", message.data);
+        console.error("An error occurred:");
+        //console.log("Original message data:", message.data);
     }
 };
 
 // Subscribe to a match
-const subscribeToMatch = async (matchId) => {
+const subscribeToMatch = async (matchId, tournamentId) => {
     const paramsSubscribeMatchesEvents = {
         channel: "autodarts.matches",
         type: "subscribe",
@@ -215,11 +217,11 @@ const subscribeToMatch = async (matchId) => {
     };
     client.keycloakClient.subscribe(
         async (message) => {
-            matchHandler.match_update(message);
+            matchHandler.match_update(message, tournamentId);
         },
         (ws) => {
             ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
-            console.log(matchId);
+            //console.log(matchId);
         }
     );
 };
