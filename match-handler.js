@@ -331,6 +331,16 @@ class MatchHandler {
             }
         }
 
+        try {
+            const response = await axios.put(api_url, data, { params });
+            if (response.status === 200) {
+                console.log("Challonge match updated");
+            }
+        }
+        catch (error) {
+            console.error("Error updating challonge match:", error);
+        }
+
 
 
     }
