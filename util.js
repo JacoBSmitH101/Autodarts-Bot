@@ -173,9 +173,16 @@ async function getParticipantMapping(tournamentId) {
 }
 const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
     const db = new sqlite3.Database("./data.db");
-
+    db.all(`SELECT * FROM Users`, [], (err, rows) => {
+        if (err) {
+            console.error("Error fetching participants:", err.message);
+            return;
+        }
+        console.log(rows);
+    })
     try {
         // Fetch all participants in the tournament
+        console.log(`Fetching participants for tournament ${tournamentId}`);
         const participants = await new Promise((resolve, reject) => {
             db.all(
                 `SELECT participant_id, user_id FROM Participants WHERE tournament_id = ?`,
@@ -183,12 +190,17 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 (err, rows) => {
                     if (err) {
                         reject("Failed to retrieve participants.");
+                        console.error(
+                            "Error fetching participants from database:",
+                            err.message
+                        );
                     } else {
                         resolve(rows);
                     }
                 }
             );
         });
+        console.log(participants);
         for (const participant of participants) {
             const { user_id, participant_id } = participant;
             console.log(
@@ -209,11 +221,16 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 playerIdCount[player2_id] =
                     (playerIdCount[player2_id] || 0) + 1;
             });
+            if (participant_id == 245565315) {
+                console.log(playerIdCount);
+            }
 
             const matchPlayerId = Object.keys(playerIdCount).reduce((a, b) =>
                 playerIdCount[a] > playerIdCount[b] ? a : b
             );
-
+            if (participant_id == 245565315) {
+                console.log(user_id);
+            }
             // Update participant's match-specific Challonge ID in Participants table
             await new Promise((resolve, reject) => {
                 db.run(
@@ -269,7 +286,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                     await new Promise((resolve, reject) => {
                         db.run(
                             `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at, suggested_play_order)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
                                 challongeMatchId,
                                 tournamentId,
@@ -365,7 +382,7 @@ async function confirmMatch(interaction, extra) {
     const [matchId, submitterId, opponentId] = extra.split("_");
     const scoreEmbed = interaction.message.embeds[0];
     // [0] - submitter score, [1] - opponent score
-    const score = scoreEmbed.fields[1].value.split(" - ");
+    const score = scoreEmbed.fields[2].value.split(" - ");
 
     // Open a connection to the SQLite database
     const db = new sqlite3.Database("./data.db");
@@ -472,15 +489,28 @@ async function confirmMatch(interaction, extra) {
         }
 
         const scoresCsv = `${player1Score}-${player2Score}`;
+        console.log(`Scores CSV: ${scoresCsv}`);
 
         let winnerId;
+        console.log(`Player 1 Score: ${player1Score}`);
+        console.log(`Player 2 Score: ${player2Score}`);
         if (player1Score > player2Score) {
-            winnerId = submitterChallongeId;
+            if (isSubmitterPlayer1) {
+                winnerId = submitterChallongeId;
+            } else {
+                winnerId = opponentChallongeId;
+            }
         } else if (player2Score > player1Score) {
-            winnerId = opponentChallongeId;
+            if (isSubmitterPlayer1) {
+                winnerId = opponentChallongeId;
+            } else {
+                winnerId = submitterChallongeId;
+            }
         } else {
             winnerId = null; // Draw
         }
+        console.log(`Winner ID: ${winnerId}`);
+        console.log(`Match ID: ${matchId}`);
 
         // Update Challonge match
         const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json`;

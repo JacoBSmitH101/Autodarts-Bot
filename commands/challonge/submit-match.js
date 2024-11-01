@@ -10,6 +10,7 @@ const {
     getTournamentIdByName,
 } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("submit-match")
@@ -22,6 +23,12 @@ module.exports = {
                 .setDescription("The tournament or league name")
                 .setRequired(true)
                 .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("match_url")
+                .setDescription("URL of the match on AutoDarts")
+                .setRequired(true)
         )
         .addUserOption((option) =>
             option
@@ -41,15 +48,13 @@ module.exports = {
                 .setDescription("Legs won by opponent")
                 .setRequired(true)
         ),
+
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
-
-        // Fetch tournament names from the database
         const tournaments = await fetchTournamentsFromDatabase(
             interaction.guildId
         );
 
-        // Filter tournaments based on the user's input and limit results to 25 (Discord's max)
         const filteredTournaments = tournaments
             .filter((tournament) =>
                 tournament.name
@@ -58,7 +63,6 @@ module.exports = {
             )
             .slice(0, 25);
 
-        // Respond with formatted choices
         await interaction.respond(
             filteredTournaments.map((tournament) => ({
                 name: tournament.name,
@@ -69,6 +73,7 @@ module.exports = {
 
     async execute(interaction) {
         const tournament = interaction.options.getString("tournament");
+        const matchUrl = interaction.options.getString("match_url");
         const opponent = interaction.options.getUser("opponent");
         const submitter = interaction.user;
         const yourScore = interaction.options.getNumber("your_score");
@@ -81,24 +86,19 @@ module.exports = {
                 return interaction.reply("Failed to connect to the database.");
             }
         });
+
         let match;
         try {
-            // Retrieve challonge_id for both submitter and opponent
             const submitterChallongeId = await new Promise(
                 (resolve, reject) => {
                     db.get(
                         `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
                         [submitter.id, tournamentId],
                         (err, row) => {
-                            if (err) {
-                                console.error(
-                                    "Error fetching submitter challonge_id:",
-                                    err
-                                );
+                            if (err)
                                 return reject(
                                     "Failed to retrieve submitter's challonge_id."
                                 );
-                            }
                             resolve(row ? row.challonge_id : null);
                         }
                     );
@@ -110,37 +110,27 @@ module.exports = {
                     `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
                     [3 || opponent.id, tournamentId],
                     (err, row) => {
-                        if (err) {
-                            console.error(
-                                "Error fetching opponent challonge_id:",
-                                err
-                            );
+                        if (err)
                             return reject(
                                 "Failed to retrieve opponent's challonge_id."
                             );
-                        }
                         resolve(row ? row.challonge_id : null);
                     }
                 );
             });
 
-            // Verify both challonge_id values were found
             if (!submitterChallongeId || !opponentChallongeId) {
-                console.log(
-                    "One or both participants not found in the tournament."
-                );
                 return interaction.reply(
                     "One or both participants are not registered in this tournament."
                 );
             }
 
-            // Find the match in the Matches table
             match = await new Promise((resolve, reject) => {
                 db.get(
                     `SELECT * FROM Matches 
-             WHERE tournament_id = ? 
-             AND ((player1_id = ? AND player2_id = ?) 
-             OR (player1_id = ? AND player2_id = ?))`,
+                    WHERE tournament_id = ? 
+                    AND ((player1_id = ? AND player2_id = ?) 
+                    OR (player1_id = ? AND player2_id = ?))`,
                     [
                         tournamentId,
                         submitterChallongeId,
@@ -149,20 +139,15 @@ module.exports = {
                         submitterChallongeId,
                     ],
                     (err, row) => {
-                        if (err) {
-                            console.error("Error fetching match details:", err);
+                        if (err)
                             return reject("Failed to retrieve match details.");
-                        }
                         resolve(row);
                     }
                 );
             });
 
-            // Check if the match was found and log the details
-            if (match) {
-            } else {
-                console.log("Match not found.");
-                interaction.reply(
+            if (!match) {
+                return interaction.reply(
                     "Match not found for the specified participants."
                 );
             }
@@ -173,12 +158,26 @@ module.exports = {
             );
         }
 
-        // Create the embed message
+        // Placeholder stats for demonstration
+        const stats = {
+            "180s": 2,
+            "100+ Scores": 15,
+            "60+ Scores": 25,
+            "Checkout %": 65.3,
+            "Average Score": 87.4,
+        };
+
+        // Embed message with placeholder stats
         const embed = new EmbedBuilder()
             .setColor(0x0000ff)
             .setTitle("Match Submission Pending Confirmation")
-            .setDescription(`Match Category:`)
+            .setDescription(`League: ${tournament}`)
             .addFields(
+                {
+                    name: "Match URL",
+                    value: `[View Match](${matchUrl})`,
+                    inline: false,
+                },
                 {
                     name: "Submitted By",
                     value: `<@${submitter.id}>`,
@@ -188,15 +187,12 @@ module.exports = {
                     name: "Score",
                     value: `${yourScore} - ${opponentScore}`,
                     inline: true,
-                },
-                { name: "Opponent", value: `<@${opponent.id}>`, inline: true }
+                }
             )
-            .setTimestamp()
-            .setFooter({ text: `Waiting for ${opponent.tag} approval` });
+            .setFooter({ text: `Waiting for ${opponent.tag} approval` })
+            .setTimestamp();
 
-        //create button id for the interaction as confirm/reject_challongeMatchID_submitterID_opponentID
         const buttonId = `_${match.match_id}_${submitter.id}_${opponent.id}`;
-        // Create buttons for Confirm and Reject
         const confirmButton = new ButtonBuilder()
             .setCustomId("confirm_confirmMatch" + buttonId)
             .setLabel("Confirm")
@@ -207,13 +203,11 @@ module.exports = {
             .setLabel("Reject")
             .setStyle(ButtonStyle.Danger);
 
-        // Action row to hold the buttons
         const row = new ActionRowBuilder().addComponents(
             confirmButton,
             rejectButton
         );
 
-        // Send the embed with buttons
         await interaction.reply({ embeds: [embed], components: [row] });
     },
 };
