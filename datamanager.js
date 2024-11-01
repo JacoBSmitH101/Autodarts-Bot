@@ -1,7 +1,7 @@
 const sqlite3 = require("sqlite3").verbose();
 
 /**
- * Class representing data management operations.
+ * Class representing data management operations. A
  */
 class DataManagers {
     /**
