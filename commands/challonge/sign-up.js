@@ -36,16 +36,15 @@ module.exports = {
 
         let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
         let average = 25;
-        if (!interaction.options.getString("test_user_id")) {
-            autodartUsername = await getAutodartsUsername(
-                profileUrl,
-                interaction.client.keycloakClient
-            );
-            average = await getLast100Average(
-                profileUrl,
-                interaction.client.keycloakClient
-            );
-        }
+
+        autodartUsername = await getAutodartsUsername(
+            profileUrl,
+            interaction.client.keycloakClient
+        );
+        average = await getLast100Average(
+            profileUrl,
+            interaction.client.keycloakClient
+        );
 
         const test_user_id = interaction.options.getString("test_user_id");
         const discordId = test_user_id || interaction.user.id;
