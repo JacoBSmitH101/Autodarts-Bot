@@ -41,6 +41,92 @@ class DataManagers {
     }
 
     /**
+     * Get all tournaments.
+     * @returns {Promise<Array<Object>>} - A promise that resolves to an array of all tournaments.
+     */
+
+    async getAllTournaments() {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM Tournaments`,
+                (err, rows) => {
+                    if (err) {
+                        console.error("Error querying database:", err.message);
+                        reject(new Error("Failed to retrieve tournaments."));
+                    } else {
+                        resolve(rows);
+                    }
+                }
+            );
+        });
+    }
+
+    /**
+     * Get all matches for a tournament.
+     */
+
+    async getMatchesByTournament(tournamentId) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM Matches WHERE tournament_id = ?`,
+                [tournamentId],
+                (err, rows) => {
+                    if (err) {
+                        console.error("Error querying database:", err.message);
+                        reject(new Error("Failed to retrieve matches."));
+                    } else {
+                        resolve(rows);
+                    }
+                }
+            );
+        });
+    }
+
+    /**
+     * Get all tournaments for a player.
+     */
+
+    async getTournamentsByPlayer(playerId) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM Tournaments WHERE player_id = ?`,
+                [playerId],
+                (err, rows) => {
+                    if (err) {
+                        console.error("Error querying database:", err.message);
+                        reject(new Error("Failed to retrieve tournaments."));
+                    } else {
+                        resolve(rows);
+                    }
+                }
+            );
+        });
+    }
+
+    /**
+     * Retrieve all matches between two players.
+     */
+
+    async getMatchesByPlayers(player1, player2) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM Matches WHERE player1_id = ? AND player2_id = ?`,
+                [player1, player2],
+                (err, rows) => {
+                    if (err) {
+                        console.error("Error querying database:", err.message);
+                        reject(new Error("Failed to retrieve matches."));
+                    } else {
+                        resolve(rows);
+                    }
+                }
+            );
+        });
+    }
+
+
+
+    /**
      * Close the database connection.
      */
     close() {
