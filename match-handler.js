@@ -435,7 +435,7 @@ class MatchHandler {
             SET winner_id = ?, state = ?, player1_score = ?, player2_score = ?, autodarts_match_id = ?
             WHERE match_id = ?`,
             [
-                winnerId,
+                winnerChallongeId,
                 "complete",
                 stats.scores[0].legs,
                 stats.scores[1].legs,
@@ -456,8 +456,8 @@ class MatchHandler {
         //db match player order is used here
         scores_csv =
             db_match.player1_id === player1_challonge_id
-                ? `${stats.scores[1].legs}-${stats.scores[0].legs}`
-                : `${stats.scores[0].legs}-${stats.scores[1].legs}`;
+                ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
+                : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
 
         //set winner_id
         let winner_id;
@@ -475,7 +475,7 @@ class MatchHandler {
         const data = {
             match: {
                 scores_csv: scores_csv,
-                winner_id: winner_id,
+                winner_id: winnerChallongeId,
             },
         };
 
@@ -570,7 +570,7 @@ class MatchHandler {
         //   __augmented: true
         // }
         db.run(
-            `INSERT INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
+            `INSERT OR REPLACE INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 statsPlayer1_user_id,
@@ -596,7 +596,7 @@ class MatchHandler {
             }
         );
         db.run(
-            `INSERT INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
+            `INSERT OR REPLACE INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 statsPlayer2_user_id,
