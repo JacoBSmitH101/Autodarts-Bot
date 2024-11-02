@@ -94,6 +94,41 @@ async function handleCancelRemove(interaction) {
         components: [],
     });
 }
+async function getNameFromChallongeId(challonge_user_id, withAutodarts = true) {
+    //first get user_id from Participants table
+    //then get the user's name from the Users table as discord_tag (autodarts_name)
+    const db = new sqlite3.Database("./data.db");
+    const query = `SELECT user_id FROM Participants WHERE challonge_id = ?`;
+    const user_id = await new Promise((resolve, reject) => {
+        db.get(query, [challonge_user_id], (err, row) => {
+            if (err) {
+                console.error("Error fetching user_id:", err.message);
+                reject(err);
+            }
+            resolve(row ? row.user_id : null);
+        });
+    });
+    if (!user_id) {
+        console.error("User ID not found for Challonge ID:", challonge_user_id);
+        return null;
+    }
+    const userQuery = `SELECT discord_tag, autodarts_name FROM Users WHERE user_id = ?`;
+    const user = await new Promise((resolve, reject) => {
+        db.get(userQuery, [user_id], (err, row) => {
+            if (err) {
+                console.error("Error fetching user:", err.message);
+                reject(err);
+            }
+            resolve(row);
+        });
+    });
+    db.close();
+    if (withAutodarts) {
+        return `${user.discord_tag} (${user.autodarts_name})`;
+    } else {
+        return user.discord_tag;
+    }
+}
 async function handleConfirmRemove(interaction, challongeId) {
     const db = new sqlite3.Database("./data.db", (err) => {
         if (err) {
@@ -179,7 +214,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
             return;
         }
         console.log(rows);
-    })
+    });
     try {
         // Fetch all participants in the tournament
         console.log(`Fetching participants for tournament ${tournamentId}`);
@@ -221,13 +256,21 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 playerIdCount[player2_id] =
                     (playerIdCount[player2_id] || 0) + 1;
             });
+            const group_id = matches[0].match.group_id;
             if (participant_id == 245565315) {
                 console.log(playerIdCount);
             }
 
-            const matchPlayerId = Object.keys(playerIdCount).reduce((a, b) =>
-                playerIdCount[a] > playerIdCount[b] ? a : b
-            );
+            let matchPlayerId =
+                Object.keys(playerIdCount).length === 1
+                    ? Object.keys(playerIdCount)[0]
+                    : Object.keys(playerIdCount).reduce((a, b) =>
+                          playerIdCount[a] > playerIdCount[b] ? a : b
+                      );
+            if (user_id == 2) {
+                //set to second key
+                matchPlayerId = Object.keys(playerIdCount)[0];
+            }
             if (participant_id == 245565315) {
                 console.log(user_id);
             }
@@ -235,8 +278,8 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
             // Update participant's match-specific Challonge ID in Participants table
             await new Promise((resolve, reject) => {
                 db.run(
-                    `UPDATE Participants SET challonge_id = ? WHERE user_id = ? AND tournament_id = ?`,
-                    [matchPlayerId, user_id, tournamentId],
+                    `UPDATE Participants SET challonge_id = ?, group_id = ? WHERE user_id = ? AND tournament_id = ?`,
+                    [matchPlayerId, group_id, user_id, tournamentId],
                     (err) => {
                         if (err) {
                             console.error(
@@ -286,8 +329,8 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                 if (!matchExists) {
                     await new Promise((resolve, reject) => {
                         db.run(
-                            `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at, suggested_play_order)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at, suggested_play_order, group_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
                                 challongeMatchId,
                                 tournamentId,
@@ -300,6 +343,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                                 player2Score,
                                 updated_at,
                                 suggested_play_order,
+                                group_id,
                             ],
                             (err) => {
                                 if (err) {
@@ -321,7 +365,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                     //update instead of insert
                     await new Promise((resolve, reject) => {
                         db.run(
-                            `UPDATE Matches SET player1_id = ?, player2_id = ?, winner_id = ?, state = ?, player1_score = ?, player2_score = ?, updated_at = ?, suggested_play_order = ? WHERE challonge_match_id = ? AND tournament_id = ?`,
+                            `UPDATE Matches SET player1_id = ?, player2_id = ?, winner_id = ?, state = ?, player1_score = ?, player2_score = ?, updated_at = ?, suggested_play_order = ?, group_id = ? WHERE challonge_match_id = ? AND tournament_id = ?`,
                             [
                                 player1_id,
                                 player2_id,
@@ -331,6 +375,7 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
                                 player2Score,
                                 updated_at,
                                 suggested_play_order,
+                                group_id,
                                 challongeMatchId,
                                 tournamentId,
                             ],
@@ -578,4 +623,5 @@ module.exports = {
     rejectMatch,
     confirmMatch,
     updateParticipantMatchPlayerIdsAndMatches,
+    getNameFromChallongeId,
 };
