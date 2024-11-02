@@ -429,6 +429,11 @@ class MatchHandler {
         const winnerChallongeId =
             winnderIndex === 0 ? player1_challonge_id : player2_challonge_id;
 
+        if (stats.scores[0].legs === stats.scores[1].legs) {
+            winnerId = null;
+            winnerChallongeId = null;
+        }
+
         //update match in database (winner_id, state, player1_score, player2_score(use legs), autodarts_match_id)
         db.run(
             `UPDATE Matches 

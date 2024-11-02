@@ -24,7 +24,11 @@ const {
 } = require("./util");
 
 const TOKEN = process.env.TOKEN;
-const ALLOWED_USER_IDS = ["414395899570290690", "335970728811954187"];
+const ALLOWED_USER_IDS = [
+    "414395899570290690",
+    "335970728811954187",
+    "1142632757206466590",
+];
 const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe"; // Replace with actual WebSocket URL
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
 const username = process.env.USERNAMES;
@@ -164,7 +168,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
         await command.execute(interaction);
     } catch (error) {
-        //console.error(error);
+        console.error(error);
         if (interaction.replied || interaction.deferred) {
             await interaction.followUp({
                 content: "There was an error while executing this command!",

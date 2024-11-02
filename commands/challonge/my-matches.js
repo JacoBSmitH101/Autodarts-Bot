@@ -87,7 +87,7 @@ module.exports = {
             let matches = await new Promise((resolve, reject) => {
                 db.all(
                     `SELECT M.match_id, M.player1_id, M.player2_id, M.winner_id, M.state, 
-                            M.player1_score, M.player2_score, M.suggested_play_order, 
+                            M.player1_score, M.player2_score, M.suggested_play_order, M.group_id,
                             U1.autodarts_name AS player1_name, U1.discord_tag AS discord1_tag, U2.discord_tag as discord2_tag, U2.autodarts_name AS player2_name
                      FROM Matches M
                      JOIN Participants P1 ON M.player1_id = P1.challonge_id
@@ -106,6 +106,14 @@ module.exports = {
                     }
                 );
             });
+
+            //ensure that the matches are all in the same group else something is wrong so error out
+            const groupIds = matches.map((match) => match.group_id);
+            if (groupIds.some((id) => id !== groupIds[0])) {
+                return interaction.reply(
+                    "Error: Matches are not in the same group."
+                );
+            }
 
             matches.sort(
                 (a, b) => a.suggested_play_order - b.suggested_play_order
@@ -138,7 +146,10 @@ module.exports = {
                     const opponentDisplayName =
                         opponentTag + " (" + opponentName + ")";
                     // Parse the score from the `score_csv` field
-                    const scoreCsv = match.score_csv || "0-0";
+                    let scoreCsv = "0-0";
+                    if (match.state == "complete") {
+                        scoreCsv = `${match.player1_score}-${match.player2_score}`;
+                    }
                     const [playerScore, opponentScore] = scoreCsv
                         .split("-")
                         .map(Number);
@@ -156,15 +167,19 @@ module.exports = {
                         match.state.slice(1);
 
                     // Format each match in an inline style within a full-width field
+                    console.log(playerScore, opponentScore);
                     if (playerScore === 0 && opponentScore === 0) {
                         embed.addFields({
-                            name: `Match ${index + 1} 🎯`,
+                            name: `⚪ Match ${index + 1} 🎯`,
                             value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${result}`,
                         });
                     } else {
+                        // use status indicators: 🟢, 🔴, ⚪
                         embed.addFields({
-                            name: `Match ${index + 1} 🎯`,
-                            value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${matchStatus} | **Score**: ${playerScore} - ${opponentScore} | **Result**: ${result}`,
+                            name: `${
+                                result == "✅ **Won**" ? "🟢 " : "🔴 "
+                            }Match ${index + 1} 🎯`,
+                            value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${matchStatus} | **Score**: ${playerScore} - ${opponentScore} **Result**: ${result}`,
                         });
                     }
                 });
