@@ -122,18 +122,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 await handleCancelRemove(interaction);
             }
         }
-        if (commandName == "autoMatch") {
+        if (commandName === "autoMatch") {
             const [submitterDiscordId, autodarts_match_id] = extra;
             if (action === "confirm") {
                 console.log("Confirming match");
-                //get players challonge_id from participants table using user_id (discord id) and tournament id from matches table
                 const db = new sqlite3.Database("./data.db", (err) => {
                     if (err) {
                         console.error(
                             "Database connection error:",
                             err.message
                         );
-                        return;
+                        return interaction.reply({
+                            content: "Failed to connect to the database.",
+                            ephemeral: true,
+                        });
                     }
                 });
 
@@ -167,8 +169,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         );
                     }
                 );
+
                 console.log("Submitter Challonge ID:", submitterChallongeId);
-                //check if submitter is in the match and if player 1 or player 2
                 const player = await new Promise((resolve, reject) => {
                     db.get(
                         `SELECT player1_id, player2_id FROM Matches WHERE autodarts_match_id = ?`,
@@ -195,7 +197,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 }
 
                 if (submitterChallongeId === player.player1_id) {
-                    //alter matches table to haev player1_confirmed = 1
                     db.run(
                         `UPDATE Matches SET player1_confirmed = 1 WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
@@ -205,12 +206,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                     "Failed to update player1_confirmed:",
                                     err.message
                                 );
-                                return;
+                                return interaction.reply({
+                                    content:
+                                        "Failed to confirm match for player 1.",
+                                    ephemeral: true,
+                                });
                             }
+                            interaction.reply({
+                                content:
+                                    "Match confirmation recorded for player 1.",
+                                ephemeral: true,
+                            });
                         }
                     );
                 } else {
-                    //alter matches table to haev player2_confirmed = 1
                     db.run(
                         `UPDATE Matches SET player2_confirmed = 1 WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
@@ -220,13 +229,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                     "Failed to update player2_confirmed:",
                                     err.message
                                 );
-                                return;
+                                return interaction.reply({
+                                    content:
+                                        "Failed to confirm match for player 2.",
+                                    ephemeral: true,
+                                });
                             }
+                            interaction.reply({
+                                content:
+                                    "Match confirmation recorded for player 2.",
+                                ephemeral: true,
+                            });
                         }
                     );
                 }
 
-                //check if both players have confirmed
                 const match = await new Promise((resolve, reject) => {
                     db.get(
                         `SELECT * FROM Matches WHERE autodarts_match_id = ?`,
@@ -245,7 +262,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player1_confirmed === 1 &&
                     match.player2_confirmed === 1
                 ) {
-                    //send message to channel
                     const channel = client.channels.cache.get(
                         "1295486855378108515"
                     );
@@ -256,14 +272,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 `Match between ${match.player1_name} and ${match.player2_name} has been confirmed`
                             )
                             .setColor(0x00ff00);
+                        await interaction.reply({
+                            content:
+                                "Both players have confirmed. Announcing in the channel.",
+                            ephemeral: true,
+                        });
                         channel.send({ embeds: [embed] });
                     } else {
                         console.log("Channel not found");
+                        interaction.reply({
+                            content:
+                                "Match confirmation recorded, but announcement channel not found.",
+                            ephemeral: true,
+                        });
                     }
                 }
             } else if (action === "reject") {
+                await interaction.reply({
+                    content: "Match rejected.",
+                    ephemeral: true,
+                });
             }
         }
+
         if (commandName === "confirmMatch") {
             extra = extra.join("_");
             const [matchId, submitterId, opponentId] = extra.split("_");
