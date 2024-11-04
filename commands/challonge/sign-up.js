@@ -121,9 +121,9 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setColor(0x00ff99)
-                .setTitle("Tournament Sign-Up Successful!")
+                .setTitle("League Sign-Up Successful!")
                 .setDescription(
-                    `You've successfully signed up for the tournament **${tournamentName}**!`
+                    `You've successfully signed up for the league **${tournamentName}**!`
                 )
                 .setThumbnail(interaction.user.displayAvatarURL())
                 .addFields(
