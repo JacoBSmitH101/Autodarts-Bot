@@ -34,6 +34,13 @@ module.exports = {
             "autodart-profile-url"
         );
 
+        //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
+        if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
+            return interaction.reply(
+                "Invalid Autodarts profile URL. Please provide a valid URL."
+            );
+        }
+
         let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
         let average = 25;
 
