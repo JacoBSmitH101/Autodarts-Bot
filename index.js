@@ -35,7 +35,7 @@ const username = process.env.USERNAMES;
 const password = process.env.PASSWORDS;
 const clientId = "wusaaa-caller-for-autodarts";
 const clientSecret = "4hg5d4fddW7rqgoY8gZ42aMpi2vjLkzf"; // Optional, if needed
-const debug = true; // Enable debug mode to see logs
+const debug = process.env.DEBUG == "True";
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
