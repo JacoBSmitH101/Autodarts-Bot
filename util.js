@@ -599,7 +599,6 @@ async function confirmMatch(interaction, extra) {
     }
     //TODO update our database
 
-    console.log(score);
     const updatedEmbed = EmbedBuilder.from(scoreEmbed)
         .setTitle("Match Confirmed")
         .setFooter({

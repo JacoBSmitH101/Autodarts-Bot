@@ -1,9 +1,17 @@
 const { default: axios } = require("axios");
-const { EmbedBuilder, hyperlink, hideLinkEmbed } = require("discord.js");
+const {
+    EmbedBuilder,
+    hyperlink,
+    hideLinkEmbed,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+} = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
 
 class MatchHandler {
     constructor(client) {
+        console.log("MatchHandler initialized");
         //will store objects with:
         // {
         //     matchId: "xxx",
@@ -82,7 +90,7 @@ class MatchHandler {
     }
     async updateMatch(matchId, message) {
         //basically just edit the interaction message with the new scores
-        const match = this.ongoing_matches.find(
+        let match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );
         const player1_score = message.data.gameScores[0];
@@ -95,7 +103,7 @@ class MatchHandler {
 
         const interaction = match.live_discord_interaction;
 
-        if (message.data.winner !== -1) {
+        if (message.data.winner !== -1 && !match.checking) {
             // Match is finished
             const embed = new EmbedBuilder()
                 .setTitle("🎯 League Match Finished")
@@ -128,11 +136,11 @@ class MatchHandler {
 
             // Update message
             interaction.edit({ embeds: [embed] });
-            console.log(this.client.keycloakClient.accessToken);
+            match.checking = true;
             //get stats
             setTimeout(() => {
                 this.checkIfMatchFinished(matchId, this.client);
-            }, 30000);
+            }, 15000);
 
             return;
         }
@@ -174,7 +182,7 @@ class MatchHandler {
         }
     }
     async addMatch(matchId, message, tournamentId) {
-        console.log(message);
+        //double check matchId is not already being tracked
         if (message.data.variant != "X01") {
             return;
         }
@@ -267,16 +275,16 @@ class MatchHandler {
             );
         });
 
-        console.log(db_match);
-
         this.ongoing_matches.push({
             matchId: matchId,
             players: players,
             live_discord_interaction: null,
             challonge_tournament_id: tournamentId,
             challonge_match_id: db_match.match_id,
+            checking: false,
         });
 
+        //instead update not add
         //get player names
         const player1_name = players[0].name;
         const player2_name = players[1].name;
@@ -434,7 +442,82 @@ class MatchHandler {
             winnerChallongeId = null;
         }
 
+        //----------------------- confirm with players-----------------------
+
+        let confirmations = {
+            player1: false,
+            player2: false,
+        };
+
+        const sendConfirmationWithButtons = async (
+            player,
+            playerUser,
+            stats,
+            client
+        ) => {
+            try {
+                // Create an embed with match details
+                const embed = new EmbedBuilder()
+                    .setTitle("Match Result Confirmation")
+                    .setDescription(
+                        `Your match has ended with a score of ${stats.scores[0].legs}-${stats.scores[1].legs}. Please confirm if this result is correct and if this was a league match.`
+                    )
+                    .setColor(0x00ff00);
+                // Create buttons for confirm and reject
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `confirm_autoMatch_${playerUser.id}_${matchId}`
+                        )
+                        .setLabel("Confirm")
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `reject_autoMatch_${playerUser.id}_${matchId}`
+                        )
+                        .setLabel("Reject")
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+                // Send the embed and buttons to the user in DMs
+                const message = await playerUser.send({
+                    embeds: [embed],
+                    components: [row],
+                });
+            } catch (error) {
+                console.error(
+                    "Error sending confirmation with buttons:",
+                    error
+                );
+                return "error"; // Return "error" if DM fails
+            }
+        };
+
+        const player1User = await client.users.fetch(player1_user_id);
+        const player2User = await client.users.fetch(player2_user_id);
+        try {
+            sendConfirmationWithButtons("player2", player2User, stats, client);
+        } catch (error) {
+            console.error("Error sending confirmation with buttons:", error);
+        }
+        try {
+            sendConfirmationWithButtons("player1", player1User, stats, client);
+        } catch (error) {
+            console.error("Error sending confirmation with buttons:", error);
+        }
+
+        //we will add everything to the local db anyway, then the button handled in the discord bot will add to challonge or remove from local db
+
+        //-----------------------CONFIMED-------------------------------------
+
         //update match in database (winner_id, state, player1_score, player2_score(use legs), autodarts_match_id)
+
+        let scores_csv;
+        //db match player order is used here
+        scores_csv =
+            db_match.player1_id === player1_challonge_id
+                ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
+                : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
         db.run(
             `UPDATE Matches 
             SET winner_id = ?, state = ?, player1_score = ?, player2_score = ?, autodarts_match_id = ?
@@ -442,8 +525,8 @@ class MatchHandler {
             [
                 winnerChallongeId,
                 "complete",
-                stats.scores[0].legs,
-                stats.scores[1].legs,
+                scores_csv[0],
+                scores_csv[2],
                 matchId,
                 db_match.match_id,
             ],
@@ -457,12 +540,6 @@ class MatchHandler {
 
         //need to create scores-csv for challonge, will just be eg 4-3. got to organise based on if db_match.player1_id is player1_id or not
         //first check if db_match.player1_id player1_challonge_id
-        let scores_csv;
-        //db match player order is used here
-        scores_csv =
-            db_match.player1_id === player1_challonge_id
-                ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
-                : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
 
         //set winner_id
         let winner_id;
@@ -631,16 +708,29 @@ class MatchHandler {
         //when not using a matchmode as a draw can happen in the league but not with autodarts
         //, there is no event when the match is manually ended
         //this will be called 30 seconds after the last update involving a leg winner to check if the match is finished
+        console.log("Checking if match is finished");
         const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
         const headers = {
             Authorization: `Bearer ${client.keycloakClient.accessToken}`,
         };
         let stats;
+        let match = this.ongoing_matches.find(
+            (match) => match.matchId === matchId
+        );
         try {
+            const interaction = match.live_discord_interaction;
+            const embed = new EmbedBuilder()
+                .setTitle("🎯 League Match Finished")
+                .setDescription(`Waiting for confirmation from players.`)
+                .setColor(0xff0000) // Red color for finished match
+                .setTimestamp();
+            interaction.edit({ embeds: [embed] });
+
             stats = await axios.get(matchStatsUrl, { headers });
-            console.log(stats.data);
         } catch (error) {
             console.error("Match not finished:");
+            console.log(error);
+            match.checking = true;
             return;
         }
         //if it makes it here, the match is finished
