@@ -173,7 +173,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 console.log("Submitter Challonge ID:", submitterChallongeId);
                 const player = await new Promise((resolve, reject) => {
                     db.get(
-                        `SELECT player1_id, player2_id FROM Matches WHERE autodarts_match_id = ?`,
+                        `SELECT player1_id, player2_id, player1_confirmed, player2_confirmed FROM Matches WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
                         (err, row) => {
                             if (err)
@@ -186,8 +186,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 });
 
                 if (
-                    !submitterChallongeId === player.player1_id &&
-                    !submitterChallongeId === player.player2_id
+                    !submitterChallongeId == player.player1_id &&
+                    !submitterChallongeId == player.player2_id
                 ) {
                     await interaction.reply({
                         content: "You are not in this match!",
@@ -196,7 +196,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     return;
                 }
 
-                if (submitterChallongeId === player.player1_id) {
+                if (
+                    (submitterChallongeId != player.player1_id &&
+                        player.player1_confirmed == -1) ||
+                    (submitterChallongeId != player.player2_id &&
+                        player.player2_confirmed == -1)
+                ) {
+                    //other player has rejected
+                    await interaction.reply({
+                        content:
+                            "Other player has rejected the match! If this was unexpected, please contact an H3RBSKIx or JacoBSmitH.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
+                if (submitterChallongeId == player.player1_id) {
                     db.run(
                         `UPDATE Matches SET player1_confirmed = 1 WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
@@ -213,14 +228,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 });
                             }
                             interaction.reply({
-                                content:
-                                    "Match confirmation recorded for player 1.",
+                                content: "Match confirmation recorded!",
                                 ephemeral: true,
                             });
                         }
                     );
                 } else {
-                    db.run(
+                    await db.run(
                         `UPDATE Matches SET player2_confirmed = 1 WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
                         (err) => {
@@ -236,8 +250,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 });
                             }
                             interaction.reply({
-                                content:
-                                    "Match confirmation recorded for player 2.",
+                                content: "Match confirmation recorded!",
                                 ephemeral: true,
                             });
                         }
@@ -257,10 +270,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         }
                     );
                 });
+                console.log("------------------");
+                console.log("SUBMITTER", submitterChallongeId);
+                console.log("PLAYER1", player.player1_id);
+                console.log("PLAYER2", player.player2_id);
+                console.log("MATCH", match);
+                console.log("------------------");
 
                 if (
-                    match.player1_confirmed === 1 &&
-                    match.player2_confirmed === 1
+                    match.player1_confirmed == 1 &&
+                    match.player2_confirmed == 1
                 ) {
                     const channel = client.channels.cache.get(
                         "1295486855378108515"
@@ -272,7 +291,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 `Match between ${match.player1_name} and ${match.player2_name} has been confirmed`
                             )
                             .setColor(0x00ff00);
-                        await interaction.reply({
+                        await channel.send({
                             content:
                                 "Both players have confirmed. Announcing in the channel.",
                             ephemeral: true,
@@ -288,10 +307,118 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     }
                 }
             } else if (action === "reject") {
-                await interaction.reply({
-                    content: "Match rejected.",
-                    ephemeral: true,
+                const db = new sqlite3.Database("./data.db", (err) => {
+                    if (err) {
+                        console.error(
+                            "Database connection error:",
+                            err.message
+                        );
+                        return;
+                    }
                 });
+
+                const tournamentId = await new Promise((resolve, reject) => {
+                    db.get(
+                        `SELECT tournament_id FROM Matches WHERE autodarts_match_id = ?`,
+                        [autodarts_match_id],
+                        (err, row) => {
+                            if (err)
+                                return reject(
+                                    "Failed to retrieve tournament_id."
+                                );
+                            resolve(row ? row.tournament_id : null);
+                        }
+                    );
+                });
+
+                const submitterChallongeId = await new Promise(
+                    (resolve, reject) => {
+                        db.get(
+                            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
+                            [submitterDiscordId, tournamentId],
+                            (err, row) => {
+                                if (err)
+                                    return reject(
+                                        "Failed to retrieve submitter's challonge_id."
+                                    );
+                                resolve(row ? row.challonge_id : null);
+                            }
+                        );
+                    }
+                );
+
+                const player = await new Promise((resolve, reject) => {
+                    db.get(
+                        `SELECT player1_id, player2_id, player1_confirmed, player2_confirmed FROM Matches WHERE autodarts_match_id = ?`,
+                        [autodarts_match_id],
+                        (err, row) => {
+                            if (err)
+                                return reject(
+                                    "Failed to retrieve player1_id and player2_id."
+                                );
+                            resolve(row);
+                        }
+                    );
+                });
+
+                if (
+                    !submitterChallongeId == player.player1_id &&
+                    !submitterChallongeId == player.player2_id
+                ) {
+                    await interaction.reply({
+                        content: "You are not in this match!",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
+                //dont need to check if the other player has confirmed as they have rejected
+
+                if (submitterChallongeId == player.player1_id) {
+                    db.run(
+                        `UPDATE Matches SET player1_confirmed = -1 WHERE autodarts_match_id = ?`,
+                        [autodarts_match_id],
+                        (err) => {
+                            if (err) {
+                                console.error(
+                                    "Failed to update player1_confirmed:",
+                                    err.message
+                                );
+                                return interaction.reply({
+                                    content:
+                                        "Failed to reject match for player 1.",
+                                    ephemeral: true,
+                                });
+                            }
+                            interaction.reply({
+                                content: "Match rejection recorded!",
+                                ephemeral: true,
+                            });
+                        }
+                    );
+                } else {
+                    await db.run(
+                        `UPDATE Matches SET player2_confirmed = -1 WHERE autodarts_match_id = ?`,
+                        [autodarts_match_id],
+                        (err) => {
+                            if (err) {
+                                console.error(
+                                    "Failed to update player2_confirmed:",
+                                    err.message
+                                );
+                                return interaction.reply({
+                                    content:
+                                        "Failed to reject match for player 2.",
+                                    ephemeral: true,
+                                });
+                            }
+                            interaction.reply({
+                                content: "Match rejection recorded!",
+                                ephemeral: true,
+                            });
+                        }
+                    );
+                }
             }
         }
 
