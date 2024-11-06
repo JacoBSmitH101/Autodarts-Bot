@@ -173,7 +173,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 console.log("Submitter Challonge ID:", submitterChallongeId);
                 const player = await new Promise((resolve, reject) => {
                     db.get(
-                        `SELECT player1_id, player2_id, player1_confirmed, player2_confirmed FROM Matches WHERE autodarts_match_id = ?`,
+                        `SELECT * FROM Matches WHERE autodarts_match_id = ?`,
                         [autodarts_match_id],
                         (err, row) => {
                             if (err)
@@ -284,6 +284,71 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     const channel = client.channels.cache.get(
                         "1295486855378108515"
                     );
+
+                    let db_match = await new Promise((resolve, reject) => {
+                        db.get(
+                            `SELECT * FROM Matches 
+                WHERE tournament_id = ? 
+                AND ((player1_id = ? AND player2_id = ?) 
+                OR (player1_id = ? AND player2_id = ?))`,
+                            [
+                                player.tournament_id,
+                                player.player1_id,
+                                player.player2_id,
+                                player.player2_id,
+                                player.player1_id,
+                            ],
+                            (err, row) => {
+                                if (err)
+                                    return reject(
+                                        "Failed to retrieve match details."
+                                    );
+                                resolve(row);
+                            }
+                        );
+                    });
+
+                    const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
+                    const params = {
+                        api_key: process.env.API_KEY,
+                    };
+
+                    const winnerIndex =
+                        db_match.player1_score > db_match.player2_score ? 0 : 1;
+
+                    if (db_match.player1_score == db_match.player2_score) {
+                        winnerIndex = null;
+                    }
+
+                    let winnderChallongeId = null;
+                    if (winnerIndex != null) {
+                        winnerChallongeId =
+                            winnerIndex == 0
+                                ? db_match.player1_id
+                                : db_match.player2_id;
+                    }
+
+                    let scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
+                    const data = {
+                        match: {
+                            scores_csv: scores_csv,
+                            winner_id: winnerChallongeId,
+                        },
+                    };
+
+                    try {
+                        const response = await axios.put(api_url, data, {
+                            params,
+                        });
+                        if (response.status === 200) {
+                            console.log("Challonge match updated");
+                        }
+                    } catch (error) {
+                        console.error("Error updating challonge match:", error);
+                    }
+
+                    // add to challonge
+
                     if (channel) {
                         const embed = new EmbedBuilder()
                             .setTitle("Match Confirmed")
