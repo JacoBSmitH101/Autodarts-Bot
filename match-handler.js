@@ -561,14 +561,14 @@ class MatchHandler {
             },
         };
 
-        try {
-            const response = await axios.put(api_url, data, { params });
-            if (response.status === 200) {
-                console.log("Challonge match updated");
-            }
-        } catch (error) {
-            console.error("Error updating challonge match:", error);
-        }
+        // try {
+        //     const response = await axios.put(api_url, data, { params });
+        //     if (response.status === 200) {
+        //         console.log("Challonge match updated");
+        //     }
+        // } catch (error) {
+        //     console.error("Error updating challonge match:", error);
+        // }
 
         //now update stats table, one record for each player
         // user_id, match_id(challonge), tournament_id, average, average_until_170, first_9_average
