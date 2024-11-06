@@ -28,6 +28,7 @@ const ALLOWED_USER_IDS = [
     "414395899570290690",
     "335970728811954187",
     "1142632757206466590",
+    "335970728811954187",
 ];
 const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe"; // Replace with actual WebSocket URL
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
@@ -102,6 +103,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const command = client.commands.get(interaction.commandName);
         if (!command.autocomplete) return;
         await command.autocomplete(interaction);
+        return;
+    }
+    if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
+        await interaction.reply({
+            content: "You do not have permission to use this command.",
+            ephemeral: true,
+        });
         return;
     }
     if (interaction.isModalSubmit()) {
@@ -524,13 +532,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     try {
-        if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
-            await interaction.reply({
-                content: "You do not have permission to use this command.",
-                ephemeral: true,
-            });
-            return;
-        }
         await command.execute(interaction);
     } catch (error) {
         console.error(error);

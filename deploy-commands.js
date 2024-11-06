@@ -48,8 +48,16 @@ const rest = new REST().setToken(process.env.TOKEN);
             { body: commands }
         );
 
+        const data2 = await rest.put(
+            Routes.applicationGuildCommands(
+                process.env.CLIENT_ID,
+                process.env.AD_GUILD_ID
+            ),
+            { body: commands }
+        );
+
         console.log(
-            `Successfully reloaded ${data.length} application (/) commands.`
+            `Successfully reloaded ${data2.length} application (/) commands.`
         );
     } catch (error) {
         // And of course, make sure you catch and log any errors!
