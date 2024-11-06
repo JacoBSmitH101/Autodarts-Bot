@@ -3,6 +3,7 @@ const {
     getTournamentIdByName,
     fetchTournamentsFromDatabase,
     getNameFromChallongeId,
+    getLeagueStandings,
 } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
