@@ -24,8 +24,6 @@ module.exports = {
         const tournamentName = interaction.options.getString("tournament");
         const tournamentId = await getTournamentIdByName(tournamentName);
 
-        console.log(tournamentName, tournamentId);
-
         let standings = await getLeagueStandings(tournamentId, tournamentName);
 
         standings.groups = Object.fromEntries(
