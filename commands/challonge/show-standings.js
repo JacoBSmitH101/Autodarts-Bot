@@ -7,6 +7,7 @@ const {
 } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
+const { getAllMatchesFromTournamentId } = require("../../datamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -47,17 +48,17 @@ module.exports = {
                 return interaction.reply("Failed to connect to the database.");
             }
         });
-
-        const matches = await new Promise((resolve, reject) => {
-            db.all(
-                "SELECT * FROM matches WHERE tournament_id = ?",
-                [tournamentId],
-                (err, rows) => {
-                    if (err) return reject(err);
-                    resolve(rows);
-                }
-            );
-        });
+        const matches = await getAllMatchesFromTournamentId(tournamentId);
+        // const matches = await new Promise((resolve, reject) => {
+        //     db.all(
+        //         "SELECT * FROM matches WHERE tournament_id = ?",
+        //         [tournamentId],
+        //         (err, rows) => {
+        //             if (err) return reject(err);
+        //             resolve(rows);
+        //         }
+        //     );
+        // });
 
         for (const match of matches) {
             const groupId = match.group_id;

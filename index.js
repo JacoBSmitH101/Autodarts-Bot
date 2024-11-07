@@ -37,6 +37,11 @@ const password = process.env.PASSWORDS;
 const clientId = "wusaaa-caller-for-autodarts";
 const clientSecret = "4hg5d4fddW7rqgoY8gZ42aMpi2vjLkzf"; // Optional, if needed
 const debug = process.env.DEBUG == "True";
+const {
+    getTournamentIdByName,
+    getMatchFromAutodartsMatchId,
+    getAllMatchesFromTournamentId,
+} = require("./datamanager");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
@@ -274,20 +279,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         }
                     );
                 }
-
-                const match = await new Promise((resolve, reject) => {
-                    db.get(
-                        `SELECT * FROM Matches WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err, row) => {
-                            if (err)
-                                return reject(
-                                    "Failed to retrieve match details."
-                                );
-                            resolve(row);
-                        }
-                    );
-                });
+                const match = getMatchFromAutodartsMatchId(autodarts_match_id);
                 console.log("------------------");
                 console.log("SUBMITTER", submitterChallongeId);
                 console.log("PLAYER1", player.player1_id);
