@@ -105,13 +105,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await command.autocomplete(interaction);
         return;
     }
-    if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
-        await interaction.reply({
-            content: "You do not have permission to use this command.",
-            ephemeral: true,
-        });
-        return;
-    }
+
     if (interaction.isModalSubmit()) {
         // Modal example
         await interaction.reply(
@@ -129,6 +123,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (action === "cancel") {
                 await handleCancelRemove(interaction);
             }
+        }
+        if (commandName == "joinTestChannel") {
+            const testChannelID = "1299461110465826859";
+            const guild = await client.guilds.cache.get("1279646324987265086");
+
+            const member = await guild.members.fetch(interaction.user.id);
+            const channel = await client.channels.fetch(testChannelID);
+            const permissions = await channel.permissionsFor(member);
+
+            await channel.permissionOverwrites.edit(member, {
+                1024: true,
+            });
+            await interaction.reply({
+                content: "You have been granted access to the testing channel",
+                ephemeral: true,
+            });
         }
         if (commandName === "autoMatch") {
             const [submitterDiscordId, autodarts_match_id] = extra;
@@ -521,7 +531,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
     }
     if (!interaction.isChatInputCommand()) return;
-
+    if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
+        await interaction.reply({
+            content: "You do not have permission to use this command.",
+            ephemeral: true,
+        });
+        return;
+    }
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
