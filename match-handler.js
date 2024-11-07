@@ -7,6 +7,11 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require("discord.js");
+const {
+    getUserIdFromAutodartsId,
+    getChallongeIdFromUserIdTournamentId,
+    getLocalMatchFromPlayersChallongeIdTournamentId,
+} = require("./datamanager");
 const sqlite3 = require("sqlite3").verbose();
 
 class MatchHandler {
@@ -201,79 +206,27 @@ class MatchHandler {
             }
         });
 
-        const player1_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player1_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player1's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
+        const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
-        const player2_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player2_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player2's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
+        const player2_user_id = await getUserIdFromAutodartsId(player2_id);
         console.log(tournamentId);
         console.log(player1_user_id);
         //use participants table to get challonge_ids using user_ids and tournament_id
-        const player1_challonge_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                [player1_user_id, tournamentId],
-                (err, row) => {
-                    if (err)
-                        return reject(
-                            "Failed to retrieve player1's challonge_id."
-                        );
-                    resolve(row ? row.challonge_id : null);
-                }
-            );
-        });
-        const player2_challonge_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                [player2_user_id, tournamentId],
-                (err, row) => {
-                    if (err)
-                        return reject(
-                            "Failed to retrieve player2's challonge_id."
-                        );
-                    resolve(row ? row.challonge_id : null);
-                }
-            );
-        });
+        const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
+            player1_user_id,
+            tournamentId
+        );
+        const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
+            player2_user_id,
+            tournamentId
+        );
 
         //then find the match in the matches table using the challonge_ids and tournament_id
-        let db_match = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT * FROM Matches
-                WHERE tournament_id = ?
-                AND ((player1_id = ? AND player2_id = ?)
-                OR (player1_id = ? AND player2_id = ?))`,
-                [
-                    tournamentId,
-                    player1_challonge_id,
-                    player2_challonge_id,
-                    player2_challonge_id,
-                    player1_challonge_id,
-                ],
-                (err, row) => {
-                    if (err) return reject("Failed to retrieve match details.");
-                    resolve(row);
-                }
-            );
-        });
+        let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
+            player1_challonge_id,
+            player2_challonge_id,
+            tournamentId
+        );
 
         this.ongoing_matches.push({
             matchId: matchId,
