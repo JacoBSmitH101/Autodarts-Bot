@@ -41,6 +41,11 @@ const {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
     getAllMatchesFromTournamentId,
+    getTournamentIdFromAutodartsMatchId,
+    getChallongeIdFromUserIdTournamentId,
+    getLocalMatchFromPlayersChallongeIdTournamentId,
+    getUserIdFromAutodartsId,
+    getActiveTournamentId,
 } = require("./datamanager");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -162,51 +167,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     }
                 });
 
-                const tournamentId = await new Promise((resolve, reject) => {
-                    db.get(
-                        `SELECT tournament_id FROM Matches WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err, row) => {
-                            if (err)
-                                return reject(
-                                    "Failed to retrieve tournament_id."
-                                );
-                            resolve(row ? row.tournament_id : null);
-                        }
-                    );
-                });
-
-                console.log("Tournament ID:", tournamentId);
-                const submitterChallongeId = await new Promise(
-                    (resolve, reject) => {
-                        db.get(
-                            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                            [submitterDiscordId, tournamentId],
-                            (err, row) => {
-                                if (err)
-                                    return reject(
-                                        "Failed to retrieve submitter's challonge_id."
-                                    );
-                                resolve(row ? row.challonge_id : null);
-                            }
-                        );
-                    }
+                const tournamentId = await getTournamentIdFromAutodartsMatchId(
+                    autodarts_match_id
                 );
 
-                console.log("Submitter Challonge ID:", submitterChallongeId);
-                const player = await new Promise((resolve, reject) => {
-                    db.get(
-                        `SELECT * FROM Matches WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err, row) => {
-                            if (err)
-                                return reject(
-                                    "Failed to retrieve player1_id and player2_id."
-                                );
-                            resolve(row);
-                        }
+                console.log("Tournament ID:", tournamentId);
+                const submitterChallongeId =
+                    await getChallongeIdFromUserIdTournamentId(
+                        submitterDiscordId,
+                        tournamentId
                     );
-                });
+
+                console.log("Submitter Challonge ID:", submitterChallongeId);
+                const player = await getMatchFromAutodartsMatchId(
+                    autodarts_match_id
+                );
 
                 if (
                     !submitterChallongeId == player.player1_id &&
@@ -235,49 +210,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 }
 
                 if (submitterChallongeId == player.player1_id) {
-                    db.run(
-                        `UPDATE Matches SET player1_confirmed = 1 WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Failed to update player1_confirmed:",
-                                    err.message
-                                );
-                                return interaction.reply({
-                                    content:
-                                        "Failed to confirm match for player 1.",
-                                    ephemeral: true,
-                                });
-                            }
-                            interaction.reply({
-                                content: "Match confirmation recorded!",
-                                ephemeral: true,
-                            });
-                        }
-                    );
+                    try {
+                        await confirmMatch(autodarts_match_id, 0);
+                        await interaction.reply({
+                            content: "Match confirmation recorded!",
+                            ephemeral: true,
+                        });
+                    } catch (error) {
+                        console.error("Error confirming match:", error);
+                        await interaction.reply({
+                            content: "Failed to confirm match.",
+                            ephemeral: true,
+                        });
+                    }
                 } else {
-                    await db.run(
-                        `UPDATE Matches SET player2_confirmed = 1 WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Failed to update player2_confirmed:",
-                                    err.message
-                                );
-                                return interaction.reply({
-                                    content:
-                                        "Failed to confirm match for player 2.",
-                                    ephemeral: true,
-                                });
-                            }
-                            interaction.reply({
-                                content: "Match confirmation recorded!",
-                                ephemeral: true,
-                            });
-                        }
-                    );
+                    try {
+                        await confirmMatch(autodarts_match_id, 1);
+                        await interaction.reply({
+                            content: "Match confirmation recorded!",
+                            ephemeral: true,
+                        });
+                    } catch (error) {
+                        console.error("Error confirming match:", error);
+                        await interaction.reply({
+                            content: "Failed to confirm match.",
+                            ephemeral: true,
+                        });
+                    }
                 }
                 const match = getMatchFromAutodartsMatchId(autodarts_match_id);
                 console.log("------------------");
@@ -295,28 +254,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         "1295486855378108515"
                     );
 
-                    let db_match = await new Promise((resolve, reject) => {
-                        db.get(
-                            `SELECT * FROM Matches 
-                WHERE tournament_id = ? 
-                AND ((player1_id = ? AND player2_id = ?) 
-                OR (player1_id = ? AND player2_id = ?))`,
-                            [
-                                player.tournament_id,
-                                player.player1_id,
-                                player.player2_id,
-                                player.player2_id,
-                                player.player1_id,
-                            ],
-                            (err, row) => {
-                                if (err)
-                                    return reject(
-                                        "Failed to retrieve match details."
-                                    );
-                                resolve(row);
-                            }
+                    let db_match =
+                        await getLocalMatchFromPlayersChallongeIdTournamentId(
+                            player.player1_id,
+                            player.player2_id,
+                            tournamentId
                         );
-                    });
 
                     const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
                     const params = {
@@ -392,49 +335,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     }
                 });
 
-                const tournamentId = await new Promise((resolve, reject) => {
-                    db.get(
-                        `SELECT tournament_id FROM Matches WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err, row) => {
-                            if (err)
-                                return reject(
-                                    "Failed to retrieve tournament_id."
-                                );
-                            resolve(row ? row.tournament_id : null);
-                        }
-                    );
-                });
-
-                const submitterChallongeId = await new Promise(
-                    (resolve, reject) => {
-                        db.get(
-                            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                            [submitterDiscordId, tournamentId],
-                            (err, row) => {
-                                if (err)
-                                    return reject(
-                                        "Failed to retrieve submitter's challonge_id."
-                                    );
-                                resolve(row ? row.challonge_id : null);
-                            }
-                        );
-                    }
+                const tournamentId = await getTournamentIdFromAutodartsMatchId(
+                    autodarts_match_id
                 );
 
-                const player = await new Promise((resolve, reject) => {
-                    db.get(
-                        `SELECT player1_id, player2_id, player1_confirmed, player2_confirmed FROM Matches WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err, row) => {
-                            if (err)
-                                return reject(
-                                    "Failed to retrieve player1_id and player2_id."
-                                );
-                            resolve(row);
-                        }
+                const submitterChallongeId =
+                    await getChallongeIdFromUserIdTournamentId(
+                        submitterDiscordId,
+                        tournamentId
                     );
-                });
+
+                const player = await getMatchFromAutodartsMatchId(
+                    autodarts_match_id
+                );
 
                 if (
                     !submitterChallongeId == player.player1_id &&
@@ -450,49 +363,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 //dont need to check if the other player has confirmed as they have rejected
 
                 if (submitterChallongeId == player.player1_id) {
-                    db.run(
-                        `UPDATE Matches SET player1_confirmed = -1 WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Failed to update player1_confirmed:",
-                                    err.message
-                                );
-                                return interaction.reply({
-                                    content:
-                                        "Failed to reject match for player 1.",
-                                    ephemeral: true,
-                                });
-                            }
-                            interaction.reply({
-                                content: "Match rejection recorded!",
-                                ephemeral: true,
-                            });
-                        }
-                    );
+                    await rejectMatch(autodarts_match_id, 0);
+                    await interaction.reply({
+                        content: "Match rejection recorded!",
+                        ephemeral: true,
+                    });
                 } else {
-                    await db.run(
-                        `UPDATE Matches SET player2_confirmed = -1 WHERE autodarts_match_id = ?`,
-                        [autodarts_match_id],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Failed to update player2_confirmed:",
-                                    err.message
-                                );
-                                return interaction.reply({
-                                    content:
-                                        "Failed to reject match for player 2.",
-                                    ephemeral: true,
-                                });
-                            }
-                            interaction.reply({
-                                content: "Match rejection recorded!",
-                                ephemeral: true,
-                            });
-                        }
-                    );
+                    await rejectMatch(autodarts_match_id, 1);
+                    await interaction.reply({
+                        content: "Match rejection recorded!",
+                        ephemeral: true,
+                    });
                 }
             }
         }
@@ -582,27 +463,9 @@ const handleNewMatch = async (message) => {
         }
     });
 
-    const player1_user_id = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-            [player1_id],
-            (err, row) => {
-                if (err) return reject("Failed to retrieve player1's user_id.");
-                resolve(row ? row.user_id : null);
-            }
-        );
-    });
+    const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
-    const player2_user_id = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-            [player2_id],
-            (err, row) => {
-                if (err) return reject("Failed to retrieve player2's user_id.");
-                resolve(row ? row.user_id : null);
-            }
-        );
-    });
+    const player2_user_id = await getUserIdFromAutodartsId(player2_id);
 
     if (!player1_user_id || !player2_user_id) {
         console.log(`Rejection: ${player1_user_id} ${player2_user_id}`);
@@ -610,61 +473,24 @@ const handleNewMatch = async (message) => {
     }
 
     //get tournament from participants table
-    let tournamentId = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT tournament_id FROM Participants WHERE user_id = ?`,
-            [player1_user_id],
-            (err, row) => {
-                if (err) return reject("Failed to retrieve tournament_id.");
-                resolve(row ? row.tournament_id : null);
-            }
-        );
-    });
+    let tournamentId = await getActiveTournamentId();
 
     //use participants table to get challonge_ids using user_ids and tournament_id
-    const player1_challonge_id = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-            [player1_user_id, tournamentId],
-            (err, row) => {
-                if (err)
-                    return reject("Failed to retrieve player1's challonge_id.");
-                resolve(row ? row.challonge_id : null);
-            }
-        );
-    });
-    const player2_challonge_id = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-            [player2_user_id, tournamentId],
-            (err, row) => {
-                if (err)
-                    return reject("Failed to retrieve player2's challonge_id.");
-                resolve(row ? row.challonge_id : null);
-            }
-        );
-    });
+    const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
+        player1_user_id,
+        tournamentId
+    );
+    const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
+        player2_user_id,
+        tournamentId
+    );
 
     //get the match from the matches table
-    const match = await new Promise((resolve, reject) => {
-        db.get(
-            `SELECT * FROM Matches 
-            WHERE tournament_id = ? 
-            AND ((player1_id = ? AND player2_id = ?) 
-            OR (player1_id = ? AND player2_id = ?))`,
-            [
-                tournamentId,
-                player1_challonge_id,
-                player2_challonge_id,
-                player2_challonge_id,
-                player1_challonge_id,
-            ],
-            (err, row) => {
-                if (err) return reject("Failed to retrieve match details.");
-                resolve(row);
-            }
-        );
-    });
+    const match = await getLocalMatchFromPlayersChallongeIdTournamentId(
+        player1_challonge_id,
+        player2_challonge_id,
+        tournamentId
+    );
     if (!match) {
         return console.log("Match not found");
     }

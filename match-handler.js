@@ -1,4 +1,4 @@
-const { default: axios } = require("axios");
+const { default: axios, get } = require("axios");
 const {
     EmbedBuilder,
     hyperlink,
@@ -11,6 +11,8 @@ const {
     getUserIdFromAutodartsId,
     getChallongeIdFromUserIdTournamentId,
     getLocalMatchFromPlayersChallongeIdTournamentId,
+    updateLocalMatch,
+    updateStats,
 } = require("./datamanager");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -312,78 +314,26 @@ class MatchHandler {
         const player2_id = stats.players[1].userId;
 
         //use user table to get user_ids
-        const player1_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player1_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player1's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
-        const player2_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player2_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player2's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
+        const player1_user_id = await getUserIdFromAutodartsId(player1_id);
+        const player2_user_id = await getUserIdFromAutodartsId(player2_id);
 
         //use participants table to get challonge_ids using user_ids and tournament_id
-        const player1_challonge_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                [player1_user_id, match.challonge_tournament_id],
-                (err, row) => {
-                    if (err)
-                        return reject(
-                            "Failed to retrieve player1's challonge_id."
-                        );
-                    resolve(row ? row.challonge_id : null);
-                }
-            );
-        });
-        const player2_challonge_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                [player2_user_id, match.challonge_tournament_id],
-                (err, row) => {
-                    if (err)
-                        return reject(
-                            "Failed to retrieve player2's challonge_id."
-                        );
-                    resolve(row ? row.challonge_id : null);
-                }
-            );
-        });
+        const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
+            player1_user_id,
+            match.challonge_tournament_id
+        );
+        const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
+            player2_user_id,
+            match.challonge_tournament_id
+        );
 
         //use matches table to get challonge_match_id using challonge_ids and tournament_id
         //keep in mind that it is possible player1_id in the match is player_2 that we are using here
-        let db_match = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT * FROM Matches 
-                WHERE tournament_id = ? 
-                AND ((player1_id = ? AND player2_id = ?) 
-                OR (player1_id = ? AND player2_id = ?))`,
-                [
-                    match.challonge_tournament_id,
-                    player1_challonge_id,
-                    player2_challonge_id,
-                    player2_challonge_id,
-                    player1_challonge_id,
-                ],
-                (err, row) => {
-                    if (err) return reject("Failed to retrieve match details.");
-                    resolve(row);
-                }
-            );
-        });
+        let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
+            player1_challonge_id,
+            player2_challonge_id,
+            match.challonge_tournament_id
+        );
 
         const winnderIndex = stats.winner; //0 is player1, 1 is player2
         const winnerId = winnderIndex === 0 ? player1_user_id : player2_user_id;
@@ -471,25 +421,15 @@ class MatchHandler {
             db_match.player1_id === player1_challonge_id
                 ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
                 : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
-        db.run(
-            `UPDATE Matches 
-            SET winner_id = ?, state = ?, player1_score = ?, player2_score = ?, autodarts_match_id = ?
-            WHERE match_id = ?`,
-            [
-                winnerChallongeId,
-                "complete",
-                scores_csv[0],
-                scores_csv[2],
-                matchId,
-                db_match.match_id,
-            ],
-            (err) => {
-                if (err) {
-                    console.error("Error updating match:", err);
-                    return interaction.reply("Failed to update match.");
-                }
-            }
-        );
+
+        const matchInfo = {
+            matchId: matchId,
+            db_match: db_match,
+            scores_csv: scores_csv,
+            winnerChallongeId: winnerChallongeId,
+            state: "complete",
+        };
+        await updateLocalMatch(matchInfo);
 
         //need to create scores-csv for challonge, will just be eg 4-3. got to organise based on if db_match.player1_id is player1_id or not
         //first check if db_match.player1_id player1_challonge_id
@@ -531,59 +471,19 @@ class MatchHandler {
         //then get their challonge_id from the participants table from user_id and tournament_id
         //then add this record to the stats table
 
-        const statsPlayer1_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player1_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player1's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
-        const statsPlayer2_user_id = await new Promise((resolve, reject) => {
-            db.get(
-                `SELECT user_id FROM Users WHERE autodarts_id = ?`,
-                [player2_id],
-                (err, row) => {
-                    if (err)
-                        return reject("Failed to retrieve player2's user_id.");
-                    resolve(row ? row.user_id : null);
-                }
-            );
-        });
+        const statsPlayer1_user_id = await getUserIdFromAutodartsId(player1_id);
+        const statsPlayer2_user_id = await getUserIdFromAutodartsId(player2_id);
 
-        const statsPlayer1_challonge_id = await new Promise(
-            (resolve, reject) => {
-                db.get(
-                    `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                    [statsPlayer1_user_id, match.challonge_tournament_id],
-                    (err, row) => {
-                        if (err)
-                            return reject(
-                                "Failed to retrieve player1's challonge_id."
-                            );
-                        resolve(row ? row.challonge_id : null);
-                    }
-                );
-            }
-        );
-        const statsPlayer2_challonge_id = await new Promise(
-            (resolve, reject) => {
-                db.get(
-                    `SELECT challonge_id FROM Participants WHERE user_id = ? AND tournament_id = ?`,
-                    [statsPlayer2_user_id, match.challonge_tournament_id],
-                    (err, row) => {
-                        if (err)
-                            return reject(
-                                "Failed to retrieve player2's challonge_id."
-                            );
-                        resolve(row ? row.challonge_id : null);
-                    }
-                );
-            }
-        );
+        const statsPlayer1_challonge_id =
+            await getChallongeIdFromUserIdTournamentId(
+                statsPlayer1_user_id,
+                match.challonge_tournament_id
+            );
+        const statsPlayer2_challonge_id =
+            await getChallongeIdFromUserIdTournamentId(
+                statsPlayer2_user_id,
+                match.challonge_tournament_id
+            );
 
         //add stats to stats table
         const statsPlayer1 = stats.matchStats[0];
@@ -604,57 +504,17 @@ class MatchHandler {
         //   code: 'SQLITE_CONSTRAINT',
         //   __augmented: true
         // }
-        db.run(
-            `INSERT OR REPLACE INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                statsPlayer1_user_id,
-                db_match.match_id,
-                match.challonge_tournament_id,
-                statsPlayer1.average,
-                statsPlayer1.averageUntil170,
-                statsPlayer1.first9Average,
-                statsPlayer1.checkoutPercent,
-                statsPlayer1.dartsThrown,
-                statsPlayer1.checkoutsHit,
-                statsPlayer1.plus60,
-                statsPlayer1.plus100,
-                statsPlayer1.plus140,
-                statsPlayer1.plus170,
-                statsPlayer1.total180,
-            ],
-            (err) => {
-                if (err) {
-                    console.error("Error adding stats:", err);
-                    return interaction.reply("Failed to add stats.");
-                }
-            }
+        await updateStats(
+            statsPlayer1_user_id,
+            db_match.match_id,
+            match.challonge_tournament_id,
+            statsPlayer1
         );
-        db.run(
-            `INSERT OR REPLACE INTO Stats (user_id, match_id, tournament_id, average, average_until_170, first_9_average, checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                statsPlayer2_user_id,
-                db_match.match_id,
-                match.challonge_tournament_id,
-                statsPlayer2.average,
-                statsPlayer2.averageUntil170,
-                statsPlayer2.first9Average,
-                statsPlayer2.checkoutPercent,
-                statsPlayer2.dartsThrown,
-                statsPlayer2.checkoutsHit,
-                statsPlayer2.plus60,
-                statsPlayer2.plus100,
-                statsPlayer2.plus140,
-                statsPlayer2.plus170,
-                statsPlayer2.total180,
-            ],
-            (err) => {
-                if (err) {
-                    console.error("Error adding stats:", err);
-                    return interaction.reply("Failed to add stats.");
-                }
-            }
+        await updateStats(
+            statsPlayer2_user_id,
+            db_match.match_id,
+            match.challonge_tournament_id,
+            statsPlayer2
         );
     }
     async checkIfMatchFinished(matchId, client) {
