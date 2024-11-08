@@ -62,73 +62,22 @@ async function add_tournament(serverId, tournamentId) {
 }
 const sqlite3 = require("sqlite3").verbose();
 require("dotenv").config();
-function fetchTournamentsFromDatabase() {
-    return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database("./data.db", (err) => {
-            if (err) {
-                console.error(
-                    "Failed to connect to the database:",
-                    err.message
-                );
-                reject(err);
-            }
-        });
-
-        // Query to fetch all tournaments with status "open"
-        const query = `SELECT name FROM Tournaments WHERE status = 'pending'`;
-        db.all(query, [], (err, rows) => {
-            db.close();
-            if (err) {
-                console.error("Database query error:", err.message);
-                reject(err);
-            } else {
-                resolve(rows.map((row) => ({ name: row.name })));
-            }
-        });
-    });
+async function fetchTournamentsFromDatabase() {
+    return await fetchTournamentsFromDatabase2();
 }
 const { EmbedBuilder } = require("discord.js");
+const {
+    getNameFromChallongeId,
+    getAllMatchesFromTournamentId,
+    fetchTournamentsFromDatabase2,
+} = require("./testdatamanager");
 async function handleCancelRemove(interaction) {
     await interaction.update({
         content: "Tournament removal canceled.",
         components: [],
     });
 }
-async function getNameFromChallongeId(challonge_user_id, withAutodarts = true) {
-    //first get user_id from Participants table
-    //then get the user's name from the Users table as discord_tag (autodarts_name)
-    const db = new sqlite3.Database("./data.db");
-    const query = `SELECT user_id FROM Participants WHERE challonge_id = ?`;
-    const user_id = await new Promise((resolve, reject) => {
-        db.get(query, [challonge_user_id], (err, row) => {
-            if (err) {
-                console.error("Error fetching user_id:", err.message);
-                reject(err);
-            }
-            resolve(row ? row.user_id : null);
-        });
-    });
-    if (!user_id) {
-        console.error("User ID not found for Challonge ID:", challonge_user_id);
-        return null;
-    }
-    const userQuery = `SELECT discord_tag, autodarts_name FROM Users WHERE user_id = ?`;
-    const user = await new Promise((resolve, reject) => {
-        db.get(userQuery, [user_id], (err, row) => {
-            if (err) {
-                console.error("Error fetching user:", err.message);
-                reject(err);
-            }
-            resolve(row);
-        });
-    });
-    db.close();
-    if (withAutodarts) {
-        return `${user.discord_tag} (${user.autodarts_name})`;
-    } else {
-        return user.discord_tag;
-    }
-}
+
 async function handleConfirmRemove(interaction, challongeId) {
     const db = new sqlite3.Database("./data.db", (err) => {
         if (err) {
@@ -611,6 +560,7 @@ async function confirmMatch(interaction, extra) {
         components: [], // Removes the buttons
     });
 }
+
 async function getLeagueStandings(tournamentId, tournamentName) {
     let standings = {
         tournamentId,
@@ -625,16 +575,7 @@ async function getLeagueStandings(tournamentId, tournamentName) {
         }
     });
 
-    const matches = await new Promise((resolve, reject) => {
-        db.all(
-            "SELECT * FROM matches WHERE tournament_id = ?",
-            [tournamentId],
-            (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows);
-            }
-        );
-    });
+    const matches = await getAllMatchesFromTournamentId(tournamentId);
 
     for (const match of matches) {
         const groupId = match.group_id;
@@ -649,7 +590,7 @@ async function getLeagueStandings(tournamentId, tournamentName) {
             if (!standings.groups[groupId].standings[playerId]) {
                 standings.groups[groupId].standings[playerId] = {
                     rank: 0,
-                    name: (await getNameFromChallongeId(playerId, false))
+                    name: (await getNameFromChallongeId(playerId))
                         .substring(0, 15)
                         .padEnd(15, " "),
                     wins: 0,
