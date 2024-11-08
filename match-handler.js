@@ -13,7 +13,7 @@ const {
     getLocalMatchFromPlayersChallongeIdTournamentId,
     updateLocalMatch,
     updateStats,
-} = require("./datamanager");
+} = require("./testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
 
 class MatchHandler {

@@ -3,6 +3,11 @@ const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
 require("dotenv").config();
 const { fetchTournamentsFromDatabase } = require("../../util.js"); // Assuming the function is correctly implemented
+const {
+    upsertUser,
+    upsertParticipant,
+    getTournamentIdByName,
+} = require("../../testdatamanager.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -64,8 +69,8 @@ module.exports = {
         });
 
         try {
+            //discordid, usertag, autodartusername, average, profileurl
             await upsertUser(
-                db,
                 discordId,
                 interaction.user.tag,
                 autodartUsername,
@@ -73,31 +78,15 @@ module.exports = {
                 profileUrl
             );
 
-            const tournamentId = await new Promise((resolve, reject) => {
-                db.get(
-                    `SELECT tournament_id FROM Tournaments WHERE name = ?`,
-                    [tournamentName],
-                    (err, row) => {
-                        if (err || !row) {
-                            console.error(
-                                "Tournament not found or database error:",
-                                err ? err.message : "No data"
-                            );
-                            return reject(
-                                new Error(
-                                    "Tournament not found in the database."
-                                )
-                            );
-                        }
-                        resolve(row.tournament_id);
-                    }
-                );
-            });
-
+            const tournamentId = await getTournamentIdByName(tournamentName);
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
             const params = { api_key: process.env.API_KEY };
             const data = { participant: { name: participantName } };
+            console.log("Signing up for tournament:", tournamentId);
+            console.log("API URL:", apiUrl);
+            console.log("Data:", data);
+            console.log("Params:", params);
 
             const response = await axios.post(apiUrl, data, { params });
 
@@ -113,7 +102,6 @@ module.exports = {
 
             const challongeParticipantId = response.data.participant.id;
             await upsertParticipant(
-                db,
                 discordId,
                 tournamentId,
                 challongeParticipantId
@@ -202,167 +190,4 @@ const getLast100Average = async (profileUrl, keycloakClient) => {
 
     //round to 2 decimal places
     return Math.round(last100Avg * 100) / 100;
-};
-
-const upsertUser = (
-    db,
-    discordId,
-    userTag,
-    autodartUsername,
-    average,
-    profileUrl
-) => {
-    return new Promise((resolve, reject) => {
-        db.get(
-            `SELECT * FROM Users WHERE user_id = ?`,
-            [discordId],
-            (err, row) => {
-                if (err) {
-                    console.error("Database query error:", err.message);
-                    return reject(new Error("Error retrieving user data."));
-                }
-
-                if (!row) {
-                    // User does not exist; insert into Users table
-                    const insertUserSql = `
-                    INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg, autodarts_id)
-                    VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)
-                `;
-                    db.run(
-                        insertUserSql,
-                        [
-                            discordId,
-                            userTag,
-                            autodartUsername,
-                            average,
-                            profileUrl.split("/").pop(),
-                        ],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Error inserting user:",
-                                    err.message
-                                );
-                                return reject(
-                                    new Error("Failed to create user.")
-                                );
-                            }
-                            resolve();
-                        }
-                    );
-                } else {
-                    // User exists; update the autodarts_name
-                    const updateUserSql = `
-                    UPDATE Users 
-                    SET autodarts_name = ?, avg = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = ?
-                `;
-                    db.run(
-                        updateUserSql,
-                        [autodartUsername, average, discordId],
-                        (err) => {
-                            if (err) {
-                                console.error(
-                                    "Error updating user autodarts_name:",
-                                    err.message
-                                );
-                                return reject(
-                                    new Error(
-                                        "Failed to update user information."
-                                    )
-                                );
-                            }
-                            resolve();
-                        }
-                    );
-                }
-            }
-        );
-    });
-};
-
-const upsertParticipant = (
-    db,
-    discordId,
-    tournamentId,
-    challongeParticipantId
-) => {
-    return new Promise((resolve, reject) => {
-        const checkParticipantSql = `SELECT * FROM Participants WHERE user_id = ? AND tournament_id = ?`;
-        db.get(checkParticipantSql, [discordId, tournamentId], (err, row) => {
-            if (err) {
-                console.error(
-                    "Error checking participant existence:",
-                    err.message
-                );
-                return reject(
-                    new Error(
-                        "Failed to process registration. Please contact support."
-                    )
-                );
-            }
-
-            if (row) {
-                // User already exists in this tournament, so we update challonge_id and participant_id
-                const updateParticipantSql = `
-                    UPDATE Participants 
-                    SET challonge_id = ?, participant_id = ?, tournament_id = ? 
-                    WHERE user_id = ? AND tournament_id = ?
-                `;
-                db.run(
-                    updateParticipantSql,
-                    [
-                        challongeParticipantId,
-                        challongeParticipantId,
-                        tournamentId,
-                        discordId,
-                        tournamentId,
-                    ],
-                    (err) => {
-                        if (err) {
-                            console.error(
-                                "Error updating participant in database:",
-                                err.message
-                            );
-                            return reject(
-                                new Error(
-                                    "Failed to update participant in the database. Please contact support."
-                                )
-                            );
-                        }
-                        resolve();
-                    }
-                );
-            } else {
-                // New participant, insert into Participants table
-                const insertParticipantSql = `
-                    INSERT INTO Participants (participant_id, user_id, tournament_id, challonge_id, status, joined_at)
-                    VALUES (?, ?, ?, ?, 'confirmed', CURRENT_TIMESTAMP)
-                `;
-                db.run(
-                    insertParticipantSql,
-                    [
-                        challongeParticipantId,
-                        discordId,
-                        tournamentId,
-                        challongeParticipantId,
-                    ],
-                    (err) => {
-                        if (err) {
-                            console.error(
-                                "Error inserting participant into database:",
-                                err.message
-                            );
-                            return reject(
-                                new Error(
-                                    "Failed to save participant in the database. Please contact support."
-                                )
-                            );
-                        }
-                        resolve();
-                    }
-                );
-            }
-        });
-    });
 };

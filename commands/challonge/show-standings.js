@@ -7,7 +7,7 @@ const {
 } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
-const { getAllMatchesFromTournamentId } = require("../../datamanager");
+const { getAllMatchesFromTournamentId } = require("../../testdatamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()

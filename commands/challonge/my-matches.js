@@ -1,6 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
 const { fetchTournamentsFromDatabase } = require("../../util");
+const {
+    getParticipantDataFromTournamentUserId,
+    getAllMatchesForPlayer,
+} = require("../../testdatamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("my-matches")
@@ -60,52 +64,20 @@ module.exports = {
 
         try {
             // Step 1: Get tournament ID and participant's match-specific Challonge ID
-            const participantData = await new Promise((resolve, reject) => {
-                db.get(
-                    `SELECT T.tournament_id, P.challonge_id 
-           FROM Tournaments T
-           JOIN Participants P ON T.tournament_id = P.tournament_id
-           WHERE T.name = ? AND P.user_id = ?`,
-                    [tournamentName, discordId],
-                    (err, row) => {
-                        if (err || !row) {
-                            console.error(
-                                "Error fetching tournament/participant data:",
-                                err
-                            );
-                            reject("Tournament or participant not found.");
-                        }
-                        resolve(row);
-                    }
+            const participantData =
+                await getParticipantDataFromTournamentUserId(
+                    tournamentId,
+                    discordId
                 );
-            });
 
             const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
                 participantData;
             console.log("Tournament ID:", tournamentId);
             // Step 2: Fetch matches for the participant from the Matches table
-            let matches = await new Promise((resolve, reject) => {
-                db.all(
-                    `SELECT M.match_id, M.player1_id, M.player2_id, M.winner_id, M.state, 
-                            M.player1_score, M.player2_score, M.suggested_play_order, M.group_id,
-                            U1.autodarts_name AS player1_name, U1.discord_tag AS discord1_tag, U2.discord_tag as discord2_tag, U2.autodarts_name AS player2_name
-                     FROM Matches M
-                     JOIN Participants P1 ON M.player1_id = P1.challonge_id
-                     JOIN Participants P2 ON M.player2_id = P2.challonge_id
-                     JOIN Users U1 ON P1.user_id = U1.user_id
-                     JOIN Users U2 ON P2.user_id = U2.user_id
-                     WHERE M.tournament_id = ? AND (M.player1_id = ? OR M.player2_id = ?)
-                     ORDER BY M.suggested_play_order ASC`, // Order by suggested_play_order directly in SQL
-                    [tournamentId, matchPlayerId, matchPlayerId],
-                    (err, rows) => {
-                        if (err) {
-                            console.error("Error fetching matches:", err);
-                            reject("Failed to retrieve matches.");
-                        }
-                        resolve(rows);
-                    }
-                );
-            });
+            let matches = await getAllMatchesForPlayer(
+                matchPlayerId,
+                tournamentId
+            );
 
             //ensure that the matches are all in the same group else something is wrong so error out
             const groupIds = matches.map((match) => match.group_id);

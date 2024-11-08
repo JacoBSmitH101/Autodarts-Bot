@@ -8,7 +8,9 @@ const sqlite3 = require("sqlite3").verbose();
 
 const { getSortedParticipants } = require("./show-seeds");
 const { autocomplete } = require("./sign-up");
-const { updateParticipantMatchPlayerIdsAndMatches } = require("../../util");
+const {
+    updateParticipantMatchPlayerIdsAndMatches,
+} = require("../../testdatamanager");
 const axios = require("axios");
 module.exports = {
     data: new SlashCommandBuilder()

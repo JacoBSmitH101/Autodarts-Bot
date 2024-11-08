@@ -46,7 +46,7 @@ const {
     getLocalMatchFromPlayersChallongeIdTournamentId,
     getUserIdFromAutodartsId,
     getActiveTournamentId,
-} = require("./datamanager");
+} = require("./testdatamanager");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
