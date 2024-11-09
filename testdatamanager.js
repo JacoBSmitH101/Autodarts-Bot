@@ -63,6 +63,19 @@ async function getMatchFromAutodartsMatchId(autodartsMatchId) {
     }
 }
 
+async function getChallongeTournamentURL(tournamentId) {
+    const url = `https://api.challonge.com/v1/tournaments/${tournamentId}.json`;
+    const params = { api_key: process.env.API_KEY };
+
+    try {
+        const response = await axios.get(url, { params });
+        return response.data.tournament.full_challonge_url;
+    } catch (error) {
+        console.error("Error fetching tournament URL:", error);
+        throw new Error("Failed to fetch tournament URL.");
+    }
+}
+
 /**
  * Retrieves all matches for a given tournament ID.
  */
@@ -89,7 +102,7 @@ async function getTournamentIdFromAutodartsMatchId(autodartsMatchId) {
     try {
         const result = await pool.query(query, values);
         if (result.rows.length === 0) throw new Error("Tournament not found.");
-        return result.rows[0];
+        return result.rows[0].tournament_id;
     } catch (err) {
         console.error("Failed to retrieve tournament ID:", err.message);
         throw new Error("Failed to retrieve tournament ID.");
@@ -106,7 +119,7 @@ async function getUserIdFromAutodartsId(autodartsId) {
     try {
         const result = await pool.query(query, values);
         if (result.rows.length === 0) return null;
-        return result.rows[0];
+        return result.rows[0].user_id;
     } catch (err) {
         console.error("Failed to retrieve user ID:", err.message);
         throw new Error("Failed to retrieve user ID.");
@@ -120,7 +133,13 @@ async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
     const query = `SELECT challonge_id FROM Participants WHERE user_id = $1 AND tournament_id = $2`;
     //const query =
     //"SELECT challonge_id FROM Participants WHERE user_id = '1299435641171607553' AND tournament_id = 15362165";
-    const values = [userId.user_id, tournamentId];
+    const values = [userId, tournamentId];
+
+    //check if tournament id is actually an object as some may pass in as {"tounament_id": 1234} if so, extract the id
+
+    if (typeof tournamentId === "object") {
+        tournamentId = tournamentId.tournament_id;
+    }
 
     //console log query put values in it to test
     try {
@@ -166,6 +185,7 @@ async function getLocalMatchFromPlayersChallongeIdTournamentId(
  * Updates a local match with the provided match information.
  */
 async function updateLocalMatch(matchInfo) {
+    console.log("Updating match:", matchInfo);
     const query = `
         UPDATE Matches 
         SET winner_id = $1, state = $2, player1_score = $3, player2_score = $4, autodarts_match_id = $5
@@ -175,10 +195,11 @@ async function updateLocalMatch(matchInfo) {
         matchInfo.winnerChallongeId,
         matchInfo.state,
         matchInfo.scores_csv[0],
-        matchInfo.scores_csv[1],
-        matchInfo.autodarts_match_id,
+        matchInfo.scores_csv[2],
         matchInfo.matchId,
+        matchInfo.db_match.match_id,
     ];
+    console.log("Values:", values);
 
     try {
         await pool.query(query, values);
@@ -671,4 +692,5 @@ module.exports = {
     upsertParticipant,
     removeParticipantFromTournament,
     getSortedParticipants,
+    getChallongeTournamentURL,
 };
