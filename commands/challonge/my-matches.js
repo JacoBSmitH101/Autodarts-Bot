@@ -4,6 +4,7 @@ const { fetchTournamentsFromDatabase } = require("../../util");
 const {
     getParticipantDataFromTournamentUserId,
     getAllMatchesForPlayer,
+    getTournamentIdByName,
 } = require("../../testdatamanager");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -64,11 +65,10 @@ module.exports = {
 
         try {
             // Step 1: Get tournament ID and participant's match-specific Challonge ID
+            let tId = await getTournamentIdByName(tournamentName);
+
             const participantData =
-                await getParticipantDataFromTournamentUserId(
-                    tournamentId,
-                    discordId
-                );
+                await getParticipantDataFromTournamentUserId(tId, discordId);
 
             const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
                 participantData;
