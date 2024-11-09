@@ -118,13 +118,18 @@ async function getUserIdFromAutodartsId(autodartsId) {
  */
 async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
     const query = `SELECT challonge_id FROM Participants WHERE user_id = $1 AND tournament_id = $2`;
-    const values = [userId, tournamentId];
+    //const query =
+    //"SELECT challonge_id FROM Participants WHERE user_id = '1299435641171607553' AND tournament_id = 15362165";
+    const values = [userId.user_id, tournamentId];
 
+    //console log query put values in it to test
     try {
+        //const result = await pool.query(query, values);
         const result = await pool.query(query, values);
+        console.log(result.rows);
         if (result.rows.length === 0)
             throw new Error("Challonge ID not found.");
-        return result.rows[0];
+        return result.rows[0].challonge_id;
     } catch (err) {
         console.error("Failed to retrieve Challonge ID:", err.message);
         throw new Error("Failed to retrieve Challonge ID.");
@@ -296,7 +301,7 @@ async function getActiveTournamentId() {
         const result = await pool.query(query);
         if (result.rows.length === 0)
             throw new Error("Active tournament not found.");
-        return result.rows[0];
+        return result.rows[0].tournament_id;
     } catch (err) {
         console.error("Failed to retrieve active tournament:", err.message);
         throw new Error("Failed to retrieve active tournament.");
