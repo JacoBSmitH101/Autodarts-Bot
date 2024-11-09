@@ -20,8 +20,8 @@ const {
     handleConfirmRemove,
     handleCancelRemove,
     rejectMatch,
-    confirmMatch,
-} = require("./util");
+} = require("./util"); //#endregion
+const confirmMatch = require("./testdatamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
 const ALLOWED_USER_IDS = [
@@ -126,6 +126,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isButton()) {
         // Parse button ID into components
         let [action, commandName, ...extra] = interaction.customId.split("_");
+
+        console.log(interaction.customId);
         // Route based on action and command name
         if (commandName === "remove-tournament") {
             if (action === "confirm") {
@@ -238,11 +240,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         });
                     }
                 }
-                const match = getMatchFromAutodartsMatchId(autodarts_match_id);
+                const match = await getMatchFromAutodartsMatchId(
+                    autodarts_match_id
+                );
                 console.log("------------------");
                 console.log("SUBMITTER", submitterChallongeId);
                 console.log("PLAYER1", player.player1_id);
                 console.log("PLAYER2", player.player2_id);
+                console.log("CONFIRMED", match.player1_confirmed);
+                console.log("CONFIRMED", match.player2_confirmed);
                 console.log("MATCH", match);
                 console.log("------------------");
 
@@ -254,6 +260,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         "1295486855378108515"
                     );
 
+                    console.log("Both players have confirmed");
+
                     let db_match =
                         await getLocalMatchFromPlayersChallongeIdTournamentId(
                             player.player1_id,
@@ -261,7 +269,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             tournamentId
                         );
 
-                    const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
+                    const api_url = `https://api.challonge.com/v1/tournaments/${match.tournament_id}/matches/${match.match_id}.json`;
                     const params = {
                         api_key: process.env.API_KEY,
                     };
@@ -476,6 +484,7 @@ const handleNewMatch = async (message) => {
     let tournamentId = await getActiveTournamentId();
 
     //use participants table to get challonge_ids using user_ids and tournament_id
+    console.log(player1_user_id, player2_user_id, tournamentId);
     const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
         player1_user_id,
         tournamentId

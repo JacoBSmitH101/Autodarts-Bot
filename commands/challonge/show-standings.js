@@ -4,14 +4,17 @@ const {
     getNameFromChallongeId,
     getLeagueStandings,
 } = require("../../util");
-const { getTournamentIdByName } = require("../../testdatamanager");
+const {
+    getTournamentIdByName,
+    getChallongeTournamentURL,
+} = require("../../testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
 const { getAllMatchesFromTournamentId } = require("../../testdatamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("show-standings")
+        .setName("standings")
         .setDescription("Shows the standings of the specified tournament")
         .addStringOption((option) =>
             option
@@ -30,8 +33,6 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        console.log("Show Standings");
-
         const tournamentName = interaction.options.getString("tournament");
         const mobileView = interaction.options.getBoolean("mobile") || false;
         const tournamentId = await getTournamentIdByName(tournamentName);
@@ -41,6 +42,8 @@ module.exports = {
             tournamentName,
             groups: {},
         };
+
+        const tournamentUrl = await getChallongeTournamentURL(tournamentId);
 
         const db = new sqlite3.Database("./data.db", (err) => {
             if (err) {
@@ -172,7 +175,7 @@ module.exports = {
             const tableContent = table(tableData);
 
             embed.addFields({
-                name: `https://challonge.com/7n7p66vo`,
+                name: `${tournamentUrl}`,
                 value: `\`\`\`${tableContent}\`\`\``,
             });
 

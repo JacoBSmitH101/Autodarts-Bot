@@ -397,6 +397,8 @@ class MatchHandler {
             }
         };
 
+        console.log(player1_user_id);
+
         const player1User = await client.users.fetch(player1_user_id);
         const player2User = await client.users.fetch(player2_user_id);
         try {
