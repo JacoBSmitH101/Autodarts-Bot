@@ -83,10 +83,6 @@ module.exports = {
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
             const params = { api_key: process.env.API_KEY };
             const data = { participant: { name: participantName } };
-            console.log("Signing up for tournament:", tournamentId);
-            console.log("API URL:", apiUrl);
-            console.log("Data:", data);
-            console.log("Params:", params);
 
             const response = await axios.post(apiUrl, data, { params });
 
@@ -136,7 +132,10 @@ module.exports = {
 
             interaction.reply({ embeds: [embed] });
         } catch (error) {
-            interaction.reply(error.message);
+            console.error("Error signing up for tournament:", error);
+            interaction.reply(
+                "An error occurred while signing up for the tournament. This is likely due to you already being signed up. Please contact an admin if you believe this is an error."
+            );
         } finally {
             db.close((err) => {
                 if (err) {

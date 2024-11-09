@@ -284,6 +284,14 @@ async function getActiveTournamentId() {
 }
 
 async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
+    //make userId an integer
+
+    console.log(
+        "Fetching participant data for tournament",
+        tournamentId,
+        "and user",
+        userId
+    );
     const query = `
         SELECT *
         FROM Participants P
@@ -298,6 +306,17 @@ async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
     } catch (err) {
         console.error("Failed to retrieve participant data:", err.message);
         throw new Error("Failed to retrieve participant data.");
+    }
+}
+async function removeParticipantFromTournament(tournamentId, userId) {
+    const query = `DELETE FROM Participants WHERE tournament_id = $1 AND user_id = $2`;
+    const values = [tournamentId, userId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Failed to remove participant:", err.message);
+        throw new Error("Failed to remove participant.");
     }
 }
 async function getAllMatchesForPlayer(playerId, tournamentId) {
@@ -362,7 +381,6 @@ async function getNameFromChallongeId(challongeId) {
         throw new Error("Failed to retrieve user name.");
     }
 }
-
 async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
     console.log(`Fetching participants for tournament ${tournamentId}`);
 
@@ -608,4 +626,5 @@ module.exports = {
     upsertUser,
     fetchTournamentsFromDatabase2,
     upsertParticipant,
+    removeParticipantFromTournament,
 };

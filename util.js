@@ -111,21 +111,8 @@ async function handleConfirmRemove(interaction, challongeId) {
     });
 }
 async function getTournamentIdByName(tournamentName) {
-    return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database("./data.db");
-        db.get(
-            `SELECT tournament_id FROM Tournaments WHERE name = ?`,
-            [tournamentName],
-            (err, row) => {
-                db.close();
-                if (err || !row) {
-                    reject("Tournament not found.");
-                } else {
-                    resolve(row.tournament_id);
-                }
-            }
-        );
-    });
+    const tournamentId = await getTournamentIdByName2(tournamentName);
+    return tournamentId;
 }
 async function getParticipantMapping(tournamentId) {
     const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
