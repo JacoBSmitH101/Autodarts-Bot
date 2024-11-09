@@ -1,15 +1,13 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageEmbed } = require("discord.js");
-const {
-    fetchTournamentsFromDatabase,
-    getTournamentIdByName,
-} = require("../../util");
+const { fetchTournamentsFromDatabase } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 
 const { getSortedParticipants } = require("./show-seeds");
 const { autocomplete } = require("./sign-up");
 const {
     updateParticipantMatchPlayerIdsAndMatches,
+    getTournamentIdByName,
 } = require("../../testdatamanager");
 const axios = require("axios");
 module.exports = {

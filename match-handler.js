@@ -300,6 +300,7 @@ class MatchHandler {
     }
     async processFinishedMatch(matchId, stats, client) {
         //get match
+        //TODO NEXT
         const match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );

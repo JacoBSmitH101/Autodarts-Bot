@@ -1,33 +1,34 @@
 const { SlashCommandBuilder } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
+const { fetchTournamentsFromDatabase } = require("../../util");
 const {
-    fetchTournamentsFromDatabase,
     getTournamentIdByName,
-} = require("../../util");
+    getSortedParticipants,
+} = require("../../testdatamanager");
 // Function to retrieve sorted participants by average
-const getSortedParticipants = async (tournamentId) => {
-    return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database("./data.db");
-        db.all(
-            `
-      SELECT Users.autodarts_name, Users.avg 
-      FROM Participants 
-      JOIN Users ON Participants.user_id = Users.user_id 
-      WHERE Participants.tournament_id = ? 
-      ORDER BY avg DESC
-    `,
-            [tournamentId],
-            (err, rows) => {
-                db.close();
-                if (err) {
-                    reject("Failed to retrieve participants.");
-                } else {
-                    resolve(rows);
-                }
-            }
-        );
-    });
-};
+// const getSortedParticipants = async (tournamentId) => {
+//     return new Promise((resolve, reject) => {
+//         const db = new sqlite3.Database("./data.db");
+//         db.all(
+//             `
+//       SELECT Users.autodarts_name, Users.avg
+//       FROM Participants
+//       JOIN Users ON Participants.user_id = Users.user_id
+//       WHERE Participants.tournament_id = ?
+//       ORDER BY avg DESC
+//     `,
+//             [tournamentId],
+//             (err, rows) => {
+//                 db.close();
+//                 if (err) {
+//                     reject("Failed to retrieve participants.");
+//                 } else {
+//                     resolve(rows);
+//                 }
+//             }
+//         );
+//     });
+// };
 
 // Utility function to split a long message into chunks for Discord
 const splitMessage = (message, maxLength = 2000) => {

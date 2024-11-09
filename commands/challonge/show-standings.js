@@ -1,10 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const {
-    getTournamentIdByName,
     fetchTournamentsFromDatabase,
     getNameFromChallongeId,
     getLeagueStandings,
 } = require("../../util");
+const { getTournamentIdByName } = require("../../testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
 const { getAllMatchesFromTournamentId } = require("../../testdatamanager");

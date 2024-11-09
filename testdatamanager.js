@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
-
+const axios = require("axios");
 // PostgreSQL configuration
+require("dotenv").config();
 const pool = new Pool({
     user: "bot",
     host: "192.168.1.105",
@@ -9,6 +10,25 @@ const pool = new Pool({
     port: 5432,
 });
 
+//recrate this function with pg
+const getSortedParticipants = async (tournamentId) => {
+    const query = `
+        SELECT U.autodarts_name, U.avg 
+        FROM Participants P
+        JOIN Users U ON P.user_id = U.user_id 
+        WHERE P.tournament_id = $1 
+        ORDER BY avg DESC
+    `;
+    const values = [tournamentId];
+
+    try {
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (err) {
+        console.error("Failed to retrieve participants:", err.message);
+        throw new Error("Failed to retrieve participants.");
+    }
+};
 /**
  * Retrieves the tournament ID by its name.
  */
@@ -98,13 +118,18 @@ async function getUserIdFromAutodartsId(autodartsId) {
  */
 async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
     const query = `SELECT challonge_id FROM Participants WHERE user_id = $1 AND tournament_id = $2`;
-    const values = [userId, tournamentId];
+    //const query =
+    //"SELECT challonge_id FROM Participants WHERE user_id = '1299435641171607553' AND tournament_id = 15362165";
+    const values = [userId.user_id, tournamentId];
 
+    //console log query put values in it to test
     try {
+        //const result = await pool.query(query, values);
         const result = await pool.query(query, values);
+        console.log(result.rows);
         if (result.rows.length === 0)
             throw new Error("Challonge ID not found.");
-        return result.rows[0];
+        return result.rows[0].challonge_id;
     } catch (err) {
         console.error("Failed to retrieve Challonge ID:", err.message);
         throw new Error("Failed to retrieve Challonge ID.");
@@ -276,7 +301,7 @@ async function getActiveTournamentId() {
         const result = await pool.query(query);
         if (result.rows.length === 0)
             throw new Error("Active tournament not found.");
-        return result.rows[0];
+        return result.rows[0].tournament_id;
     } catch (err) {
         console.error("Failed to retrieve active tournament:", err.message);
         throw new Error("Failed to retrieve active tournament.");
@@ -284,6 +309,14 @@ async function getActiveTournamentId() {
 }
 
 async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
+    //make userId an integer
+
+    console.log(
+        "Fetching participant data for tournament",
+        tournamentId,
+        "and user",
+        userId
+    );
     const query = `
         SELECT *
         FROM Participants P
@@ -298,6 +331,17 @@ async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
     } catch (err) {
         console.error("Failed to retrieve participant data:", err.message);
         throw new Error("Failed to retrieve participant data.");
+    }
+}
+async function removeParticipantFromTournament(tournamentId, userId) {
+    const query = `DELETE FROM Participants WHERE tournament_id = $1 AND user_id = $2`;
+    const values = [tournamentId, userId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Failed to remove participant:", err.message);
+        throw new Error("Failed to remove participant.");
     }
 }
 async function getAllMatchesForPlayer(playerId, tournamentId) {
@@ -351,18 +395,22 @@ async function getAllMatchesForPlayer(playerId, tournamentId) {
 async function getNameFromChallongeId(challongeId) {
     //user_id is the name
     const query = `SELECT user_id FROM Participants WHERE challonge_id = $1`;
+    const query2 = `SELECT discord_tag FROM Users WHERE user_id = $1`;
     const values = [challongeId];
 
     try {
         const result = await pool.query(query, values);
         if (result.rows.length === 0) throw new Error("User not found.");
-        return result.rows[0];
+
+        const user_id = result.rows[0].user_id;
+        const result2 = await pool.query(query2, [user_id]);
+        if (result2.rows.length === 0) throw new Error("User not found.");
+        return result2.rows[0].discord_tag;
     } catch (err) {
         console.error("Failed to retrieve user name:", err.message);
         throw new Error("Failed to retrieve user name.");
     }
 }
-
 async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
     console.log(`Fetching participants for tournament ${tournamentId}`);
 
@@ -377,6 +425,7 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
 
         console.log(participants.rows);
 
+        // First loop to update the Participants table
         for (const participant of participants.rows) {
             const { user_id, participant_id } = participant;
             console.log(
@@ -386,6 +435,7 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participant_id}.json`;
             const params = { api_key: process.env.API_KEY, include_matches: 1 };
 
+            // Fetch participant's data
             const response = await axios.get(apiUrl, { params });
             const matches = response.data.participant.matches;
 
@@ -414,8 +464,20 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
                 `UPDATE Participants SET challonge_id = $1, group_id = $2 WHERE user_id = $3 AND tournament_id = $4`,
                 [matchPlayerId, group_id, user_id, tournamentId]
             );
+        }
 
-            // Step 3: Insert each match into the Matches table if it doesn't exist
+        // Second loop to process matches for each participant in the Matches table
+        for (const participant of participants.rows) {
+            const { participant_id } = participant;
+
+            const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participant_id}.json`;
+            const params = { api_key: process.env.API_KEY, include_matches: 1 };
+
+            // Fetch participant's matches data
+            const response = await axios.get(apiUrl, { params });
+            const matches = response.data.participant.matches;
+            const group_id = matches[0].match.group_id;
+            // Process each match
             for (const match of matches) {
                 const {
                     id: challongeMatchId,
@@ -442,9 +504,10 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
                 );
 
                 if (matchExists.rowCount === 0) {
+                    // Insert the match if it doesn't exist
                     await client.query(
                         `INSERT INTO Matches (match_id, tournament_id, player1_id, player2_id, winner_id, challonge_match_id, state, player1_score, player2_score, updated_at, suggested_play_order, group_id)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                         [
                             challongeMatchId,
                             tournamentId,
@@ -467,7 +530,7 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
                     // Update the match if it exists
                     await client.query(
                         `UPDATE Matches SET player1_id = $1, player2_id = $2, winner_id = $3, state = $4, player1_score = $5, player2_score = $6, updated_at = $7, suggested_play_order = $8, group_id = $9 
-                         WHERE challonge_match_id = $10 AND tournament_id = $11`,
+                 WHERE challonge_match_id = $10 AND tournament_id = $11`,
                         [
                             player1_id,
                             player2_id,
@@ -494,8 +557,6 @@ async function updateParticipantMatchPlayerIdsAndMatches(tournamentId) {
         );
     } catch (error) {
         console.error("Error updating participants and matches:", error);
-    } finally {
-        await pool.end();
     }
 }
 
@@ -608,4 +669,6 @@ module.exports = {
     upsertUser,
     fetchTournamentsFromDatabase2,
     upsertParticipant,
+    removeParticipantFromTournament,
+    getSortedParticipants,
 };
