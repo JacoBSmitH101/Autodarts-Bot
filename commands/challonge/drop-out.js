@@ -21,6 +21,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        //TODO if player drops out mid tournament, update the matches to give 4-0 wins to the other player
         const tournamentName = interaction.options.getString("tournament");
         const discordId = interaction.user.id;
 

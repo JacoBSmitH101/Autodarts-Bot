@@ -8,6 +8,7 @@ const { autocomplete } = require("./sign-up");
 const {
     updateParticipantMatchPlayerIdsAndMatches,
     getTournamentIdByName,
+    updateTournamentStatus,
 } = require("../../testdatamanager");
 const axios = require("axios");
 module.exports = {
@@ -73,6 +74,7 @@ module.exports = {
         // }
         // console.log(response.data);
         updateParticipantMatchPlayerIdsAndMatches(tournamentId);
+        updateTournamentStatus(tournamentId, "started");
         await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };

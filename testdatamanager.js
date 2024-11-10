@@ -92,6 +92,18 @@ async function getAllMatchesFromTournamentId(tournamentId) {
     }
 }
 
+async function updateTournamentStatus(tournamentId, status) {
+    const query = `UPDATE Tournaments SET status = $1 WHERE tournament_id = $2`;
+    const values = [status, tournamentId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error updating tournament status:", err.message);
+        throw new Error("Failed to update tournament status.");
+    }
+}
+
 /**
  * Retrieves the tournament ID using the AutoDarts match ID.
  */
@@ -669,6 +681,20 @@ const fetchTournamentsFromDatabase2 = async () => {
     }
 };
 
+async function getTournamentStatus(tournamentId) {
+    const query = `SELECT status FROM Tournaments WHERE tournament_id = $1`;
+    const values = [tournamentId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) throw new Error("Tournament not found.");
+        return result.rows[0].status;
+    } catch (err) {
+        console.error("Error querying database:", err.message);
+        throw new Error("Failed to retrieve tournament status.");
+    }
+}
+
 module.exports = {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
@@ -693,4 +719,6 @@ module.exports = {
     removeParticipantFromTournament,
     getSortedParticipants,
     getChallongeTournamentURL,
+    updateTournamentStatus,
+    getTournamentStatus,
 };

@@ -36,6 +36,17 @@ module.exports = {
         const tournamentName = interaction.options.getString("tournament");
         const mobileView = interaction.options.getBoolean("mobile") || false;
         const tournamentId = await getTournamentIdByName(tournamentName);
+        const status = await getTournamentStatus(tournamentId);
+
+        if (status == "pending") {
+            const embed = new EmbedBuilder()
+                .setColor(0xff0000)
+                .setTitle("Error")
+                .setDescription(
+                    "The tournament has not started yet. Please wait for the tournament to start before viewing the standings."
+                );
+            return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
 
         let standings = {
             tournamentId,
