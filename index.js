@@ -499,6 +499,10 @@ const handleNewMatch = async (message) => {
         return console.log("Match not found");
     }
 
+    if (match.player1_score != null) {
+        return console.log("Match already played");
+    }
+
     const channel = client.channels.cache.get("1295486855378108515");
     if (channel) {
         const embed = new EmbedBuilder()
