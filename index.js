@@ -243,14 +243,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const match = await getMatchFromAutodartsMatchId(
                     autodarts_match_id
                 );
-                console.log("------------------");
-                console.log("SUBMITTER", submitterChallongeId);
-                console.log("PLAYER1", player.player1_id);
-                console.log("PLAYER2", player.player2_id);
-                console.log("CONFIRMED", match.player1_confirmed);
-                console.log("CONFIRMED", match.player2_confirmed);
-                console.log("MATCH", match);
-                console.log("------------------");
+                if (process.env.DEBUG == "True") {
+                    console.log("------------------");
+                    console.log("SUBMITTER", submitterChallongeId);
+                    console.log("PLAYER1", player.player1_id);
+                    console.log("PLAYER2", player.player2_id);
+                    console.log("CONFIRMED", match.player1_confirmed);
+                    console.log("CONFIRMED", match.player2_confirmed);
+                    console.log("MATCH", match);
+                    console.log("------------------");
+                }
 
                 if (
                     match.player1_confirmed == 1 &&
@@ -333,16 +335,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     }
                 }
             } else if (action === "reject") {
-                const db = new sqlite3.Database("./data.db", (err) => {
-                    if (err) {
-                        console.error(
-                            "Database connection error:",
-                            err.message
-                        );
-                        return;
-                    }
-                });
-
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
                     autodarts_match_id
                 );
@@ -373,7 +365,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 if (submitterChallongeId == player.player1_id) {
                     await rejectMatch(autodarts_match_id, 0);
                     await interaction.reply({
-                        content: "Match rejection recorded!",
+                        content:
+                            "Match rejection recorded, admins have been notified!",
                         ephemeral: true,
                     });
                 } else {

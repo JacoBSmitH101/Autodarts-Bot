@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
+const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -21,7 +21,8 @@ module.exports = {
                 .setDescription("The name of the tournament.")
                 .setRequired(true)
                 .setAutocomplete(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     async autocomplete(interaction) {
         if (interaction.options.getFocused(true).name === "tournament") {
             const focusedValue = interaction.options.getFocused();

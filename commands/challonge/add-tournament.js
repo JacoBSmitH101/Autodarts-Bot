@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const axios = require("axios");
 const { insertNewTournament } = require("../../testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
@@ -15,7 +15,8 @@ module.exports = {
                 .setName("challonge_id")
                 .setDescription("The ID of the Challonge tournament")
                 .setRequired(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         const challongeId = interaction.options.getString("challonge_id");

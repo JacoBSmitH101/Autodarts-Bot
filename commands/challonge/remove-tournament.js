@@ -17,7 +17,8 @@ module.exports = {
                 .setName("challonge_id")
                 .setDescription("The ID of the Challonge tournament")
                 .setRequired(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         const challongeId = interaction.options.getString("challonge_id");
