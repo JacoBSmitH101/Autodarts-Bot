@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
+const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -8,6 +8,7 @@ const { autocomplete } = require("./sign-up");
 const {
     updateParticipantMatchPlayerIdsAndMatches,
     getTournamentIdByName,
+    updateTournamentStatus,
 } = require("../../testdatamanager");
 const axios = require("axios");
 module.exports = {
@@ -20,7 +21,8 @@ module.exports = {
                 .setDescription("The name of the tournament.")
                 .setRequired(true)
                 .setAutocomplete(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     async autocomplete(interaction) {
         if (interaction.options.getFocused(true).name === "tournament") {
             const focusedValue = interaction.options.getFocused();
@@ -73,6 +75,7 @@ module.exports = {
         // }
         // console.log(response.data);
         updateParticipantMatchPlayerIdsAndMatches(tournamentId);
+        updateTournamentStatus(tournamentId, "started");
         await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };

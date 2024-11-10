@@ -7,6 +7,8 @@ const {
     upsertUser,
     upsertParticipant,
     getTournamentIdByName,
+    getParticipantDataFromTournamentUserId,
+    getTournamentStatus,
 } = require("../../testdatamanager.js");
 
 module.exports = {
@@ -61,14 +63,42 @@ module.exports = {
         const test_user_id = interaction.options.getString("test_user_id");
         const discordId = test_user_id || interaction.user.id;
 
-        const db = new sqlite3.Database("./data.db", (err) => {
-            if (err) {
-                console.error("Database connection error:", err.message);
-                return interaction.reply("Failed to connect to the database.");
-            }
-        });
-
         try {
+            const tournamentId = await getTournamentIdByName(tournamentName);
+            const status = await getTournamentStatus(tournamentId);
+
+            if (status !== "pending") {
+                const embed = new EmbedBuilder()
+                    .setColor(0xff0000) // Red color for an error
+                    .setTitle("Sign-Up Error")
+                    .setDescription(
+                        "Sign-ups for this tournament are currently closed."
+                    )
+                    .setFooter({ text: "Please try again later!" })
+                    .setTimestamp();
+
+                return interaction.reply({ embeds: [embed], ephemeral: true });
+            }
+
+            //first check if already signed up
+            const user = await getParticipantDataFromTournamentUserId(
+                tournamentId,
+                discordId
+            );
+
+            if (user) {
+                const embed = new EmbedBuilder()
+                    .setColor(0xffcc00) // Yellow color for a warning
+                    .setTitle("Already Signed Up")
+                    .setDescription(
+                        "You're already signed up for this tournament!"
+                    )
+                    .setFooter({ text: "Thank you for your enthusiasm!" })
+                    .setTimestamp();
+
+                return interaction.reply({ embeds: [embed], ephemeral: true });
+            }
+
             //discordid, usertag, autodartusername, average, profileurl
             await upsertUser(
                 discordId,
@@ -78,7 +108,6 @@ module.exports = {
                 profileUrl
             );
 
-            const tournamentId = await getTournamentIdByName(tournamentName);
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
             const params = { api_key: process.env.API_KEY };
@@ -136,12 +165,6 @@ module.exports = {
             interaction.reply(
                 "An error occurred while signing up for the tournament. This is likely due to you already being signed up. Please contact an admin if you believe this is an error."
             );
-        } finally {
-            db.close((err) => {
-                if (err) {
-                    console.error("Error closing the database:", err.message);
-                }
-            });
         }
     },
 

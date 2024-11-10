@@ -3,6 +3,7 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    PermissionFlagsBits,
 } = require("discord.js");
 
 module.exports = {
@@ -14,7 +15,8 @@ module.exports = {
                 .setName("user_ids")
                 .setDescription("Comma-separated list of user IDs to invite")
                 .setRequired(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         // Get the list of user IDs
