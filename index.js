@@ -46,6 +46,7 @@ const {
     getLocalMatchFromPlayersChallongeIdTournamentId,
     getUserIdFromAutodartsId,
     getActiveTournamentId,
+    getNameFromChallongeId,
 } = require("./testdatamanager");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -259,7 +260,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player2_confirmed == 1
                 ) {
                     const channel = client.channels.cache.get(
-                        "1295486855378108515"
+                        "1299461110465826859"
                     );
 
                     console.log("Both players have confirmed");
@@ -313,10 +314,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     // add to challonge
 
                     if (channel) {
+                        const player1_name = await getNameFromChallongeId(
+                            match.player1_id
+                        );
+                        const player2_name = await getNameFromChallongeId(
+                            match.player2_id
+                        );
                         const embed = new EmbedBuilder()
                             .setTitle("Match Confirmed")
                             .setDescription(
-                                `Match between ${match.player1_name} and ${match.player2_name} has been confirmed`
+                                `Match between ${player1_name} and ${player2_name} has been confirmed`
                             )
                             .setColor(0x00ff00);
                         await channel.send({
@@ -405,13 +412,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
     }
     if (!interaction.isChatInputCommand()) return;
-    if (!ALLOWED_USER_IDS.includes(interaction.user.id)) {
-        await interaction.reply({
-            content: "You do not have permission to use this command.",
-            ephemeral: true,
-        });
-        return;
-    }
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
@@ -496,13 +496,13 @@ const handleNewMatch = async (message) => {
         return console.log("Match already played");
     }
 
-    const channel = client.channels.cache.get("1295486855378108515");
+    const channel = client.channels.cache.get("1299461110465826859");
     if (channel) {
         const embed = new EmbedBuilder()
             .setTitle("New Match")
             .setDescription(`You have a new match`)
             .setColor(0x00ff00);
-        channel.send({ embeds: [embed] });
+        //channel.send({ embeds: [embed] });
     } else {
         console.log("Channel not found");
     }
