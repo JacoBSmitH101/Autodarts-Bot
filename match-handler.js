@@ -83,9 +83,7 @@ class MatchHandler {
             (match) => match.matchId === matchId
         );
         if (match) {
-            //update the match
-            //TODO
-            console.log(message);
+            //update the matc
 
             this.updateMatch(matchId, message);
         } else {
@@ -93,7 +91,6 @@ class MatchHandler {
             console.log(message.data.scores);
             this.addMatch(matchId, message, tournamentId);
         }
-        //TODO in actual implementation, will ensure that both players in game have a match against eachother, for testing just check if it is me
     }
     async updateMatch(matchId, message) {
         //basically just edit the interaction message with the new scores
@@ -195,7 +192,7 @@ class MatchHandler {
         }
         const players = message.data.players;
         console.log(players);
-        //TODO associate with challonge match id
+        //associate with challonge match id
 
         //get user_id from users table using autodarts_id
         const player1_id = players[0].userId;
@@ -300,7 +297,6 @@ class MatchHandler {
     }
     async processFinishedMatch(matchId, stats, client) {
         //get match
-        //TODO NEXT
         const match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );
@@ -491,22 +487,6 @@ class MatchHandler {
         //add stats to stats table
         const statsPlayer1 = stats.matchStats[0];
         const statsPlayer2 = stats.matchStats[1];
-        //TODO
-        //         Error adding stats: Error: SQLITE_CONSTRAINT: UNIQUE constraint failed: Stats.user_id, Stats.match_id, Stats.tournament_id
-        // --> in Statement#run([
-        //   '2', 388766884, 15330506,
-        //   121, 0,         121,
-        //   1,   3,         1,
-        //   0,   1,         0,
-        //   0,   0
-        // ], [Function: replacement])
-        //     at Database.<anonymous> (H:\Autodarts Bot\node_modules\sqlite3\lib\sqlite3.js:76:19)
-        //     at Database.<anonymous> (H:\Autodarts Bot\node_modules\sqlite3\lib\sqlite3.js:20:19)
-        //     at MatchHandler.processFinishedMatch (H:\Autodarts Bot\match-handler.js:557:12) {
-        //   errno: 19,
-        //   code: 'SQLITE_CONSTRAINT',
-        //   __augmented: true
-        // }
         await updateStats(
             statsPlayer1_user_id,
             db_match.match_id,

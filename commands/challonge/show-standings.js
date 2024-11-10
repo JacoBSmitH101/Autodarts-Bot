@@ -103,6 +103,12 @@ module.exports = {
             }
 
             const [player1, player2] = playerIds;
+            //add one point for each leg won for each player no matter the result
+            standings.groups[groupId].standings[player1].points +=
+                match.player1_score;
+            standings.groups[groupId].standings[player2].points +=
+                match.player2_score;
+
             if (match.winner_id === "draw") {
                 standings.groups[groupId].standings[player1].draws++;
                 standings.groups[groupId].standings[player2].draws++;
@@ -113,13 +119,13 @@ module.exports = {
             } else if (match.winner_id === player1) {
                 standings.groups[groupId].standings[player1].wins++;
                 standings.groups[groupId].standings[player2].losses++;
-                standings.groups[groupId].standings[player1].points += 3;
+                standings.groups[groupId].standings[player1].points += 2;
                 standings.groups[groupId].standings[player1].played++;
                 standings.groups[groupId].standings[player2].played++;
             } else if (match.winner_id === player2) {
                 standings.groups[groupId].standings[player2].wins++;
                 standings.groups[groupId].standings[player1].losses++;
-                standings.groups[groupId].standings[player2].points += 3;
+                standings.groups[groupId].standings[player2].points += 2;
                 standings.groups[groupId].standings[player2].played++;
                 standings.groups[groupId].standings[player1].played++;
             }

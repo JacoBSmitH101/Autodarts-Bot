@@ -451,7 +451,7 @@ const handleNewMatch = async (message) => {
     //TODO - Check matches for all matchups
     // In future will have list of matches from database with userids to check
     //for now just use mine
-    const userId = "bb229295-742d-429f-bbbf-fe4a179ef537";
+    //const userId = "bb229295-742d-429f-bbbf-fe4a179ef537";
     //get both playerIds from the message
     let player1_id = "";
     let player2_id = "";
@@ -463,13 +463,6 @@ const handleNewMatch = async (message) => {
         return;
     }
     console.log(player1_id, player2_id);
-
-    const db = new sqlite3.Database("./data.db", (err) => {
-        if (err) {
-            console.error("Database connection error:", err.message);
-            return;
-        }
-    });
 
     const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
@@ -484,7 +477,9 @@ const handleNewMatch = async (message) => {
     let tournamentId = await getActiveTournamentId();
 
     //use participants table to get challonge_ids using user_ids and tournament_id
-    console.log(player1_user_id, player2_user_id, tournamentId);
+    if (process.env.DEBUG == "True") {
+        console.log(player1_user_id, player2_user_id, tournamentId);
+    }
     const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
         player1_user_id,
         tournamentId
@@ -503,8 +498,6 @@ const handleNewMatch = async (message) => {
     if (!match) {
         return console.log("Match not found");
     }
-
-    //TODO get this tournament id from the database
 
     const channel = client.channels.cache.get("1295486855378108515");
     if (channel) {
