@@ -198,13 +198,6 @@ class MatchHandler {
         const player1_id = players[0].userId;
         const player2_id = players[1].userId;
 
-        const db = new sqlite3.Database("./data.db", (err) => {
-            if (err) {
-                console.error("Database connection error:", err.message);
-                return interaction.reply("Failed to connect to the database.");
-            }
-        });
-
         const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
         const player2_user_id = await getUserIdFromAutodartsId(player2_id);
