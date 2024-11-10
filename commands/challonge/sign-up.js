@@ -27,13 +27,13 @@ module.exports = {
                 .setName("autodart-profile-url")
                 .setDescription("Autodart URL")
                 .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option
-                .setName("test_user_id")
-                .setDescription("For testing only: Specify a different user ID")
-                .setRequired(false)
         ),
+    // .addStringOption((option) =>
+    //     option
+    //         .setName("test_user_id")
+    //         .setDescription("For testing only: Specify a different user ID")
+    //         .setRequired(false)
+    // ),
 
     async execute(interaction) {
         const tournamentName = interaction.options.getString("tournament");

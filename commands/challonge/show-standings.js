@@ -7,6 +7,7 @@ const {
 const {
     getTournamentIdByName,
     getChallongeTournamentURL,
+    getTournamentStatus,
 } = require("../../testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");

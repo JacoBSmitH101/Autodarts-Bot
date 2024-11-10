@@ -359,7 +359,7 @@ async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
 
     try {
         const result = await pool.query(query, values);
-        if (result.rows.length === 0) throw new Error("Participant not found.");
+        if (result.rows.length === 0) return null;
         return result.rows[0];
     } catch (err) {
         console.error("Failed to retrieve participant data:", err.message);

@@ -248,7 +248,7 @@ class MatchHandler {
         const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
         const link = hyperlink("Goto match", matchUrl);
         //create interaction and store it in live_discord_interaction
-        const channel = this.client.channels.cache.get("1295486855378108515");
+        const channel = this.client.channels.cache.get("1299461110465826859");
         if (channel) {
             const embed = new EmbedBuilder()
                 .setTitle("🎯 League Match In Progress")
@@ -293,12 +293,6 @@ class MatchHandler {
         const match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );
-        const db = new sqlite3.Database("./data.db", (err) => {
-            if (err) {
-                console.error("Database connection error:", err.message);
-                return interaction.reply("Failed to connect to the database.");
-            }
-        });
 
         const player1_id = stats.players[0].userId;
         const player2_id = stats.players[1].userId;

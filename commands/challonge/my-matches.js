@@ -5,6 +5,7 @@ const {
     getParticipantDataFromTournamentUserId,
     getAllMatchesForPlayer,
     getTournamentIdByName,
+    getTournamentStatus,
 } = require("../../testdatamanager");
 module.exports = {
     data: new SlashCommandBuilder()
