@@ -260,7 +260,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player2_confirmed == 1
                 ) {
                     const channel = client.channels.cache.get(
-                        "1299461110465826859"
+                        process.env.LIVE_MATCHES_CHANNEL_ID
                     );
 
                     console.log("Both players have confirmed");
@@ -496,7 +496,9 @@ const handleNewMatch = async (message) => {
         return console.log("Match already played");
     }
 
-    const channel = client.channels.cache.get("1299461110465826859");
+    const channel = client.channels.cache.get(
+        process.env.LIVE_MATCHES_CHANNEL_ID
+    );
     if (channel) {
         const embed = new EmbedBuilder()
             .setTitle("New Match")

@@ -248,7 +248,9 @@ class MatchHandler {
         const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
         const link = hyperlink("Goto match", matchUrl);
         //create interaction and store it in live_discord_interaction
-        const channel = this.client.channels.cache.get("1299461110465826859");
+        const channel = this.client.channels.cache.get(
+            process.env.LIVE_MATCHES_CHANNEL_ID
+        );
         if (channel) {
             const embed = new EmbedBuilder()
                 .setTitle("🎯 League Match In Progress")
