@@ -34,8 +34,8 @@ const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe"; // Rep
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
 const username = process.env.USERNAMES;
 const password = process.env.PASSWORDS;
-const clientId = "wusaaa-caller-for-autodarts";
-const clientSecret = "4hg5d4fddW7rqgoY8gZ42aMpi2vjLkzf"; // Optional, if needed
+const clientId = process.env.AD_CLIENT_ID;
+const clientSecret = process.env.AD_CLIENT_SECRET; // Optional, if needed
 const debug = process.env.DEBUG == "True";
 const {
     getTournamentIdByName,
