@@ -51,7 +51,6 @@ const {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
-
 const keycloakClient = new AutodartsKeycloakClient({
     username,
     password,
@@ -494,23 +493,51 @@ const handleNewMatch = async (message) => {
     } else {
         console.log("Channel not found");
     }
-    subscribeToMatch(message.data.body.id, tournamentId);
+    subscribeToMatchUpdates(message.data.body.id, tournamentId);
+    setTimeout(
+        subscribeToMatchEvents,
+        1000,
+        message.data.body.id,
+        tournamentId
+    );
+
+    console.log("Match:", match);
 };
 
 // Subscribe to a match
-const subscribeToMatch = async (matchId, tournamentId) => {
+const subscribeToMatchUpdates = async (matchId, tournamentId) => {
     const paramsSubscribeMatchesEvents = {
         channel: "autodarts.matches",
         type: "subscribe",
         topic: `${matchId}.state`,
     };
+
     client.keycloakClient.subscribe(
         async (message) => {
             matchHandler.match_update(message, tournamentId);
         },
         (ws) => {
+            // Add an event listener to wait for the WebSocket to open
             ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
-            //console.log(matchId);
+            console.log(`Subscribed to match updates for match ${matchId}`);
+        }
+    );
+};
+
+const subscribeToMatchEvents = async (matchId, tournamentId) => {
+    const paramsSubscribeMatchesEvents = {
+        channel: "autodarts.matches",
+        type: "subscribe",
+        topic: `${matchId}.events`,
+    };
+
+    client.keycloakClient.subscribe(
+        async (message) => {
+            matchHandler.match_event(message, tournamentId);
+        },
+        (ws) => {
+            ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
+            console.log(`Subscribed to match events for match ${matchId}`);
         }
     );
 };

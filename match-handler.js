@@ -30,6 +30,161 @@ class MatchHandler {
         this.client = client;
     }
 
+    async match_event(message, tournamentId) {
+        //usually only event is finish which is what we want
+        //message.data.event will be "finish" once done
+        //will also get "start" but no updates in mid match
+        //example message:
+        //         {
+        //   "channel": "autodarts.matches",
+        //   "topic": "312ae6dc-96c3-4599-b74c-75fe459ef97b.events",
+        //   "data": {
+        //     "body": {
+        //       "createdAt": "2024-11-12T20:21:17.308170655Z",
+        //       "host": {
+        //         "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3",
+        //         "average": 109.41118421052632,
+        //         "country": "",
+        //         "id": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+        //         "name": "jacobsmith31105@gmail.com",
+        //         "userSettings": {
+        //           "callCheckouts": true,
+        //           "callScores": true,
+        //           "caller": "",
+        //           "countEachThrow": true,
+        //           "showAnimations": true,
+        //           "showChalkboard": false,
+        //           "showCheckoutGuide": true
+        //         }
+        //       },
+        //       "id": "312ae6dc-96c3-4599-b74c-75fe459ef97b",
+        //       "players": [
+        //         {
+        //           "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3",
+        //           "cpuPPR": null,
+        //           "host": {
+        //             "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3",
+        //             "average": 109.41118421052632,
+        //             "country": "",
+        //             "id": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+        //             "name": "jacobsmith31105@gmail.com",
+        //             "userSettings": {
+        //               "callCheckouts": true,
+        //               "callScores": true,
+        //               "caller": "",
+        //               "countEachThrow": true,
+        //               "showAnimations": true,
+        //               "showChalkboard": false,
+        //               "showCheckoutGuide": true
+        //             }
+        //           },
+        //           "hostId": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+        //           "id": "036793a2-7731-40e1-ae56-c32910ea055d",
+        //           "index": 0,
+        //           "name": "jacobsmith31105@gmail.com",
+        //           "user": {
+        //             "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3",
+        //             "average": 109.41118421052632,
+        //             "country": "",
+        //             "id": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+        //             "name": "jacobsmith31105@gmail.com",
+        //             "userSettings": {
+        //               "callCheckouts": true,
+        //               "callScores": true,
+        //               "caller": "",
+        //               "countEachThrow": true,
+        //               "showAnimations": true,
+        //               "showChalkboard": false,
+        //               "showCheckoutGuide": true
+        //             }
+        //           },
+        //           "userId": "8204cedf-615a-464e-be16-7bbd82c9dc8e"
+        //         },
+        //         {
+        //           "avatarUrl": "https://gravatar.com/avatar/4d1948cf7119b42303e2db099be1efcd",
+        //           "boardId": "22c910e2-0f19-4c65-9098-40edd2befaa0",
+        //           "boardName": "Bedroom",
+        //           "cpuPPR": null,
+        //           "host": {
+        //             "avatarUrl": "https://gravatar.com/avatar/4d1948cf7119b42303e2db099be1efcd",
+        //             "average": 37.47540983606557,
+        //             "country": "gb",
+        //             "id": "bb229295-742d-429f-bbbf-fe4a179ef537",
+        //             "name": "yakoob19",
+        //             "userSettings": {
+        //               "callCheckouts": true,
+        //               "callScores": true,
+        //               "caller": "",
+        //               "countEachThrow": true,
+        //               "showAnimations": true,
+        //               "showChalkboard": false,
+        //               "showCheckoutGuide": true
+        //             }
+        //           },
+        //           "hostId": "bb229295-742d-429f-bbbf-fe4a179ef537",
+        //           "id": "9326d191-0b22-4254-8b58-74a731710dc3",
+        //           "index": 1,
+        //           "name": "yakoob19",
+        //           "user": {
+        //             "avatarUrl": "https://gravatar.com/avatar/4d1948cf7119b42303e2db099be1efcd",
+        //             "average": 37.47540983606557,
+        //             "country": "gb",
+        //             "id": "bb229295-742d-429f-bbbf-fe4a179ef537",
+        //             "name": "yakoob19",
+        //             "userSettings": {
+        //               "callCheckouts": true,
+        //               "callScores": true,
+        //               "caller": "",
+        //               "countEachThrow": true,
+        //               "showAnimations": true,
+        //               "showChalkboard": false,
+        //               "showCheckoutGuide": true
+        //             }
+        //           },
+        //           "userId": "bb229295-742d-429f-bbbf-fe4a179ef537"
+        //         }
+        //       ],
+        //       "scores": [
+        //         {
+        //           "legs": 1,
+        //           "sets": 0
+        //         },
+        //         {
+        //           "legs": 0,
+        //           "sets": 0
+        //         }
+        //       ],
+        //       "settings": {
+        //         "baseScore": 121,
+        //         "bullMode": "25/50",
+        //         "gameId": "00000000-0000-0000-0000-000000000000",
+        //         "inMode": "Straight",
+        //         "maxRounds": 80,
+        //         "outMode": "Double"
+        //       },
+        //       "type": "Local",
+        //       "variant": "X01"
+        //     },
+        //     "event": "finish",
+        //     "id": "312ae6dc-96c3-4599-b74c-75fe459ef97b"
+        //   }
+        // }
+        console.log(message);
+        if (message.data.event === "finish") {
+            //match is finished, no need to check if it is finished
+            if (process.env.DEBUG === "true") {
+                console.log("Match is finished");
+            }
+            this.checkIfMatchFinished(message.data.id, this.client);
+        }
+        if (message.data.event === "start") {
+            //match is starting, no need to check if it is finished
+            if (process.env.DEBUG === "true") {
+                console.log("Match is starting");
+            }
+        }
+    }
+
     async match_update(message, tournamentId) {
         //example message:
         // {
@@ -84,7 +239,6 @@ class MatchHandler {
         );
         if (match) {
             //update the matc
-
             this.updateMatch(matchId, message);
         } else {
             //add the match
@@ -106,48 +260,6 @@ class MatchHandler {
         const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
 
         const interaction = match.live_discord_interaction;
-
-        if (message.data.winner !== -1 && !match.checking) {
-            // Match is finished
-            const embed = new EmbedBuilder()
-                .setTitle("🎯 League Match Finished")
-                .setDescription(`The match has concluded!`)
-                .setColor(0xff0000) // Red color for finished match
-                .setTimestamp()
-                .addFields(
-                    // Player names and match status
-                    {
-                        name: `${player1_name}`,
-                        value: `${player1_score}`,
-                        inline: true,
-                    },
-                    {
-                        name: "VS",
-                        value: `${player1_legs} - ${player2_legs}`,
-                        inline: true,
-                    },
-                    {
-                        name: `${player2_name}`,
-                        value: `${player2_score}`,
-                        inline: true,
-                    },
-                    {
-                        name: "Match concluded!",
-                        value: `[View match on Autodarts](${matchUrl})`,
-                        inline: false,
-                    }
-                );
-
-            // Update message
-            interaction.edit({ embeds: [embed] });
-            match.checking = true;
-            //get stats
-            setTimeout(() => {
-                this.checkIfMatchFinished(matchId, this.client);
-            }, 15000);
-
-            return;
-        }
 
         if (interaction) {
             const embed = new EmbedBuilder()
@@ -346,10 +458,6 @@ class MatchHandler {
             client
         ) => {
             try {
-                //console log all info to see what more details could be added
-                console.log(opponentUser);
-                console.log(opponentUser.globalName);
-                console.log(opponentUser.User);
                 // Create an embed with match details
                 const opponentDisplayName =
                     opponentUser.globalName || opponentUser.username;
