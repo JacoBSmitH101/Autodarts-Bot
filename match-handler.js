@@ -512,6 +512,7 @@ class MatchHandler {
             interaction.edit({ embeds: [embed] });
 
             stats = await axios.get(matchStatsUrl, { headers });
+            console.log(stats.data);
         } catch (error) {
             console.error("Match not finished:");
             console.log(error);

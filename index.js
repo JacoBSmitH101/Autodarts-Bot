@@ -30,7 +30,7 @@ const ALLOWED_USER_IDS = [
     "1142632757206466590",
     "335970728811954187",
 ];
-const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe"; // Replace with actual WebSocket URL
+const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe";
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
 const username = process.env.USERNAMES;
 const password = process.env.PASSWORDS;
@@ -488,6 +488,13 @@ const handleNewMatch = async (message) => {
         player2_challonge_id,
         tournamentId
     );
+
+    if (!player1_challonge_id || !player2_challonge_id) {
+        console.log(
+            `Rejection: ${player1_challonge_id} ${player2_challonge_id}`
+        );
+        return;
+    }
     if (!match) {
         return console.log("Match not found");
     }
