@@ -341,15 +341,23 @@ class MatchHandler {
         const sendConfirmationWithButtons = async (
             player,
             playerUser,
+            opponentUser,
             stats,
             client
         ) => {
             try {
+                //console log all info to see what more details could be added
+                console.log(opponentUser);
+                console.log(opponentUser.globalName);
+                console.log(opponentUser.User);
                 // Create an embed with match details
+                const opponentDisplayName =
+                    opponentUser.globalName || opponentUser.username;
+
                 const embed = new EmbedBuilder()
                     .setTitle("Match Result Confirmation")
                     .setDescription(
-                        `Your match has ended with a score of ${stats.scores[0].legs}-${stats.scores[1].legs}. Please confirm if this result is correct and if this was a league match.`
+                        `Your match against ${opponentDisplayName} has ended with a score of ${stats.scores[0].legs}-${stats.scores[1].legs}. Please confirm if this result is correct and if this was a league match.`
                     )
                     .setColor(0x00ff00);
                 // Create buttons for confirm and reject
@@ -387,12 +395,24 @@ class MatchHandler {
         const player1User = await client.users.fetch(player1_user_id);
         const player2User = await client.users.fetch(player2_user_id);
         try {
-            sendConfirmationWithButtons("player2", player2User, stats, client);
+            sendConfirmationWithButtons(
+                "player2",
+                player2User,
+                player1User,
+                stats,
+                client
+            );
         } catch (error) {
             console.error("Error sending confirmation with buttons:", error);
         }
         try {
-            sendConfirmationWithButtons("player1", player1User, stats, client);
+            sendConfirmationWithButtons(
+                "player1",
+                player1User,
+                player2User,
+                stats,
+                client
+            );
         } catch (error) {
             console.error("Error sending confirmation with buttons:", error);
         }

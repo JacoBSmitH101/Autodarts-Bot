@@ -157,6 +157,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const [submitterDiscordId, autodarts_match_id] = extra;
             if (action === "confirm") {
                 console.log("Confirming match");
+
                 const db = new sqlite3.Database("./data.db", (err) => {
                     if (err) {
                         console.error(
@@ -173,14 +174,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
                     autodarts_match_id
                 );
-
                 console.log("Tournament ID:", tournamentId);
                 const submitterChallongeId =
                     await getChallongeIdFromUserIdTournamentId(
                         submitterDiscordId,
                         tournamentId
                     );
-
                 console.log("Submitter Challonge ID:", submitterChallongeId);
                 const player = await getMatchFromAutodartsMatchId(
                     autodarts_match_id
@@ -203,7 +202,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     (submitterChallongeId != player.player2_id &&
                         player.player2_confirmed == -1)
                 ) {
-                    //other player has rejected
                     await interaction.reply({
                         content:
                             "Other player has rejected the match! If this was unexpected, please contact an H3RBSKIx or JacoBSmitH.",
@@ -212,35 +210,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     return;
                 }
 
-                if (submitterChallongeId == player.player1_id) {
-                    try {
-                        await confirmMatch(autodarts_match_id, 0);
-                        await interaction.reply({
-                            content: "Match confirmation recorded!",
-                            ephemeral: true,
-                        });
-                    } catch (error) {
-                        console.error("Error confirming match:", error);
-                        await interaction.reply({
-                            content: "Failed to confirm match.",
-                            ephemeral: true,
-                        });
-                    }
-                } else {
-                    try {
-                        await confirmMatch(autodarts_match_id, 1);
-                        await interaction.reply({
-                            content: "Match confirmation recorded!",
-                            ephemeral: true,
-                        });
-                    } catch (error) {
-                        console.error("Error confirming match:", error);
-                        await interaction.reply({
-                            content: "Failed to confirm match.",
-                            ephemeral: true,
-                        });
-                    }
+                try {
+                    const confirmIndex =
+                        submitterChallongeId == player.player1_id ? 0 : 1;
+                    await confirmMatch(autodarts_match_id, confirmIndex);
+                    await interaction.message.delete();
+                    await interaction.reply({
+                        content: "Match confirmation recorded!",
+                        ephemeral: true,
+                    });
+                } catch (error) {
+                    console.error("Error confirming match:", error);
+                    await interaction.followUp({
+                        content: "Failed to confirm match.",
+                        ephemeral: true,
+                    });
                 }
+
+                // Process match confirmation status
                 const match = await getMatchFromAutodartsMatchId(
                     autodarts_match_id
                 );
@@ -259,11 +246,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player1_confirmed == 1 &&
                     match.player2_confirmed == 1
                 ) {
+                    console.log("Both players have confirmed");
                     const channel = client.channels.cache.get(
                         process.env.LIVE_MATCHES_CHANNEL_ID
                     );
-
-                    console.log("Both players have confirmed");
 
                     let db_match =
                         await getLocalMatchFromPlayersChallongeIdTournamentId(
@@ -271,28 +257,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             player.player2_id,
                             tournamentId
                         );
-
                     const api_url = `https://api.challonge.com/v1/tournaments/${match.tournament_id}/matches/${match.match_id}.json`;
-                    const params = {
-                        api_key: process.env.API_KEY,
-                    };
+                    const params = { api_key: process.env.API_KEY };
 
                     const winnerIndex =
-                        db_match.player1_score > db_match.player2_score ? 0 : 1;
-
-                    if (db_match.player1_score == db_match.player2_score) {
-                        winnerIndex = null;
-                    }
-
-                    let winnderChallongeId = null;
-                    if (winnerIndex != null) {
-                        winnerChallongeId =
-                            winnerIndex == 0
+                        db_match.player1_score > db_match.player2_score
+                            ? 0
+                            : db_match.player1_score < db_match.player2_score
+                            ? 1
+                            : null;
+                    const winnerChallongeId =
+                        winnerIndex !== null
+                            ? winnerIndex === 0
                                 ? db_match.player1_id
-                                : db_match.player2_id;
-                    }
+                                : db_match.player2_id
+                            : null;
 
-                    let scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
+                    const scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
                     const data = {
                         match: {
                             scores_csv: scores_csv,
@@ -311,8 +292,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         console.error("Error updating challonge match:", error);
                     }
 
-                    // add to challonge
-
                     if (channel) {
                         const player1_name = await getNameFromChallongeId(
                             match.player1_id
@@ -326,15 +305,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 `Match between ${player1_name} and ${player2_name} has been confirmed`
                             )
                             .setColor(0x00ff00);
+
                         await channel.send({
                             content:
                                 "Both players have confirmed. Announcing in the channel.",
                             ephemeral: true,
                         });
-                        channel.send({ embeds: [embed] });
+                        await channel.send({ embeds: [embed] });
                     } else {
-                        console.log("Channel not found");
-                        interaction.reply({
+                        await interaction.followUp({
                             content:
                                 "Match confirmation recorded, but announcement channel not found.",
                             ephemeral: true,
