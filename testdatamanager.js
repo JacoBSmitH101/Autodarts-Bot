@@ -163,7 +163,7 @@ async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
         return result.rows[0].challonge_id;
     } catch (err) {
         console.error("Failed to retrieve Challonge ID:", err.message);
-        throw new Error("Failed to retrieve Challonge ID.");
+        return null;
     }
 }
 
@@ -189,7 +189,7 @@ async function getLocalMatchFromPlayersChallongeIdTournamentId(
         return result.rows[0];
     } catch (err) {
         console.error("Failed to retrieve match details:", err.message);
-        throw new Error("Failed to retrieve match details.");
+        return null;
     }
 }
 

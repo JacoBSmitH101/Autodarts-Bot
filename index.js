@@ -30,12 +30,12 @@ const ALLOWED_USER_IDS = [
     "1142632757206466590",
     "335970728811954187",
 ];
-const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe"; // Replace with actual WebSocket URL
+const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe";
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
 const username = process.env.USERNAMES;
 const password = process.env.PASSWORDS;
-const clientId = "wusaaa-caller-for-autodarts";
-const clientSecret = "4hg5d4fddW7rqgoY8gZ42aMpi2vjLkzf"; // Optional, if needed
+const clientId = process.env.AD_CLIENT_ID;
+const clientSecret = process.env.AD_CLIENT_SECRET; // Optional, if needed
 const debug = process.env.DEBUG == "True";
 const {
     getTournamentIdByName,
@@ -260,7 +260,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player2_confirmed == 1
                 ) {
                     const channel = client.channels.cache.get(
-                        "1299461110465826859"
+                        process.env.LIVE_MATCHES_CHANNEL_ID
                     );
 
                     console.log("Both players have confirmed");
@@ -488,6 +488,13 @@ const handleNewMatch = async (message) => {
         player2_challonge_id,
         tournamentId
     );
+
+    if (!player1_challonge_id || !player2_challonge_id) {
+        console.log(
+            `Rejection: ${player1_challonge_id} ${player2_challonge_id}`
+        );
+        return;
+    }
     if (!match) {
         return console.log("Match not found");
     }
@@ -496,7 +503,9 @@ const handleNewMatch = async (message) => {
         return console.log("Match already played");
     }
 
-    const channel = client.channels.cache.get("1299461110465826859");
+    const channel = client.channels.cache.get(
+        process.env.LIVE_MATCHES_CHANNEL_ID
+    );
     if (channel) {
         const embed = new EmbedBuilder()
             .setTitle("New Match")

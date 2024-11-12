@@ -27,13 +27,13 @@ module.exports = {
                 .setName("autodart-profile-url")
                 .setDescription("Autodart URL")
                 .setRequired(true)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("test_user_id")
+                .setDescription("For testing only: Specify a different user ID")
+                .setRequired(false)
         ),
-    // .addStringOption((option) =>
-    //     option
-    //         .setName("test_user_id")
-    //         .setDescription("For testing only: Specify a different user ID")
-    //         .setRequired(false)
-    // ),
 
     async execute(interaction) {
         const tournamentName = interaction.options.getString("tournament");
@@ -41,20 +41,25 @@ module.exports = {
             "autodart-profile-url"
         );
 
-        //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
-        if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
-            return interaction.reply(
-                "Invalid Autodarts profile URL. Please provide a valid URL."
-            );
-        }
-
         let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
         let average = 25;
-
-        autodartUsername = await getAutodartsUsername(
-            profileUrl,
-            interaction.client.keycloakClient
-        );
+        //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
+        if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
+            autodartUsername = await getAutodartsUsernameFromID(
+                profileUrl,
+                interaction.client.keycloakClient
+            );
+            if (!autodartUsername) {
+                return interaction.reply(
+                    "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+                );
+            }
+        } else {
+            autodartUsername = await getAutodartsUsernameFromURL(
+                profileUrl,
+                interaction.client.keycloakClient
+            );
+        }
         average = await getLast100Average(
             profileUrl,
             interaction.client.keycloakClient
@@ -194,12 +199,21 @@ module.exports = {
     },
 };
 
-const getAutodartsUsername = async (profileUrl, keycloakClient) => {
+const getAutodartsUsernameFromURL = async (profileUrl, keycloakClient) => {
     //extract userid from last part of the url
     const userId = profileUrl.split("/").pop();
     const apiURL = `https://api.autodarts.io/us/v0/users/${userId}`;
     const headers = { Authorization: `Bearer ${keycloakClient.accessToken}` };
     const response = await axios.get(apiURL, { headers });
+    return response.data.name;
+};
+const getAutodartsUsernameFromID = async (userId, keycloakClient) => {
+    const apiURL = `https://api.autodarts.io/us/v0/users/${userId}`;
+    const headers = { Authorization: `Bearer ${keycloakClient.accessToken}` };
+    const response = await axios.get(apiURL, { headers });
+    if (!response.data.name) {
+        return false;
+    }
     return response.data.name;
 };
 
