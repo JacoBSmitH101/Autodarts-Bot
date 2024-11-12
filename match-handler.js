@@ -260,7 +260,13 @@ class MatchHandler {
         const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
 
         const interaction = match.live_discord_interaction;
+        const throwingPlayer = message.data.player;
 
+        const round = message.data.round;
+        //number of items in message.data.turns is the number of throws in the current round
+        const throwsThisRound = message.data.turns[0].throws.length || 0;
+        //darts thrown is round * 3 + throwsThisRound
+        const dartsThrown = (round - 1) * 3 + throwsThisRound;
         if (interaction) {
             const embed = new EmbedBuilder()
                 .setTitle("🎯 League Match In Progress")
@@ -270,8 +276,12 @@ class MatchHandler {
                 .addFields(
                     // Player names and match status
                     {
-                        name: `${player1_name}`,
-                        value: `${player1_score}`,
+                        name: `${
+                            throwingPlayer == 0 ? "*" : ""
+                        }${player1_name}`,
+                        value: `${player1_score}(${
+                            throwingPlayer == 0 ? dartsThrown : round * 3
+                        })`,
                         inline: true,
                     },
                     {
@@ -280,8 +290,12 @@ class MatchHandler {
                         inline: true,
                     },
                     {
-                        name: `${player2_name}`,
-                        value: `${player2_score}`,
+                        name: `${
+                            throwingPlayer == 1 ? "*" : ""
+                        }${player2_name}`,
+                        value: `${player2_score}(${
+                            throwingPlayer == 1 ? dartsThrown : (round - 1) * 3
+                        })`,
                         inline: true,
                     },
                     {
@@ -363,6 +377,8 @@ class MatchHandler {
         const channel = this.client.channels.cache.get(
             process.env.LIVE_MATCHES_CHANNEL_ID
         );
+        //currently throwing player is message.data.player 0 for player1 and 1 for player2
+        const throwingPlayer = message.data.player;
         if (channel) {
             const embed = new EmbedBuilder()
                 .setTitle("🎯 League Match In Progress")
@@ -372,7 +388,9 @@ class MatchHandler {
                 .addFields(
                     // Player names and match status
                     {
-                        name: `${player1_name}`,
+                        name: `${
+                            throwingPlayer == 0 ? "*" : ""
+                        }${player1_name}`,
                         value: `${player1_score}`,
                         inline: true,
                     },
@@ -382,7 +400,9 @@ class MatchHandler {
                         inline: true,
                     },
                     {
-                        name: `${player2_name}`,
+                        name: `${
+                            throwingPlayer == 1 ? "*" : ""
+                        }${player2_name}`,
                         value: `${player2_score}`,
                         inline: true,
                     },
