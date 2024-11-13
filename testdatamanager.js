@@ -45,7 +45,62 @@ async function getTournamentIdByName(tournamentName) {
         throw new Error("Failed to retrieve tournament ID.");
     }
 }
+async function handleDropOutMidTournament(tournamentName, discordId) {
+    try {
+        // Step 1: Retrieve tournament_id and participant details
+        const tournamentRow = await getTournamentIdByName(tournamentName);
 
+        if (!tournamentRow) {
+            return interaction.reply("Tournament not found in the database.");
+        }
+
+        const participantRow = await getParticipantDataFromTournamentUserId(
+            tournamentRow,
+            discordId
+        );
+
+        if (!participantRow) {
+            return interaction.reply(
+                "You are not registered in this tournament."
+            );
+        }
+
+        const challongeParticipantId = participantRow.participant_id;
+
+        // Step 2: Remove participant from Challonge
+        const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentRow}/participants/${challongeParticipantId}.json`;
+        const params = { api_key: process.env.API_KEY };
+        await axios.delete(apiUrl, { params });
+
+        if (tournamentRow.status == "started") {
+            //challonge will handle granting wins to the other player
+            //TODO
+        }
+
+        // Step 3: Remove participant from the local database
+        try {
+            await removeParticipantFromTournament(tournamentRow, discordId);
+            //create an embed
+            const embed = new EmbedBuilder()
+                .setTitle("Dropped out from the tournament")
+                .setDescription(
+                    `You have successfully dropped out from the tournament **${tournamentName}**.`
+                )
+                .setFooter({ text: "Tournament ID: " + tournamentRow })
+                .setColor(0xff0000);
+
+            return interaction.reply({ embeds: [embed] });
+        } catch (error) {
+            console.error("Database error:", error.message);
+            return interaction.reply(
+                "Failed to drop out from the tournament in the database."
+            );
+        }
+    } catch (error) {
+        console.error("Error dropping out mid-tournament:", error);
+        return interaction.reply("Failed to drop out mid-tournament.");
+    }
+}
 /**
  * Retrieves match details using the AutoDarts match ID.
  */

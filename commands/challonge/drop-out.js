@@ -55,6 +55,12 @@ module.exports = {
             const params = { api_key: process.env.API_KEY };
             await axios.delete(apiUrl, { params });
 
+            if (tournamentRow.status == "started") {
+                //award wins to the other player 4-0 and update in challong etc
+                //then mark the participant as dropped out in status
+                //get the matches of the participant
+            }
+
             // Step 3: Remove participant from the local database
             try {
                 await removeParticipantFromTournament(tournamentRow, discordId);
