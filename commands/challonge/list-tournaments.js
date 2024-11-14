@@ -4,7 +4,7 @@ const {
     PermissionFlagsBits,
 } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
-
+//TODO maybe make this a user facing command?
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("list-tournaments")

@@ -293,20 +293,6 @@ async function insertNewTournament(tournament) {
         );
     });
 }
-async function getMatchFromAutodartsMatchId(autodartsMatchId) {
-    const db = new sqlite3.Database(dbFilePath);
-    return new Promise((resolve, reject) => {
-        db.get(
-            `SELECT * FROM Matches WHERE autodarts_match_id = ?`,
-            [autodartsMatchId],
-            (err, row) => {
-                db.close();
-                if (err) return reject("Failed to retrieve match details.");
-                resolve(row);
-            }
-        );
-    });
-}
 async function confirmMatch(autodartsMatchId, playerIndex) {
     const db = new sqlite3.Database(dbFilePath);
     return new Promise((resolve, reject) => {
@@ -355,7 +341,6 @@ async function getActiveTournamentId() {
 }
 module.exports = {
     getTournamentIdByName,
-    getMatchFromAutodartsMatchId,
     getAllMatchesFromTournamentId,
     getTournamentIdFromAutodartsMatchId,
     getUserIdFromAutodartsId,

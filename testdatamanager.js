@@ -45,7 +45,62 @@ async function getTournamentIdByName(tournamentName) {
         throw new Error("Failed to retrieve tournament ID.");
     }
 }
+async function handleDropOutMidTournament(tournamentName, discordId) {
+    try {
+        // Step 1: Retrieve tournament_id and participant details
+        const tournamentRow = await getTournamentIdByName(tournamentName);
 
+        if (!tournamentRow) {
+            return interaction.reply("Tournament not found in the database.");
+        }
+
+        const participantRow = await getParticipantDataFromTournamentUserId(
+            tournamentRow,
+            discordId
+        );
+
+        if (!participantRow) {
+            return interaction.reply(
+                "You are not registered in this tournament."
+            );
+        }
+
+        const challongeParticipantId = participantRow.participant_id;
+
+        // Step 2: Remove participant from Challonge
+        const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentRow}/participants/${challongeParticipantId}.json`;
+        const params = { api_key: process.env.API_KEY };
+        await axios.delete(apiUrl, { params });
+
+        if (tournamentRow.status == "started") {
+            //challonge will handle granting wins to the other player
+            //TODO
+        }
+
+        // Step 3: Remove participant from the local database
+        try {
+            await removeParticipantFromTournament(tournamentRow, discordId);
+            //create an embed
+            const embed = new EmbedBuilder()
+                .setTitle("Dropped out from the tournament")
+                .setDescription(
+                    `You have successfully dropped out from the tournament **${tournamentName}**.`
+                )
+                .setFooter({ text: "Tournament ID: " + tournamentRow })
+                .setColor(0xff0000);
+
+            return interaction.reply({ embeds: [embed] });
+        } catch (error) {
+            console.error("Database error:", error.message);
+            return interaction.reply(
+                "Failed to drop out from the tournament in the database."
+            );
+        }
+    } catch (error) {
+        console.error("Error dropping out mid-tournament:", error);
+        return interaction.reply("Failed to drop out mid-tournament.");
+    }
+}
 /**
  * Retrieves match details using the AutoDarts match ID.
  */
@@ -694,7 +749,30 @@ async function getTournamentStatus(tournamentId) {
         throw new Error("Failed to retrieve tournament status.");
     }
 }
+async function getDivisionNumbers(tournamentId) {
+    //get all the group_ids from matches table for the tournament
+    const query = `SELECT DISTINCT group_id FROM Matches WHERE tournament_id = $1 ORDER BY group_id`;
+    const values = [tournamentId];
 
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) throw new Error("No groups found.");
+        //[{ group_id: 5915608 }, { group_id: 5915607 }];
+        //now create an object which will be key group_id and value will be the number of the group
+        //lowest number is division 1
+
+        let divisionNumbers = {};
+        let i = 1;
+        result.rows.forEach((group) => {
+            divisionNumbers[group.group_id] = i;
+            i++;
+        });
+        return divisionNumbers;
+    } catch (err) {
+        console.error("Error querying database:", err.message);
+        throw new Error("Failed to retrieve groups.");
+    }
+}
 module.exports = {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
@@ -721,4 +799,5 @@ module.exports = {
     getChallongeTournamentURL,
     updateTournamentStatus,
     getTournamentStatus,
+    getDivisionNumbers,
 };
