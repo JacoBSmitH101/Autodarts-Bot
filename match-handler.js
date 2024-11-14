@@ -13,6 +13,7 @@ const {
     getLocalMatchFromPlayersChallongeIdTournamentId,
     updateLocalMatch,
     updateStats,
+    getDivisionNumbers,
 } = require("./testdatamanager");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -176,6 +177,14 @@ class MatchHandler {
                 console.log("Match is finished");
             }
             this.checkIfMatchFinished(message.data.id, this.client);
+        }
+        if (message.data.event === "delete") {
+            //match is finished, no need to check if it is finished
+            if (process.env.DEBUG === "true") {
+                console.log("Match is deleted");
+            }
+            //remove match from ongoing_matches
+            this.handleDeleteMatch(message.data.id, this.client);
         }
         if (message.data.event === "start") {
             //match is starting, no need to check if it is finished
@@ -379,9 +388,13 @@ class MatchHandler {
         );
         //currently throwing player is message.data.player 0 for player1 and 1 for player2
         const throwingPlayer = message.data.player;
+
+        const divisionNumbers = await getDivisionNumbers(tournamentId);
+        //is an object with group_id: division_number
+        const division = divisionNumbers[db_match.group_id];
         if (channel) {
             const embed = new EmbedBuilder()
-                .setTitle("🎯 League Match In Progress")
+                .setTitle(`🎯 Division ${division} Match In Progress`)
                 .setDescription(`Follow the live score and progress!`)
                 .setColor(0x00ff00) // Green color for active match
                 .setTimestamp()
@@ -636,6 +649,26 @@ class MatchHandler {
             match.challonge_tournament_id,
             statsPlayer2
         );
+    }
+    async handleDeleteMatch(matchId, client) {
+        //basically just update hte live_discord_interaction message to say the match is deleted with a red color
+        const match = this.ongoing_matches.find(
+            (match) => match.matchId === matchId
+        );
+        const interaction = match.live_discord_interaction;
+        const embed = new EmbedBuilder()
+            .setTitle("🎯 League Match Aborted")
+            .setDescription(`This match has been aborted.`)
+            .setColor(0xff0000) // Red color for finished match
+            .setTimestamp();
+
+        interaction.edit({ embeds: [embed] });
+        //remove match from ongoing_matches
+        setTimeout(() => {
+            this.ongoing_matches = this.ongoing_matches.filter(
+                (match) => match.matchId !== matchId
+            );
+        }, 30000);
     }
     async checkIfMatchFinished(matchId, client) {
         //when not using a matchmode as a draw can happen in the league but not with autodarts
