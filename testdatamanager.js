@@ -9,7 +9,18 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
 });
+const getAllParticipants = async (tournamentId) => {
+    const query = `SELECT * FROM Participants WHERE tournament_id = $1`;
+    const values = [tournamentId];
 
+    try {
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (err) {
+        console.error("Failed to retrieve participants:", err.message);
+        throw new Error("Failed to retrieve participants.");
+    }
+};
 //recrate this function with pg
 const getSortedParticipants = async (tournamentId) => {
     const query = `
@@ -735,6 +746,15 @@ const fetchTournamentsFromDatabase2 = async () => {
         throw new Error("Failed to fetch tournaments.");
     }
 };
+const fetchAllTourneys = async () => {
+    try {
+        const result = await pool.query(`SELECT * FROM Tournaments`);
+        return result.rows;
+    } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        throw new Error("Failed to fetch tournaments.");
+    }
+};
 
 async function getTournamentStatus(tournamentId) {
     const query = `SELECT status FROM Tournaments WHERE tournament_id = $1`;
@@ -773,6 +793,43 @@ async function getDivisionNumbers(tournamentId) {
         throw new Error("Failed to retrieve groups.");
     }
 }
+const getTournamentStatusForUser = async (userId) => {
+    const query = `SELECT * FROM Participants WHERE user_id = $1`;
+    const values = [userId];
+
+    try {
+        const result = await pool.query(query, values);
+        //get all tournaments and then return an object with tournament_id: signed_up boolean
+        let tournaments = {};
+        result.rows.forEach((tournament) => {
+            tournaments[tournament.tournament_id] = true;
+        });
+        //then get all tournaments from the database
+        const allTournaments = await fetchAllTourneys();
+        allTournaments.forEach((tournament) => {
+            if (!tournaments[tournament.tournament_id]) {
+                tournaments[tournament.tournament_id] = false;
+            }
+        });
+        return tournaments;
+    } catch (err) {
+        console.error("Error querying database:", err.message);
+        throw new Error("Failed to retrieve tournaments.");
+    }
+};
+const getTournamentNameById = async (tournamentId) => {
+    const query = `SELECT name FROM Tournaments WHERE tournament_id = $1`;
+    const values = [tournamentId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) throw new Error("Tournament not found.");
+        return result.rows[0].name;
+    } catch (err) {
+        console.error("Error querying database:", err.message);
+        throw new Error("Failed to retrieve tournament name.");
+    }
+};
 module.exports = {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
@@ -800,4 +857,7 @@ module.exports = {
     updateTournamentStatus,
     getTournamentStatus,
     getDivisionNumbers,
+    getAllParticipants,
+    getTournamentStatusForUser,
+    getTournamentNameById,
 };
