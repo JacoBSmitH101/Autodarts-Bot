@@ -115,13 +115,6 @@ module.exports = {
             }
 
             //discordid, usertag, autodartusername, average, profileurl
-            await upsertUser(
-                discordId,
-                interaction.user.tag,
-                autodartUsername,
-                average,
-                profileUrl
-            );
 
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
@@ -150,6 +143,14 @@ module.exports = {
                 discordId,
                 tournamentId,
                 challongeParticipantId
+            );
+            await upsertUser(
+                discordId,
+                interaction.user.tag,
+                autodartUsername,
+                challongeParticipantId,
+                average,
+                profileUrl
             );
 
             const embed = new EmbedBuilder()

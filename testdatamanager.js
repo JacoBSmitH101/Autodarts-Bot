@@ -663,6 +663,7 @@ const upsertUser = async (
     discordId,
     userTag,
     autodartUsername,
+    challonge_id,
     average,
     profileUrl
 ) => {
@@ -677,11 +678,12 @@ const upsertUser = async (
             // User does not exist; insert into Users table
             await client.query(
                 `INSERT INTO Users (user_id, discord_tag, autodarts_name, challonge_id, created_at, updated_at, avg, autodarts_id)
-                 VALUES ($1, $2, $3, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $4, $5)`,
+                 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $5, $6)`,
                 [
                     discordId,
                     userTag,
                     autodartUsername,
+                    challonge_id,
                     average,
                     profileUrl.split("/").pop(),
                 ]
