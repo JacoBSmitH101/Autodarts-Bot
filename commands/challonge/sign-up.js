@@ -30,6 +30,12 @@ module.exports = {
         )
         .addStringOption((option) =>
             option
+                .setName("challonge-username")
+                .setDescription("(Optional) Challonge username")
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
                 .setName("test_user_id")
                 .setDescription("For testing only: Specify a different user ID")
                 .setRequired(false)
@@ -43,6 +49,10 @@ module.exports = {
 
         let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
         let average = 25;
+        //get challonge name if provided
+        const challongeName =
+            interaction.options.getString("challonge-username");
+
         //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
         if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
             autodartUsername = await getAutodartsUsernameFromID(
@@ -116,7 +126,12 @@ module.exports = {
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
             const params = { api_key: process.env.API_KEY };
-            const data = { participant: { name: participantName } };
+            const data = {
+                participant: {
+                    name: participantName,
+                    challonge_username: challongeName,
+                },
+            };
 
             const response = await axios.post(apiUrl, data, { params });
 
