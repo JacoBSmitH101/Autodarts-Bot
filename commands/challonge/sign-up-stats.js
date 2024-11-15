@@ -25,7 +25,6 @@ module.exports = {
         const tournamentName = interaction.options.getString("tournament");
         const tournamentId = await getTournamentIdByName(tournamentName);
         const participants = await getAllParticipants(tournamentId);
-        console.log(participants);
 
         //count all signups
         const totalParticipants = participants.length;
