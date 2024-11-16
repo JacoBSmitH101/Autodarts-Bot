@@ -1,0 +1,10 @@
+{
+    "apps": [
+        {
+            "name": "ad-bot",
+            "script": "./npm",
+            "args": "start",
+            "cwd": "H:/Autodarts Bot"
+        }
+    ]
+}

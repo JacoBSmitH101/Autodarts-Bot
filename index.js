@@ -12,6 +12,8 @@ const {
     ActionRowBuilder,
     EmbedBuilder,
     messageLink,
+    REST,
+    Routes,
 } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
@@ -48,6 +50,69 @@ const {
     getActiveTournamentId,
     getNameFromChallongeId,
 } = require("./testdatamanager");
+
+//run deploy-commands.js to deploy commands to discord below
+const commands = [];
+// Grab all the command folders from the commands directory you created earlier
+const dfoldersPath = path.join(__dirname, "commands");
+const dcommandFolders = fs.readdirSync(dfoldersPath);
+
+for (const folder of dcommandFolders) {
+    // Grab all the command files from the commands directory you created earlier
+    const commandsPath = path.join(dfoldersPath, folder);
+    const commandFiles = fs
+        .readdirSync(commandsPath)
+        .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
+    // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ("data" in command && "execute" in command) {
+            commands.push(command.data.toJSON());
+        } else {
+            console.log(
+                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+            );
+        }
+    }
+}
+
+// Construct and prepare an instance of the REST module
+const rest = new REST().setToken(process.env.TOKEN);
+
+// and deploy your commands!
+(async () => {
+    try {
+        console.log(
+            `Started refreshing ${commands.length} application (/) commands.`
+        );
+
+        // The put method is used to fully refresh all commands in the guild with the current set
+        //TODO AT DEPLOY CHANGE TO CORRECT GUILD ID
+        const data = await rest.put(
+            Routes.applicationGuildCommands(
+                process.env.CLIENT_ID,
+                process.env.GUILD_ID
+            ),
+            { body: commands }
+        );
+
+        const data2 = await rest.put(
+            Routes.applicationGuildCommands(
+                process.env.CLIENT_ID,
+                process.env.AD_GUILD_ID
+            ),
+            { body: commands }
+        );
+
+        console.log(
+            `Successfully reloaded ${data2.length} application (/) commands.`
+        );
+    } catch (error) {
+        // And of course, make sure you catch and log any errors!
+        console.error(error);
+    }
+})();
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
