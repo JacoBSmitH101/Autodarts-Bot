@@ -433,14 +433,18 @@ const handleNewMatch = async (message) => {
     } catch (error) {
         return;
     }
-    console.log(player1_id, player2_id);
+    if (process.env.DEBUG == "True") {
+        console.log(player1_id, player2_id);
+    }
 
     const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
     const player2_user_id = await getUserIdFromAutodartsId(player2_id);
 
     if (!player1_user_id || !player2_user_id) {
-        console.log(`Rejection: ${player1_user_id} ${player2_user_id}`);
+        if (process.env.DEBUG == "True") {
+            console.log(`Rejection: ${player1_user_id} ${player2_user_id}`);
+        }
         return;
     }
 
@@ -468,9 +472,11 @@ const handleNewMatch = async (message) => {
     );
 
     if (!player1_challonge_id || !player2_challonge_id) {
-        console.log(
-            `Rejection: ${player1_challonge_id} ${player2_challonge_id}`
-        );
+        if (process.env.DEBUG == "True") {
+            console.log(
+                `Rejection: ${player1_challonge_id} ${player2_challonge_id}`
+            );
+        }
         return;
     }
     if (!match) {

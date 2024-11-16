@@ -737,10 +737,14 @@ const upsertParticipant = async (userId, tournamentId, challongeId) => {
     }
 };
 
-const fetchTournamentsFromDatabase2 = async () => {
+const fetchTournamentsFromDatabase2 = async (active) => {
     try {
         const client = await pool.connect();
-        const result = await client.query(`SELECT name FROM Tournaments`);
+        let query = `SELECT name FROM Tournaments`;
+        if (active) {
+            query += ` WHERE active = 1`;
+        }
+        const result = await client.query(query);
         client.release();
         return result.rows;
     } catch (error) {
