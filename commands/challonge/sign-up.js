@@ -133,11 +133,6 @@ module.exports = {
             }
 
             const challongeParticipantId = response.data.participant.id;
-            await upsertParticipant(
-                discordId,
-                tournamentId,
-                challongeParticipantId
-            );
             await upsertUser(
                 discordId,
                 interaction.user.tag,
@@ -145,6 +140,11 @@ module.exports = {
                 challongeParticipantId,
                 average,
                 profileUrl
+            );
+            await upsertParticipant(
+                discordId,
+                tournamentId,
+                challongeParticipantId
             );
 
             const embed = new EmbedBuilder()
