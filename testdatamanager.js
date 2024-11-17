@@ -755,10 +755,10 @@ const fetchTournamentsFromDatabase2 = async (active) => {
 };
 const fetchAllTourneys = async (onlyActive = false) => {
     try {
-        let query = `SELECT * FROM Tournaments WHERE active = 1`;
-        // if (onlyActive) {
-        //     query += ` WHERE active = 1`;
-        // }
+        let query = `SELECT * FROM Tournaments`;
+        if (onlyActive) {
+            query += ` WHERE active = 1`;
+        }
         const result = await pool.query(query);
         return result.rows;
     } catch (error) {
@@ -813,7 +813,9 @@ const getTournamentStatusForUser = async (userId) => {
         //get all tournaments and then return an object with tournament_id: signed_up boolean
         let tournaments = {};
         result.rows.forEach((tournament) => {
-            tournaments[tournament.tournament_id] = true;
+            if (isTournamentActive(tournament.tournament_id)) {
+                tournaments[tournament.tournament_id] = true;
+            }
         });
         //then get all tournaments from the database
         const allTournaments = await fetchAllTourneys((onlyActive = true));
@@ -839,6 +841,19 @@ const getTournamentNameById = async (tournamentId) => {
     } catch (err) {
         console.error("Error querying database:", err.message);
         throw new Error("Failed to retrieve tournament name.");
+    }
+};
+const isTournamentActive = async (tournamentId) => {
+    const query = `SELECT active FROM Tournaments WHERE tournament_id = $1`;
+    const values = [tournamentId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) throw new Error("Tournament not found.");
+        return result.rows[0].active;
+    } catch (err) {
+        console.error("Error querying database:", err.message);
+        throw new Error("Failed to retrieve tournament status.");
     }
 };
 module.exports = {
