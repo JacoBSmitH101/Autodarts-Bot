@@ -813,7 +813,7 @@ const getTournamentStatusForUser = async (userId) => {
         //get all tournaments and then return an object with tournament_id: signed_up boolean
         let tournaments = {};
         result.rows.forEach((tournament) => {
-            if (isTournamentActive(tournament.tournament_id)) {
+            if (isTournamentActive(tournament.tournament_id) == 1) {
                 tournaments[tournament.tournament_id] = true;
             }
         });
