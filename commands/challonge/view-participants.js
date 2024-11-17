@@ -9,7 +9,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getTournamentIdByName } = require("../../testdatamanager");
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("view-participants")
+        .setName("view-signups")
         .setDescription("Shows all participants signed up for a league")
         .addStringOption((option) =>
             option

@@ -545,7 +545,10 @@ const handleNewMatch = async (message) => {
         return;
     }
     if (!match) {
-        return console.log("Match not found");
+        if (process.env.DEBUG == "True") {
+            console.log("Match not found");
+        }
+        return;
     }
 
     if (match.player1_score != null) {
@@ -571,8 +574,9 @@ const handleNewMatch = async (message) => {
         message.data.body.id,
         tournamentId
     );
-
-    console.log("Match:", match);
+    if (process.env.DEBUG == "True") {
+        console.log("Match:", match);
+    }
 };
 
 // Subscribe to a match
