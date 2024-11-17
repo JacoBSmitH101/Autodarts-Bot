@@ -143,7 +143,7 @@ for (const folder of commandFolders) {
         if ("data" in command && "execute" in command) {
             client.commands.set(command.data.name, command);
         } else {
-            console.error(
+            console.warn(
                 `Error: ${file} does not have a data and execute property`
             );
         }

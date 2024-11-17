@@ -752,9 +752,13 @@ const fetchTournamentsFromDatabase2 = async (active) => {
         throw new Error("Failed to fetch tournaments.");
     }
 };
-const fetchAllTourneys = async () => {
+const fetchAllTourneys = async (onlyActive = false) => {
     try {
-        const result = await pool.query(`SELECT * FROM Tournaments`);
+        let query = `SELECT * FROM Tournaments`;
+        if (onlyActive) {
+            query += ` WHERE active = 1`;
+        }
+        const result = await pool.query(query);
         return result.rows;
     } catch (error) {
         console.error("Error fetching tournaments:", error);
@@ -811,7 +815,7 @@ const getTournamentStatusForUser = async (userId) => {
             tournaments[tournament.tournament_id] = true;
         });
         //then get all tournaments from the database
-        const allTournaments = await fetchAllTourneys();
+        const allTournaments = await fetchAllTourneys(true);
         allTournaments.forEach((tournament) => {
             if (!tournaments[tournament.tournament_id]) {
                 tournaments[tournament.tournament_id] = false;

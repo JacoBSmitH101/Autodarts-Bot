@@ -62,12 +62,17 @@ module.exports = {
 
         // Create an array to hold the field objects
         const fields = [];
+        //get signed up date and time
 
         // Iterate over tournamentStatus to dynamically create fields
         for (const key in tournamentStatus) {
             fields.push({
                 name: `${tournamentStatus[key] == true ? "✅" : "❌"} ${key}`,
-                value: "\u200B", // Invisible character to satisfy embed requirements
+                value: `${
+                    tournamentStatus[key] == true
+                        ? "Signed up successfully"
+                        : "Not yet signed up"
+                }`, // Invisible character to satisfy embed requirements
                 inline: false, // Set to true if you want fields side-by-side
             });
         }
@@ -75,6 +80,6 @@ module.exports = {
         // Add all fields to the embed at once
         embed.addFields(fields);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     },
 };
