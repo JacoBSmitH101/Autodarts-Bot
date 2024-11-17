@@ -53,6 +53,12 @@ module.exports = {
         }
 
         const participants = await getAllParticipants(tournamentId);
+        //foreach participant, get their name from the challonge id and add to the ob
+        for (let i = 0; i < participants.length; i++) {
+            participants[i].name = await getNameFromChallongeId(
+                participants[i].challonge_id
+            );
+        }
 
         const embed = new EmbedBuilder()
             .setTitle("Participants")
@@ -61,9 +67,7 @@ module.exports = {
                 participants
                     .map(
                         async (participant) =>
-                            await getNameFromChallongeId(
-                                participant.challonge_id
-                            )
+                            await getNameFromChallongeId(participant.name)
                     )
                     .join("\n")
             );
