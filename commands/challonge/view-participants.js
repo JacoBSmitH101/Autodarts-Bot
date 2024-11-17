@@ -65,10 +65,7 @@ module.exports = {
             .setColor(0x00ff00)
             .setDescription(
                 participants
-                    .map(
-                        async (participant) =>
-                            await getNameFromChallongeId(participant.name)
-                    )
+                    .map((participant) => `${participant.name}`)
                     .join("\n")
             );
 

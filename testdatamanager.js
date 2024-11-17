@@ -224,7 +224,6 @@ async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
     try {
         //const result = await pool.query(query, values);
         const result = await pool.query(query, values);
-        console.log(result.rows);
         if (result.rows.length === 0)
             throw new Error("Challonge ID not found.");
         return result.rows[0].challonge_id;
@@ -706,7 +705,6 @@ const upsertUser = async (
     }
 };
 const upsertParticipant = async (userId, tournamentId, challongeId) => {
-    console.log("Upserting participant:", userId, tournamentId, challongeId);
     try {
         const client = await pool.connect();
         const result = await client.query(

@@ -84,7 +84,6 @@ module.exports = {
 
             const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
                 participantData;
-            console.log("Tournament ID:", tournamentId);
             // Step 2: Fetch matches for the participant from the Matches table
             let matches = await getAllMatchesForPlayer(
                 matchPlayerId,
@@ -151,7 +150,6 @@ module.exports = {
                         match.state.slice(1);
 
                     // Format each match in an inline style within a full-width field
-                    console.log(playerScore, opponentScore);
                     if (playerScore === 0 && opponentScore === 0) {
                         embed.addFields({
                             name: `⚪ Match ${index + 1} 🎯`,

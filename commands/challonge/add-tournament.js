@@ -57,7 +57,6 @@ module.exports = {
                 if (err) {
                     console.error("Error closing the database:", err.message);
                 }
-                console.log("Closed the database connection.");
             });
         }
     },
