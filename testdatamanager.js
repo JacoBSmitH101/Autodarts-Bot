@@ -805,7 +805,14 @@ async function getDivisionNumbers(tournamentId) {
     }
 }
 const getTournamentStatusForUser = async (userId) => {
-    const query = `SELECT * FROM Participants WHERE user_id = $1`;
+    const query = `
+        SELECT * 
+        FROM Participants 
+        JOIN Tournaments 
+        ON Participants.tournament_id = Tournaments.tournament_id 
+        WHERE Participants.user_id = $1 
+        AND Tournaments.active = 1
+    `;
     const values = [userId];
 
     try {
@@ -813,9 +820,7 @@ const getTournamentStatusForUser = async (userId) => {
         //get all tournaments and then return an object with tournament_id: signed_up boolean
         let tournaments = {};
         result.rows.forEach((tournament) => {
-            if (isTournamentActive(tournament.tournament_id) == 1) {
-                tournaments[tournament.tournament_id] = true;
-            }
+            tournaments[tournament.tournament_id] = true;
         });
         //then get all tournaments from the database
         const allTournaments = await fetchAllTourneys((onlyActive = true));
