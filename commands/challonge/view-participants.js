@@ -1,6 +1,6 @@
 //command to list all participants signed up for a tournament
 
-const { getParticipantsByTournamentId } = require("../../testdatamanager");
+const { getAllParticipants } = require("../../testdatamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getTournamentIdByName } = require("../../testdatamanager");
@@ -49,7 +49,7 @@ module.exports = {
             );
         }
 
-        const participants = await getParticipantsByTournamentId(tournamentId);
+        const participants = await getAllParticipants(tournamentId);
 
         const embed = new EmbedBuilder()
             .setTitle("Participants")
