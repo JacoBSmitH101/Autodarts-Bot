@@ -756,9 +756,9 @@ const fetchTournamentsFromDatabase2 = async (active) => {
 const fetchAllTourneys = async (onlyActive = false) => {
     try {
         let query = `SELECT * FROM Tournaments WHERE active = 1`;
-        if (onlyActive) {
-            query += ` WHERE active = 1`;
-        }
+        // if (onlyActive) {
+        //     query += ` WHERE active = 1`;
+        // }
         const result = await pool.query(query);
         return result.rows;
     } catch (error) {
