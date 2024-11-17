@@ -1,6 +1,9 @@
 //command to list all participants signed up for a tournament
 
-const { getAllParticipants } = require("../../testdatamanager");
+const {
+    getAllParticipants,
+    getNameFromChallongeId,
+} = require("../../testdatamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getTournamentIdByName } = require("../../testdatamanager");
@@ -55,7 +58,14 @@ module.exports = {
             .setTitle("Participants")
             .setColor(0x00ff00)
             .setDescription(
-                participants.map((participant) => participant.name).join("\n")
+                participants
+                    .map(
+                        async (participant) =>
+                            await getNameFromChallongeId(
+                                participant.challonge_id
+                            )
+                    )
+                    .join("\n")
             );
 
         interaction.reply({ embeds: [embed], ephemeral: true });
