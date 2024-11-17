@@ -465,6 +465,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     try {
+        //for logging purposes, log the user name, id and command name
+        console.log(
+            `User: ${interaction.user.username}#${interaction.user.discriminator} (${interaction.user.id}) ran command ${interaction.commandName}`
+        );
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
