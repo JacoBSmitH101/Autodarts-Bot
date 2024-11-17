@@ -75,6 +75,6 @@ module.exports = {
         // Add all fields to the embed at once
         embed.addFields(fields);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     },
 };
