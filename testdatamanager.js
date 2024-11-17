@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const axios = require("axios");
+const { only } = require("node:test");
 // PostgreSQL configuration
 require("dotenv").config();
 const pool = new Pool({
@@ -815,7 +816,7 @@ const getTournamentStatusForUser = async (userId) => {
             tournaments[tournament.tournament_id] = true;
         });
         //then get all tournaments from the database
-        const allTournaments = await fetchAllTourneys(true);
+        const allTournaments = await fetchAllTourneys((onlyActive = true));
         allTournaments.forEach((tournament) => {
             if (!tournaments[tournament.tournament_id]) {
                 tournaments[tournament.tournament_id] = false;
