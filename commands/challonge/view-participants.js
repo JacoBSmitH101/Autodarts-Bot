@@ -3,6 +3,7 @@
 const { getParticipantsByTournamentId } = require("../../testdatamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
+const { getTournamentIdByName } = require("../../testdatamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("view-participants")
