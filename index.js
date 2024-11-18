@@ -49,6 +49,7 @@ const {
     getUserIdFromAutodartsId,
     getActiveTournamentId,
     getNameFromChallongeId,
+    findThreadByMatchId,
 } = require("./testdatamanager");
 
 //run deploy-commands.js to deploy commands to discord below
@@ -311,9 +312,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player2_confirmed == 1
                 ) {
                     console.log("Both players have confirmed");
-                    const channel = client.channels.cache.get(
-                        process.env.LIVE_MATCHES_CHANNEL_ID
-                    );
+                    const channel = findThreadByMatchId(match.match_id);
 
                     let db_match =
                         await getLocalMatchFromPlayersChallongeIdTournamentId(
@@ -371,11 +370,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             .setColor(0x00ff00);
 
                         await channel.send({
-                            content:
-                                "Both players have confirmed. Announcing in the channel.",
+                            content: "Both players have confirmed.",
                             ephemeral: true,
                         });
                         await channel.send({ embeds: [embed] });
+
+                        //now update the live matches channel
+                        const liveMatchesChannel = client.channels.cache.get(
+                            process.env.LIVE_MATCHES_CHANNEL_ID
+                        );
+                        if (liveMatchesChannel) {
+                            const embed = new EmbedBuilder()
+                                .setTitle("Match Confirmed")
+                                .setDescription(
+                                    `Match between ${player1_name} and ${player2_name} has been confirmed`
+                                )
+                                .setColor(0x00ff00);
+                            await liveMatchesChannel.send({ embeds: [embed] });
+                        } else {
+                            console.log("Channel not found");
+                        }
                     } else {
                         await interaction.followUp({
                             content:
