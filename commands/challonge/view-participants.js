@@ -3,6 +3,7 @@
 const {
     getAllParticipants,
     getNameFromChallongeId,
+    getAverageFromChallongeId,
 } = require("../../testdatamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
@@ -58,14 +59,19 @@ module.exports = {
             participants[i].name = await getNameFromChallongeId(
                 participants[i].challonge_id
             );
+            participants[i].average = getAverageFromChallongeId(
+                participants[i].challonge_id
+            );
         }
-
         const embed = new EmbedBuilder()
             .setTitle("Participants")
             .setColor(0x00ff00)
             .setDescription(
                 participants
-                    .map((participant) => `${participant.name}`)
+                    .map(
+                        (participant) =>
+                            `${participant.name} (${participant.average})`
+                    )
                     .join("\n")
             );
 

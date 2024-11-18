@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 const axios = require("axios");
 const { only } = require("node:test");
+const { ChannelType } = require("discord.js");
 // PostgreSQL configuration
 require("dotenv").config();
 const pool = new Pool({
@@ -872,7 +873,60 @@ const getUserIdFromChallongeId = async (challongeId) => {
         throw new Error("Failed to retrieve user ID.");
     }
 };
+const getAverageFromChallongeId = async (challongeId) => {
+    const query = `SELECT avg FROM Users WHERE user_id = (SELECT user_id FROM Participants WHERE challonge_id = $1)`;
+    const values = [challongeId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].avg;
+    } catch (err) {
+        console.error("Failed to retrieve user ID:", err.message);
+        throw new Error("Failed to retrieve user ID.");
+    }
+};
+async function findThreadByMatchId(guild, matchId) {
+    try {
+        // Fetch all channels in the guild
+        const channels = await guild.channels.fetch();
+
+        // Filter for GuildForum channels
+        const forumChannels = channels.filter(
+            (channel) => channel.type === ChannelType.GuildForum
+        );
+
+        if (forumChannels.size === 0) {
+            console.log("No forum channels found in this guild.");
+            return null;
+        }
+
+        for (const [channelId, forumChannel] of forumChannels) {
+            // Fetch active threads in the forum channel
+            const threads = await forumChannel.threads.fetchActive();
+
+            if (threads.size === 0) {
+                continue;
+            }
+
+            // Search through threads for the match ID
+            for (const [threadId, thread] of threads.threads) {
+                const foundMatchId = thread.name.match(/\[ID:(\d+)\]/)?.[1];
+                if (foundMatchId === matchId) {
+                    return thread; // Return the found thread
+                }
+            }
+        }
+
+        // If no match is found
+        return null;
+    } catch (error) {
+        console.error("Error finding forum thread by match ID:", error);
+        return null;
+    }
+}
 module.exports = {
+    getAverageFromChallongeId,
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
     getAllMatchesFromTournamentId,
@@ -903,4 +957,5 @@ module.exports = {
     getTournamentStatusForUser,
     getTournamentNameById,
     getUserIdFromChallongeId,
+    findThreadByMatchId,
 };

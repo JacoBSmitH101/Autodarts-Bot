@@ -88,8 +88,7 @@ module.exports = {
                         const player2_discord_id =
                             await getUserIdFromChallongeId(match.player2_id);
                         const thread = await forumChannel.threads.create({
-                            name: `Round ${suggested_play_order}: ${player1_name} vs ${player2_name}`,
-                            //autoArchiveDuration: ThreadAutoArchiveDuration.Nev, // 1 day auto-archive
+                            name: `Round ${suggested_play_order}: ${player1_name} vs ${player2_name} [ID:${match.match_id}]`,
                             message: {
                                 content: `Thread for match between <@${player1_discord_id}> and <@${player2_discord_id}>. Organise your match here!`,
                             },
