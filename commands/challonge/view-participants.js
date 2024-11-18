@@ -59,7 +59,7 @@ module.exports = {
             participants[i].name = await getNameFromChallongeId(
                 participants[i].challonge_id
             );
-            participants[i].average = getAverageFromChallongeId(
+            participants[i].average = await getAverageFromChallongeId(
                 participants[i].challonge_id
             );
         }
