@@ -6,9 +6,15 @@ const {
     getTournamentIdByName,
     getDivisionNumbers,
     getNameFromChallongeId,
+    getUserIdFromAutodartsId,
+    getUserIdFromChallongeId,
 } = require("../../testdatamanager");
 const { getAllMatchesFromTournamentId } = require("../../testdatamanager");
-const { ChannelType, PermissionFlagsBits } = require("discord.js");
+const {
+    ChannelType,
+    PermissionFlagsBits,
+    ThreadAutoArchiveDuration,
+} = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -64,6 +70,10 @@ module.exports = {
                 console.log(`Created forum channel: ${forumChannel.name}`);
 
                 // Create forum posts (threads) for each match in the group
+                //sort the matches by suggested play order
+                matches.sort(
+                    (a, b) => b.suggested_play_order - a.suggested_play_order
+                );
                 for (const match of matches) {
                     if (match.group_id === group) {
                         const suggested_play_order = match.suggested_play_order;
@@ -73,11 +83,15 @@ module.exports = {
                         const player2_name = await getNameFromChallongeId(
                             match.player2_id
                         );
+                        const player1_discord_id =
+                            await getUserIdFromChallongeId(match.player1_id);
+                        const player2_discord_id =
+                            await getUserIdFromChallongeId(match.player2_id);
                         const thread = await forumChannel.threads.create({
                             name: `Round ${suggested_play_order}: ${player1_name} vs ${player2_name}`,
-                            autoArchiveDuration: 1440, // 1 day auto-archive
+                            //autoArchiveDuration: ThreadAutoArchiveDuration.Nev, // 1 day auto-archive
                             message: {
-                                content: `Thread for match ${match.match_id}. Discuss the match here!`,
+                                content: `Thread for match between <@${player1_discord_id}> and <@${player2_discord_id}>. Organise your match here!`,
                             },
                         });
 

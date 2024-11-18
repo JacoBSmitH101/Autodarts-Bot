@@ -859,6 +859,19 @@ const isTournamentActive = async (tournamentId) => {
         throw new Error("Failed to retrieve tournament status.");
     }
 };
+const getUserIdFromChallongeId = async (challongeId) => {
+    const query = `SELECT user_id FROM Participants WHERE challonge_id = $1`;
+    const values = [challongeId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].user_id;
+    } catch (err) {
+        console.error("Failed to retrieve user ID:", err.message);
+        throw new Error("Failed to retrieve user ID.");
+    }
+};
 module.exports = {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
@@ -889,4 +902,5 @@ module.exports = {
     getAllParticipants,
     getTournamentStatusForUser,
     getTournamentNameById,
+    getUserIdFromChallongeId,
 };
