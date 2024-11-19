@@ -371,7 +371,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         const embed = new EmbedBuilder()
                             .setTitle("Match Confirmed")
                             .setDescription(
-                                `Match between ${player1_name} and ${player2_name} has been confirmed`
+                                `Match between ${player1_name} and ${player2_name} has been confirmed. This thread will now be archived.`
                             )
                             .setColor(0x00ff00);
 
