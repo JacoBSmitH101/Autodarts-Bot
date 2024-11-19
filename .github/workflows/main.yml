@@ -15,7 +15,7 @@ jobs:
 
       - name: Scan for flagged keywords
         run: |
-          KEYWORDS=("TODO" "FIXME" "HACK" "debugger" "console.log" "GUILD_ID" )
+          KEYWORDS=("TODO" "FIXME" "HACK" "debugger" "console.log" "GUILD_ID" "test_user_id" )
           MATCHES=$(grep -rni --include=\*.{js,ts,py} "${KEYWORDS[@]}" . || true)
           if [[ -n "$MATCHES" ]]; then
             echo "Found flagged keywords:"
