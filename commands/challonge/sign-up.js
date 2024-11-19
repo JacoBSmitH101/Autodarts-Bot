@@ -33,6 +33,12 @@ module.exports = {
                 .setName("challonge-username")
                 .setDescription("(Optional) Challonge username")
                 .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("test_user_id")
+                .setDescription("Test User ID")
+                .setRequired(false)
         ),
 
     async execute(interaction) {

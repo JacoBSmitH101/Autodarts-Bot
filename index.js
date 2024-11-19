@@ -311,8 +311,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player1_confirmed == 1 &&
                     match.player2_confirmed == 1
                 ) {
+                    const guild = await client.guilds.cache.get(
+                        process.env.GUILD_ID
+                    );
                     console.log("Both players have confirmed");
-                    const channel = findThreadByMatchId(match.match_id);
+                    const channel = await findThreadByMatchId(
+                        guild,
+                        match.match_id
+                    );
 
                     let db_match =
                         await getLocalMatchFromPlayersChallongeIdTournamentId(
@@ -369,10 +375,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             )
                             .setColor(0x00ff00);
 
-                        await channel.send({
-                            content: "Both players have confirmed.",
-                            ephemeral: true,
-                        });
                         await channel.send({ embeds: [embed] });
 
                         //now update the live matches channel

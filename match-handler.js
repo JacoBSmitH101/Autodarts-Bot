@@ -14,7 +14,9 @@ const {
     updateLocalMatch,
     updateStats,
     getDivisionNumbers,
+    findThreadByMatchId,
 } = require("./testdatamanager");
+const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
 
 class MatchHandler {
@@ -431,6 +433,25 @@ class MatchHandler {
             this.ongoing_matches.find(
                 (match) => match.matchId === matchId
             ).live_discord_interaction = message;
+            const guild = await this.client.guilds.cache.get(
+                process.env.GUILD_ID
+            );
+            const matchChannel = await findThreadByMatchId(
+                guild,
+                db_match.match_id
+            );
+            console.log(matchChannel);
+            //just say match begun
+            const embed2 = new EmbedBuilder()
+                .setTitle(`🎯 Match Started`)
+                .setDescription(
+                    `Match between ${player1_name} and ${player2_name} has begun!`
+                )
+                .setColor(0x00ff00) // Green color for active match
+                .setTimestamp();
+
+            // Send message and update ongoing match with Discord message object
+            matchChannel.send({ embeds: [embed2] });
         } else {
             console.log("Channel not found");
         }

@@ -9,6 +9,7 @@ const {
     updateParticipantMatchPlayerIdsAndMatches,
     getTournamentIdByName,
     updateTournamentStatus,
+    createTournamentChannels,
 } = require("../../testdatamanager");
 const axios = require("axios");
 module.exports = {
@@ -76,6 +77,7 @@ module.exports = {
         // console.log(response.data);
         updateParticipantMatchPlayerIdsAndMatches(tournamentId);
         updateTournamentStatus(tournamentId, "started");
+        createTournamentChannels(tournamentId, interaction);
         await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };

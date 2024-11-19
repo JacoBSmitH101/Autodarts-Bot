@@ -2,6 +2,7 @@ const { Pool } = require("pg");
 const axios = require("axios");
 const { only } = require("node:test");
 const { ChannelType } = require("discord.js");
+const { match } = require("assert");
 // PostgreSQL configuration
 require("dotenv").config();
 const pool = new Pool({
@@ -210,6 +211,12 @@ async function getUserIdFromAutodartsId(autodartsId) {
  * Retrieves the Challonge ID using the user ID and tournament ID.
  */
 async function getChallongeIdFromUserIdTournamentId(userId, tournamentId) {
+    console.log(
+        "Fetching Challonge ID for user",
+        userId,
+        "and tournament",
+        tournamentId
+    );
     const query = `SELECT challonge_id FROM Participants WHERE user_id = $1 AND tournament_id = $2`;
     //const query =
     //"SELECT challonge_id FROM Participants WHERE user_id = '1299435641171607553' AND tournament_id = 15362165";
@@ -900,7 +907,6 @@ async function findThreadByMatchId(guild, matchId) {
             console.log("No forum channels found in this guild.");
             return null;
         }
-
         for (const [channelId, forumChannel] of forumChannels) {
             // Fetch active threads in the forum channel
             const threads = await forumChannel.threads.fetchActive();
@@ -912,7 +918,8 @@ async function findThreadByMatchId(guild, matchId) {
             // Search through threads for the match ID
             for (const [threadId, thread] of threads.threads) {
                 const foundMatchId = thread.name.match(/\[ID:(\d+)\]/)?.[1];
-                if (foundMatchId === matchId) {
+                console.log(foundMatchId);
+                if (foundMatchId == matchId) {
                     return thread; // Return the found thread
                 }
             }
@@ -925,7 +932,99 @@ async function findThreadByMatchId(guild, matchId) {
         return null;
     }
 }
+async function createTournamentChannels(tournamentId, interaction) {
+    // List to store all created forum channels and threads
+    const fixtureForumChannels = [];
+
+    try {
+        // Fetch tournament matches and groups
+        const matches = await getAllMatchesFromTournamentId(tournamentId);
+        const groups = new Set(matches.map((match) => match.group_id));
+        const divisionNumbers = await getDivisionNumbers(tournamentId);
+
+        // Emojis for divisions
+        const divisionEmojis = {
+            1: "🟠",
+            2: "🔵",
+            3: "🟢",
+            4: "🟣",
+            5: "🟡",
+            6: "🔴",
+            7: "⚪",
+            8: "⚫",
+        };
+
+        // Process each group to create forum channels and threads
+        for (const group of groups) {
+            try {
+                // Create a forum channel for the group
+                const forumChannel = await interaction.guild.channels.create({
+                    name: `${divisionEmojis[divisionNumbers[group]]}division-${
+                        divisionNumbers[group]
+                    }-fixtures`,
+                    type: ChannelType.GuildForum,
+                });
+
+                console.log(`Created forum channel: ${forumChannel.name}`);
+
+                // Sort matches by suggested play order for thread creation
+                const groupMatches = matches
+                    .filter((match) => match.group_id === group)
+                    .sort(
+                        (a, b) =>
+                            b.suggested_play_order - a.suggested_play_order
+                    );
+
+                for (const match of groupMatches) {
+                    const suggestedPlayOrder = match.suggested_play_order;
+                    const player1Name = await getNameFromChallongeId(
+                        match.player1_id
+                    );
+                    const player2Name = await getNameFromChallongeId(
+                        match.player2_id
+                    );
+                    const player1DiscordId = await getUserIdFromChallongeId(
+                        match.player1_id
+                    );
+                    const player2DiscordId = await getUserIdFromChallongeId(
+                        match.player2_id
+                    );
+
+                    // Create a thread for the match
+                    const thread = await forumChannel.threads.create({
+                        name: `Round ${suggestedPlayOrder}: ${player1Name} vs ${player2Name} [ID:${match.match_id}]`,
+                        message: {
+                            content: `Thread for match between <@${player1DiscordId}> and <@${player2DiscordId}>. Organise your match here!`,
+                        },
+                    });
+
+                    console.log(
+                        `Created thread: ${thread.name} in forum channel: ${forumChannel.name}`
+                    );
+
+                    // Add created thread to the list
+                    fixtureForumChannels.push(thread);
+                }
+
+                // Add forum channel to the list
+                fixtureForumChannels.push(forumChannel);
+            } catch (error) {
+                console.error(
+                    `Error creating forum channel or threads for group ${group}:`,
+                    error
+                );
+            }
+        }
+    } catch (error) {
+        console.error("Error creating tournament channels:", error);
+    }
+
+    // Return the created channels and threads
+    return fixtureForumChannels;
+}
+
 module.exports = {
+    createTournamentChannels,
     getAverageFromChallongeId,
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
