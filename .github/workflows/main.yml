@@ -1,0 +1,26 @@
+name: Keyword Checker
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  scan-keywords:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Scan for flagged keywords
+        run: |
+          KEYWORDS=("TODO" "FIXME" "HACK" "debugger" "console.log" "GUILD_ID" )
+          MATCHES=$(grep -rni --include=\*.{js,ts,py} "${KEYWORDS[@]}" . || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "Found flagged keywords:"
+            echo "$MATCHES"
+            exit 1
+          else
+            echo "No flagged keywords found."
+          fi
