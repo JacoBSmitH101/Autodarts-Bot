@@ -15,12 +15,28 @@ jobs:
 
       - name: Scan for flagged keywords
         run: |
-          KEYWORDS=("FIXME" "HACK" "debugger" "GUILD_ID" "test_user_id" )
-          MATCHES=$(grep -rni --include=\*.{js,ts,py} "${KEYWORDS[@]}" . || true)
-          if [[ -n "$MATCHES" ]]; then
-            echo "Found flagged keywords:"
-            echo "$MATCHES"
-            exit 1
+          # Define the keywords to search for
+          KEYWORDS=("FIXME" "HACK" "debugger" "GUILD_ID" "test_user_id")
+
+          # Initialize a flag to detect matches
+          MATCH_FOUND=false
+
+          # Loop through each keyword
+          for KEYWORD in "${KEYWORDS[@]}"; do
+              echo "Searching for keyword: $KEYWORD"
+              # Search for the keyword in all matching files
+              MATCHES=$(grep -rni --include=\*.{js,ts,py} "$KEYWORD" . || true)
+              if [[ -n "$MATCHES" ]]; then
+                  echo "Found matches for '$KEYWORD':"
+                  echo "$MATCHES"
+                  MATCH_FOUND=true
+              fi
+          done
+
+          # Fail the workflow if any matches are found
+          if [[ "$MATCH_FOUND" == "true" ]]; then
+              echo "Flagged keywords detected. Failing the workflow."
+              exit 1
           else
-            echo "No flagged keywords found."
+              echo "No flagged keywords found."
           fi
