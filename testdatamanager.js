@@ -932,7 +932,11 @@ async function findThreadByMatchId(guild, matchId) {
         return null;
     }
 }
-async function createTournamentChannels(tournamentId, interaction) {
+async function createTournamentChannels(
+    tournamentId,
+    interaction,
+    parent = null
+) {
     // List to store all created forum channels and threads
     const fixtureForumChannels = [];
 
