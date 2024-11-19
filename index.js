@@ -376,6 +376,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             .setColor(0x00ff00);
 
                         await channel.send({ embeds: [embed] });
+                        channel.setArchived(true);
 
                         //now update the live matches channel
                         const liveMatchesChannel = client.channels.cache.get(
