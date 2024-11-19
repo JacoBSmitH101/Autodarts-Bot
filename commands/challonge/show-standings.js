@@ -24,6 +24,14 @@ module.exports = {
                 .setRequired(true)
                 .setAutocomplete(true)
         )
+        .addIntegerOption((option) =>
+            option
+
+                .setName("division")
+                .setDescription("The division number")
+                .setRequired(false)
+        )
+
         .addBooleanOption((option) =>
             option
                 .setName("mobile")
@@ -137,15 +145,25 @@ module.exports = {
         });
 
         let i = 0;
+
+        // Get the division number, if specified
+        const division = interaction.options.getInteger("division");
+
         for (const groupId in standings.groups) {
+            i++; // Increment the division index for display
             const group = standings.groups[groupId];
             const sortedStandings = Object.values(group.standings).sort(
                 (a, b) => b.points - a.points
             );
 
+            // If a specific division is requested, skip other groups
+            if (division && division !== i) {
+                continue;
+            }
+
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
-                .setTitle(`Standings for Division ${++i}`)
+                .setTitle(`Standings for Division ${i}`)
                 .setDescription(`Tournament: **${tournamentName}**`)
                 .setTimestamp();
 
@@ -182,6 +200,11 @@ module.exports = {
             });
 
             await interaction.followUp({ embeds: [embed], ephemeral: true });
+
+            // Stop after processing the requested division
+            if (division) {
+                break;
+            }
         }
 
         // Delete the original interaction reply
