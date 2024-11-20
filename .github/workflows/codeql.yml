@@ -1,0 +1,36 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [main]  # Adjust the branch names as needed
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '13:00' # Adjust the schedule as needed
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        language: [ 'javascript' ] # Add your repo's languages
+        # See https://docs.github.com/en/code-security/codeql-supported-languages
+        # Adjust the above list to match your project.
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
