@@ -15,7 +15,7 @@ const {
     updateStats,
     getDivisionNumbers,
     findThreadByMatchId,
-} = require("./testdatamanager");
+} = require("./datamanager");
 const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
 

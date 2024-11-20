@@ -9,7 +9,7 @@ const {
     getTournamentIdByName,
     getParticipantDataFromTournamentUserId,
     getTournamentStatus,
-} = require("../../testdatamanager.js");
+} = require("../../datamanager.js");
 
 module.exports = {
     data: new SlashCommandBuilder()

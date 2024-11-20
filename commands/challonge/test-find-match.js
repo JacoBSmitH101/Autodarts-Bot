@@ -9,8 +9,8 @@ const {
     getNameFromChallongeId,
     getUserIdFromAutodartsId,
     getUserIdFromChallongeId,
-} = require("../../testdatamanager");
-const { getAllMatchesFromTournamentId } = require("../../testdatamanager");
+} = require("../../datamanager");
+const { getAllMatchesFromTournamentId } = require("../../datamanager");
 const {
     ChannelType,
     PermissionFlagsBits,

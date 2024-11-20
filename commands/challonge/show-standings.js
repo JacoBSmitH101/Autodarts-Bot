@@ -8,10 +8,10 @@ const {
     getTournamentIdByName,
     getChallongeTournamentURL,
     getTournamentStatus,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 const sqlite3 = require("sqlite3").verbose();
 const { table } = require("table");
-const { getAllMatchesFromTournamentId } = require("../../testdatamanager");
+const { getAllMatchesFromTournamentId } = require("../../datamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()

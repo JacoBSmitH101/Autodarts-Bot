@@ -23,7 +23,7 @@ const {
     handleCancelRemove,
     rejectMatch,
 } = require("./util"); //#endregion
-const confirmMatch = require("./testdatamanager").confirmMatch;
+const confirmMatch = require("./datamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
 const ALLOWED_USER_IDS = [
@@ -50,7 +50,7 @@ const {
     getActiveTournamentId,
     getNameFromChallongeId,
     findThreadByMatchId,
-} = require("./testdatamanager");
+} = require("./datamanager");
 
 //run deploy-commands.js to deploy commands to discord below
 const commands = [];

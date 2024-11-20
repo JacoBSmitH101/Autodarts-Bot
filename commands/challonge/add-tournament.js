@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const axios = require("axios");
-const { insertNewTournament } = require("../../testdatamanager");
+const { insertNewTournament } = require("../../datamanager");
 const sqlite3 = require("sqlite3").verbose();
 require("dotenv").config();
 

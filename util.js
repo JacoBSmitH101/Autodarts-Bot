@@ -70,7 +70,7 @@ const {
     getNameFromChallongeId,
     getAllMatchesFromTournamentId,
     fetchTournamentsFromDatabase2,
-} = require("./testdatamanager");
+} = require("./datamanager");
 async function handleCancelRemove(interaction) {
     await interaction.update({
         content: "Tournament removal canceled.",

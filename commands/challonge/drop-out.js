@@ -7,7 +7,7 @@ const {
     getTournamentIdByName,
     getParticipantDataFromTournamentUserId,
     removeParticipantFromTournament,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("drop-out")

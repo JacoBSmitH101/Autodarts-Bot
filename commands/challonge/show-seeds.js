@@ -4,7 +4,7 @@ const { fetchTournamentsFromDatabase } = require("../../util");
 const {
     getTournamentIdByName,
     getSortedParticipants,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 // Function to retrieve sorted participants by average
 // const getSortedParticipants = async (tournamentId) => {
 //     return new Promise((resolve, reject) => {
