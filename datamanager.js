@@ -1027,7 +1027,6 @@ async function createTournamentChannels(
     // Return the created channels and threads
     return fixtureForumChannels;
 }
-
 module.exports = {
     createTournamentChannels,
     getAverageFromChallongeId,
