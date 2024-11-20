@@ -948,12 +948,12 @@ async function createTournamentChannels(
 
         // Emojis for divisions
         const divisionEmojis = {
-            1: "🟠",
-            2: "🔵",
-            3: "🟢",
-            4: "🟣",
-            5: "🟡",
-            6: "🔴",
+            1: "🔴",
+            2: "🟢",
+            3: "🔵",
+            4: "🟠",
+            5: "🟣",
+            6: "🟡",
             7: "⚪",
             8: "⚫",
         };
@@ -967,6 +967,7 @@ async function createTournamentChannels(
                         divisionNumbers[group]
                     }-fixtures`,
                     type: ChannelType.GuildForum,
+                    parent: parent,
                 });
 
                 console.log(`Created forum channel: ${forumChannel.name}`);
