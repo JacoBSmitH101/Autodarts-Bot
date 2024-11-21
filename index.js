@@ -221,19 +221,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (action === "confirm") {
                 console.log("Confirming match");
 
-                const db = new sqlite3.Database("./data.db", (err) => {
-                    if (err) {
-                        console.error(
-                            "Database connection error:",
-                            err.message
-                        );
-                        return interaction.reply({
-                            content: "Failed to connect to the database.",
-                            ephemeral: true,
-                        });
-                    }
-                });
-
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
                     autodarts_match_id
                 );

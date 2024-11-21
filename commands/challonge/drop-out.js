@@ -49,15 +49,15 @@ module.exports = {
             }
 
             const challongeParticipantId = participantRow.challonge_id;
+            const participantId = participantRow.participant_id;
             console.log("challongeParticipantId");
             console.log(challongeParticipantId);
-
+            const tournamentStatus = await getTournamentStatus(tournamentId);
             // Step 2: Remove participant from Challonge
-            const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${challongeParticipantId}.json`;
+            const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participantId}.json`;
             const params = { api_key: process.env.API_KEY };
-            await axios.delete(apiUrl, { params });
 
-            if (tournamentId.status == "started") {
+            if (tournamentStatus == "started") {
                 //award wins to the other player 4-0 and update in challong etc
                 //then mark the participant as dropped out in status
                 //get the matches of the participant
@@ -65,11 +65,11 @@ module.exports = {
                     challongeParticipantId,
                     tournamentId
                 );
-
                 for (const match of matches) {
                     if (match.state == "complete") {
                         continue;
                     }
+                    console.log(match);
                     const matchId = match.match_id;
                     const opponentId =
                         match.player1_id == challongeParticipantId
@@ -82,8 +82,6 @@ module.exports = {
                             tournamentId,
                             opponentId
                         );
-                    const opponentDiscordId = opponentRow.discord_id;
-                    const opponentChallongeId = opponentRow.participant_id;
                     const scores_csv = isPlayer1 ? "0-2" : "2-0";
                     const winnerId = opponentId;
                     const data = {
@@ -93,22 +91,30 @@ module.exports = {
                         },
                     };
                     const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json`;
-                    await axios.put(apiUrl, data, { params });
-
+                    const res = await axios.put(apiUrl, data, { params });
+                    console.log(res.data);
                     const matchInfo = {
                         winnerChallongeId: winnerId,
-                        state: "complete",
+                        state: "forfeit",
                         scores_csv: scores_csv,
                         matchId: matchId,
                         db_match: {
-                            match_id: null,
+                            match_id: matchId,
                         },
                     };
 
                     await updateLocalMatch(matchInfo);
                 }
             }
-
+            try {
+                //TODO (currently crashes challonge tournament for some reason)
+                //await axios.delete(apiUrl, { params });
+            } catch (error) {
+                console.error("API error:", error.data);
+                return interaction.reply(
+                    "Failed to drop out from the tournament on Challonge."
+                );
+            }
             // Step 3: Remove participant from the local database
             try {
                 const status = getTournamentStatus(tournamentId);
@@ -118,6 +124,7 @@ module.exports = {
                         discordId
                     );
                 }
+
                 //create an embed
                 const embed = new EmbedBuilder()
                     .setTitle("Dropped out from the tournament")
