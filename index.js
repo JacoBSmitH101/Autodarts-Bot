@@ -50,6 +50,7 @@ const {
     getActiveTournamentId,
     getNameFromChallongeId,
     findThreadByMatchId,
+    getUserIdFromChallongeId,
 } = require("./datamanager");
 
 //run deploy-commands.js to deploy commands to discord below
@@ -429,37 +430,41 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
                 //dont need to check if the other player has confirmed as they have rejected
 
-                if (submitterChallongeId == player.player1_id) {
-                    await rejectMatch(autodarts_match_id, 0);
-                    await interaction.reply({
-                        content:
-                            "Match rejection recorded, admins have been notified!",
-                        ephemeral: true,
-                    });
+                await rejectMatch(autodarts_match_id, 0);
+                await interaction.reply({
+                    content:
+                        "Match rejection recorded, admins have been notified!",
+                    ephemeral: true,
+                });
 
-                    moderatorChannelId = "1308144826218188947";
+                moderatorChannelId = "1308144826218188947";
 
-                    const moderatorChannel =
-                        interaction.guild.channels.cache.get(
-                            moderatorChannelId
-                        );
+                const moderatorChannel =
+                    client.channels.cache.get(moderatorChannelId);
 
-                    if (!moderatorChannel) {
-                        console.error("Could not find the moderator channel.");
-                        return;
-                    }
+                if (!moderatorChannel) {
+                    console.error("Could not find the moderator channel.");
+                    return;
+                }
 
-                    const message = await moderatorChannel.send(
-                        `Match between <@${player.player1_id}> and <@${player.player2_id}> has been rejected.
+                const player1_discord_id = await getUserIdFromChallongeId(
+                    player.player1_id
+                );
+                const player2_discord_id = await getUserIdFromChallongeId(
+                    player.player2_id
+                );
+
+                const message = await moderatorChannel.send(
+                    `Match between <@${player1_discord_id}> and <@${player2_discord_id}> has been rejected.
                         Match ID: ${autodarts_match_id}
                         Database match ID: ${player.match_id}`
-                    );
-                } else {
-                    await rejectMatch(autodarts_match_id, 1);
-                    await interaction.reply({
-                        content: "Match rejection recorded!",
-                        ephemeral: true,
-                    });
+                );
+
+                try {
+                    //delete interaction message
+                    await interaction.message.delete();
+                } catch (error) {
+                    console.error("Error deleting interaction message:", error);
                 }
             }
         }

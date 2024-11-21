@@ -86,8 +86,8 @@ module.exports = {
         //     return interaction.reply("Failed to start the tournament.");
         // }
         // console.log(response.data);
-        updateParticipantMatchPlayerIdsAndMatches(tournamentId);
-        updateTournamentStatus(tournamentId, "started");
+        await updateParticipantMatchPlayerIdsAndMatches(tournamentId);
+        await updateTournamentStatus(tournamentId, "started");
         createTournamentChannels(
             tournamentId,
             interaction,
