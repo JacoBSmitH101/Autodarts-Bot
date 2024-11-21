@@ -18,11 +18,8 @@ const {
 const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
 const AutodartsKeycloakClient = require("./adauth");
-const {
-    handleConfirmRemove,
-    handleCancelRemove,
-    rejectMatch,
-} = require("./util"); //#endregion
+const { handleConfirmRemove, handleCancelRemove } = require("./util"); //#endregion
+const { rejectMatch } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
@@ -429,8 +426,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 }
 
                 //dont need to check if the other player has confirmed as they have rejected
-
-                await rejectMatch(autodarts_match_id, 0);
+                const isSubmitterPlayer1 =
+                    submitterChallongeId == player.player1_id;
+                await rejectMatch(
+                    autodarts_match_id,
+                    isSubmitterPlayer1 ? 0 : 1
+                );
+                await matchHandler.markMatchRejected(player);
+                const guild = await client.guilds.cache.get(
+                    process.env.GUILD_ID
+                );
+                const matchChannel = await findThreadByMatchId(
+                    guild,
+                    player.match_id
+                );
+                //just say match begun
+                const embed2 = new EmbedBuilder()
+                    .setTitle(`🎯 Match Started`)
+                    .setDescription(`Match has been rejected`)
+                    .setColor(0xff0000) // Green color for active match
+                    .setTimestamp();
+                await matchChannel.send({ embeds: [embed2] });
                 await interaction.reply({
                     content:
                         "Match rejection recorded, admins have been notified!",
@@ -595,7 +611,11 @@ const handleNewMatch = async (message) => {
         return;
     }
 
-    if (match.player1_score != null) {
+    if (
+        match.state != "open" &&
+        match.player1_confirmed != -1 &&
+        match.player2_confirmed != -1
+    ) {
         return console.log("Match already played");
     }
 

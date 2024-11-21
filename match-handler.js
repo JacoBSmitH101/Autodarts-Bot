@@ -440,7 +440,9 @@ class MatchHandler {
                 guild,
                 db_match.match_id
             );
-            console.log(matchChannel);
+            if (process.env.DEBUG === "true") {
+                console.log(matchChannel);
+            }
             //just say match begun
             const embed2 = new EmbedBuilder()
                 .setTitle(`🎯 Match Started`)
@@ -690,6 +692,21 @@ class MatchHandler {
                 (match) => match.matchId !== matchId
             );
         }, 30000);
+    }
+    async markMatchRejected(db_match) {
+        let match = this.ongoing_matches.find(
+            (match) => match.matchId === db_match.autodarts_match_id
+        );
+
+        const interaction = match.live_discord_interaction;
+
+        const embed = new EmbedBuilder()
+            .setTitle("🎯 League Match Rejected")
+            .setDescription(`This match has been rejected.`)
+            .setColor(0xff0000) // Red color for finished match
+            .setTimestamp();
+
+        interaction.edit({ embeds: [embed] });
     }
     async checkIfMatchFinished(matchId, client) {
         //when not using a matchmode as a draw can happen in the league but not with autodarts
