@@ -436,6 +436,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             "Match rejection recorded, admins have been notified!",
                         ephemeral: true,
                     });
+
+                    moderatorChannelId = "1308144826218188947";
+
+                    const moderatorChannel =
+                        interaction.guild.channels.cache.get(
+                            moderatorChannelId
+                        );
+
+                    if (!moderatorChannel) {
+                        console.error("Could not find the moderator channel.");
+                        return;
+                    }
+
+                    const message = await moderatorChannel.send(
+                        `Match between <@${player.player1_id}> and <@${player.player2_id}> has been rejected.
+                        Match ID: ${autodarts_match_id}
+                        Database match ID: ${player.match_id}`
+                    );
                 } else {
                     await rejectMatch(autodarts_match_id, 1);
                     await interaction.reply({
