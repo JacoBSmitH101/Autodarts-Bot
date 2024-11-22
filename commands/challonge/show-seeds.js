@@ -61,8 +61,8 @@ module.exports = {
         )
         .addStringOption((option) =>
             option
-                .setName("tournament")
-                .setDescription("Name of the tournament")
+                .setName("league")
+                .setDescription("Name of the League")
                 .setRequired(true)
                 .setAutocomplete(true)
         )
@@ -75,7 +75,7 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        const tournamentName = interaction.options.getString("tournament");
+        const tournamentName = interaction.options.getString("league");
         const numDivisions = interaction.options.getInteger("divisions");
 
         // Defer the reply to avoid timeout

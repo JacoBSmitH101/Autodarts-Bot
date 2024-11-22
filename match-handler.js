@@ -457,6 +457,20 @@ class MatchHandler {
         } else {
             console.log("Channel not found");
         }
+
+        //mark as underway on challonge
+        const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
+        const params = {
+            api_key: process.env.API_KEY,
+        };
+        try {
+            const response = await axios.put(api_url, {}, { params });
+            if (response.status === 200) {
+                console.log("Challonge match marked as underway");
+            }
+        } catch (error) {
+            console.error("Error marking challonge match as underway:", error);
+        }
     }
     async processFinishedMatch(matchId, stats, client) {
         //get match
