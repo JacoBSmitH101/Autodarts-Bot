@@ -6,7 +6,7 @@ const {
     getAllMatchesForPlayer,
     getTournamentIdByName,
     getTournamentStatus,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("my-matches")

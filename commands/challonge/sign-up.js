@@ -9,7 +9,7 @@ const {
     getTournamentIdByName,
     getParticipantDataFromTournamentUserId,
     getTournamentStatus,
-} = require("../../testdatamanager.js");
+} = require("../../datamanager.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -69,8 +69,8 @@ module.exports = {
             interaction.client.keycloakClient
         );
 
-        const test_user_id = interaction.options.getString("test_user_id");
-        const discordId = test_user_id || interaction.user.id;
+        const testId = interaction.options.getString("test_user_id");
+        const discordId = testId || interaction.user.id;
 
         try {
             const tournamentId = await getTournamentIdByName(tournamentName);

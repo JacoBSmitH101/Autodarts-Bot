@@ -4,10 +4,10 @@ const {
     getAllParticipants,
     getNameFromChallongeId,
     getAverageFromChallongeId,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
-const { getTournamentIdByName } = require("../../testdatamanager");
+const { getTournamentIdByName } = require("../../datamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("view-signups")

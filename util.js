@@ -70,7 +70,7 @@ const {
     getNameFromChallongeId,
     getAllMatchesFromTournamentId,
     fetchTournamentsFromDatabase2,
-} = require("./testdatamanager");
+} = require("./datamanager");
 async function handleCancelRemove(interaction) {
     await interaction.update({
         content: "Tournament removal canceled.",
@@ -347,18 +347,17 @@ const updateParticipantMatchPlayerIdsAndMatches = async (tournamentId) => {
     }
 };
 async function rejectMatch(interaction) {
-    const scoreEmbed = interaction.message.embeds[0];
-    const updatedEmbed = EmbedBuilder.from(scoreEmbed)
-        .setTitle("Match Rejected")
-        .setFooter({
-            text: "Match Rejected by " + interaction.user.tag,
-        })
-        .setColor(0xff0000); // Set color to red for rejection
-
-    await interaction.update({
-        embeds: [updatedEmbed],
-        components: [], // Removes the buttons
-    });
+    // const scoreEmbed = interaction.message.embeds[0];
+    // const updatedEmbed = EmbedBuilder.from(scoreEmbed)
+    //     .setTitle("Match Rejected")
+    //     .setFooter({
+    //         text: "Match Rejected by " + interaction.user.tag,
+    //     })
+    //     .setColor(0xff0000); // Set color to red for rejection
+    // await interaction.update({
+    //     embeds: [updatedEmbed],
+    //     components: [], // Removes the buttons
+    // });
 }
 async function confirmMatch(interaction, extra) {
     const [matchId, submitterId, opponentId] = extra.split("_");
@@ -625,6 +624,5 @@ module.exports = {
     rejectMatch,
     confirmMatch,
     updateParticipantMatchPlayerIdsAndMatches,
-    getNameFromChallongeId,
     getLeagueStandings,
 };

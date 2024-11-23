@@ -14,7 +14,10 @@ const {
     updateLocalMatch,
     updateStats,
     getDivisionNumbers,
-} = require("./testdatamanager");
+    findThreadByMatchId,
+    saveAdStats,
+} = require("./datamanager");
+const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
 
 class MatchHandler {
@@ -176,7 +179,7 @@ class MatchHandler {
             if (process.env.DEBUG === "true") {
                 console.log("Match is finished");
             }
-            this.checkIfMatchFinished(message.data.id, this.client);
+            this.matchFinished(message.data.id, this.client);
         }
         if (message.data.event === "delete") {
             //match is finished, no need to check if it is finished
@@ -431,8 +434,43 @@ class MatchHandler {
             this.ongoing_matches.find(
                 (match) => match.matchId === matchId
             ).live_discord_interaction = message;
+            const guild = await this.client.guilds.cache.get(
+                process.env.AD_GUILD
+            );
+            const matchChannel = await findThreadByMatchId(
+                guild,
+                db_match.match_id
+            );
+            if (process.env.DEBUG === "true") {
+                console.log(matchChannel);
+            }
+            //just say match begun
+            const embed2 = new EmbedBuilder()
+                .setTitle(`🎯 Match Started`)
+                .setDescription(
+                    `Match between ${player1_name} and ${player2_name} has begun!`
+                )
+                .setColor(0x00ff00) // Green color for active match
+                .setTimestamp();
+
+            // Send message and update ongoing match with Discord message object
+            matchChannel.send({ embeds: [embed2] });
         } else {
             console.log("Channel not found");
+        }
+
+        //mark as underway on challonge
+        const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
+        const params = {
+            api_key: process.env.API_KEY,
+        };
+        try {
+            const response = await axios.put(api_url, {}, { params });
+            if (response.status === 200) {
+                console.log("Challonge match marked as underway");
+            }
+        } catch (error) {
+            console.error("Error marking challonge match as underway:", error);
         }
     }
     async processFinishedMatch(matchId, stats, client) {
@@ -637,6 +675,13 @@ class MatchHandler {
         //add stats to stats table
         const statsPlayer1 = stats.matchStats[0];
         const statsPlayer2 = stats.matchStats[1];
+        //there is a chance people accidentally play to 4 legs instead of just 3-3, so if one player has 4 and the other has 3, we will not update stats
+        if (statsPlayer1.legsWon === 4 && statsPlayer2.legsWon === 3) {
+            return;
+        }
+        if (statsPlayer1.legsWon === 3 && statsPlayer2.legsWon === 4) {
+            return;
+        }
         await updateStats(
             statsPlayer1_user_id,
             db_match.match_id,
@@ -648,6 +693,14 @@ class MatchHandler {
             db_match.match_id,
             match.challonge_tournament_id,
             statsPlayer2
+        );
+
+        //now insert into ad_stats table with match_id as db_match.match_id, tournament id and then all the stats object in stats_data
+
+        await saveAdStats(
+            db_match.match_id,
+            match.challonge_tournament_id,
+            stats
         );
     }
     async handleDeleteMatch(matchId, client) {
@@ -670,7 +723,22 @@ class MatchHandler {
             );
         }, 30000);
     }
-    async checkIfMatchFinished(matchId, client) {
+    async markMatchRejected(db_match) {
+        let match = this.ongoing_matches.find(
+            (match) => match.matchId === db_match.autodarts_match_id
+        );
+
+        const interaction = match.live_discord_interaction;
+
+        const embed = new EmbedBuilder()
+            .setTitle("🎯 League Match Rejected")
+            .setDescription(`This match has been rejected.`)
+            .setColor(0xff0000) // Red color for finished match
+            .setTimestamp();
+
+        interaction.edit({ embeds: [embed] });
+    }
+    async matchFinished(matchId, client) {
         //when not using a matchmode as a draw can happen in the league but not with autodarts
         //, there is no event when the match is manually ended
         //this will be called 30 seconds after the last update involving a leg winner to check if the match is finished

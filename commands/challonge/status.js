@@ -3,7 +3,7 @@
 const {
     getTournamentStatusForUser,
     getTournamentNameById,
-} = require("../../testdatamanager");
+} = require("../../datamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 module.exports = {

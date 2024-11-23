@@ -2,9 +2,9 @@
 
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { PermissionFlagsBits } = require("discord.js");
-const { getAllParticipants } = require("../../testdatamanager");
+const { getAllParticipants } = require("../../datamanager");
 const { fetchTournamentsFromDatabase } = require("../../util");
-const { getTournamentIdByName } = require("../../testdatamanager");
+const { getTournamentIdByName } = require("../../datamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()

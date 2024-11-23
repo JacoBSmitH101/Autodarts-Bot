@@ -18,12 +18,13 @@ const {
 const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
 const AutodartsKeycloakClient = require("./adauth");
+const { handleConfirmRemove, handleCancelRemove } = require("./util"); //#endregion
 const {
-    handleConfirmRemove,
-    handleCancelRemove,
     rejectMatch,
-} = require("./util"); //#endregion
-const confirmMatch = require("./testdatamanager").confirmMatch;
+    calculateStandings,
+    getDivisionNumbers,
+} = require("./datamanager");
+const confirmMatch = require("./datamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
 const ALLOWED_USER_IDS = [
@@ -50,30 +51,37 @@ const {
     getActiveTournamentId,
     getNameFromChallongeId,
     findThreadByMatchId,
-} = require("./testdatamanager");
+    getUserIdFromChallongeId,
+} = require("./datamanager");
 
 //run deploy-commands.js to deploy commands to discord below
 const commands = [];
 // Grab all the command folders from the commands directory you created earlier
 const dfoldersPath = path.join(__dirname, "commands");
-const dcommandFolders = fs.readdirSync(dfoldersPath);
+const dcommandFolders = fs.readdirSync(dfoldersPath).filter((folder) => {
+    const fullPath = path.join(dfoldersPath, folder);
+    return fs.statSync(fullPath).isDirectory(); // Ensure only directories are included
+});
 
 for (const folder of dcommandFolders) {
-    // Grab all the command files from the commands directory you created earlier
     const commandsPath = path.join(dfoldersPath, folder);
     const commandFiles = fs
         .readdirSync(commandsPath)
         .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
-    // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
+
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        if ("data" in command && "execute" in command) {
-            commands.push(command.data.toJSON());
-        } else {
-            console.log(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-            );
+        try {
+            const command = require(filePath);
+            if ("data" in command && "execute" in command) {
+                commands.push(command.data.toJSON());
+            } else {
+                console.warn(
+                    `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+                );
+            }
+        } catch (err) {
+            console.error(`Error loading command file ${filePath}:`, err);
         }
     }
 }
@@ -101,7 +109,7 @@ const rest = new REST().setToken(process.env.TOKEN);
         const data2 = await rest.put(
             Routes.applicationGuildCommands(
                 process.env.CLIENT_ID,
-                process.env.AD_GUILD_ID
+                process.env.AD_GUILD
             ),
             { body: commands }
         );
@@ -132,7 +140,10 @@ const matchHandler = new MatchHandler(client);
 
 // Load commands
 const foldersPath = path.join(__dirname, "commands");
-const commandFolders = fs.readdirSync(foldersPath);
+const commandFolders = fs.readdirSync(foldersPath).filter((folder) => {
+    const fullPath = path.join(foldersPath, folder);
+    return fs.statSync(fullPath).isDirectory(); // Ensure only directories are included
+});
 for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
     const commandFiles = fs
@@ -223,19 +234,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (action === "confirm") {
                 console.log("Confirming match");
 
-                const db = new sqlite3.Database("./data.db", (err) => {
-                    if (err) {
-                        console.error(
-                            "Database connection error:",
-                            err.message
-                        );
-                        return interaction.reply({
-                            content: "Failed to connect to the database.",
-                            ephemeral: true,
-                        });
-                    }
-                });
-
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
                     autodarts_match_id
                 );
@@ -311,8 +309,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player1_confirmed == 1 &&
                     match.player2_confirmed == 1
                 ) {
+                    const guild = await client.guilds.cache.get(
+                        process.env.AD_GUILD
+                    );
                     console.log("Both players have confirmed");
-                    const channel = findThreadByMatchId(match.match_id);
+                    const channel = await findThreadByMatchId(
+                        guild,
+                        match.match_id
+                    );
 
                     let db_match =
                         await getLocalMatchFromPlayersChallongeIdTournamentId(
@@ -365,15 +369,40 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         const embed = new EmbedBuilder()
                             .setTitle("Match Confirmed")
                             .setDescription(
-                                `Match between ${player1_name} and ${player2_name} has been confirmed`
+                                `Match between ${player1_name} and ${player2_name} has been confirmed. This thread will now be archived.`
                             )
                             .setColor(0x00ff00);
 
-                        await channel.send({
-                            content: "Both players have confirmed.",
-                            ephemeral: true,
-                        });
                         await channel.send({ embeds: [embed] });
+
+                        const divisions = await getDivisionNumbers(
+                            match.tournament_id
+                        );
+                        console.log("Divisions:", divisions);
+                        const divisionNumber = divisions[match.group_id];
+                        console.log("Division number:", divisionNumber);
+                        const { embedTitle, tables, tournamentUrl } =
+                            await calculateStandings(
+                                match.tournament_id,
+                                false,
+                                divisionNumber
+                            );
+                        for (const tableContent of tables) {
+                            const embed = new EmbedBuilder()
+                                .setColor(0x3498db)
+                                .setTitle(embedTitle)
+                                .setDescription(`Division Standings`)
+                                .addFields({
+                                    name: `${tournamentUrl}`,
+                                    value: tableContent,
+                                })
+                                .setTimestamp();
+
+                            await channel.send({
+                                embeds: [embed],
+                            });
+                        }
+                        channel.setArchived(true);
 
                         //now update the live matches channel
                         const liveMatchesChannel = client.channels.cache.get(
@@ -425,20 +454,61 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 }
 
                 //dont need to check if the other player has confirmed as they have rejected
+                const isSubmitterPlayer1 =
+                    submitterChallongeId == player.player1_id;
+                await rejectMatch(
+                    autodarts_match_id,
+                    isSubmitterPlayer1 ? 0 : 1
+                );
+                await matchHandler.markMatchRejected(player);
+                const guild = await client.guilds.cache.get(
+                    process.env.AD_GUILD
+                );
+                const matchChannel = await findThreadByMatchId(
+                    guild,
+                    player.match_id
+                );
+                //just say match begun
+                const embed2 = new EmbedBuilder()
+                    .setTitle(`🎯 Match Started`)
+                    .setDescription(`Match has been rejected`)
+                    .setColor(0xff0000) // Green color for active match
+                    .setTimestamp();
+                await matchChannel.send({ embeds: [embed2] });
+                await interaction.reply({
+                    content:
+                        "Match rejection recorded, admins have been notified!",
+                    ephemeral: true,
+                });
 
-                if (submitterChallongeId == player.player1_id) {
-                    await rejectMatch(autodarts_match_id, 0);
-                    await interaction.reply({
-                        content:
-                            "Match rejection recorded, admins have been notified!",
-                        ephemeral: true,
-                    });
-                } else {
-                    await rejectMatch(autodarts_match_id, 1);
-                    await interaction.reply({
-                        content: "Match rejection recorded!",
-                        ephemeral: true,
-                    });
+                moderatorChannelId = "1308144826218188947";
+
+                const moderatorChannel =
+                    client.channels.cache.get(moderatorChannelId);
+
+                if (!moderatorChannel) {
+                    console.error("Could not find the moderator channel.");
+                    return;
+                }
+
+                const player1_discord_id = await getUserIdFromChallongeId(
+                    player.player1_id
+                );
+                const player2_discord_id = await getUserIdFromChallongeId(
+                    player.player2_id
+                );
+
+                const message = await moderatorChannel.send(
+                    `Match between <@${player1_discord_id}> and <@${player2_discord_id}> has been rejected.
+                        Match ID: ${autodarts_match_id}
+                        Database match ID: ${player.match_id}`
+                );
+
+                try {
+                    //delete interaction message
+                    await interaction.message.delete();
+                } catch (error) {
+                    console.error("Error deleting interaction message:", error);
                 }
             }
         }
@@ -480,8 +550,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     try {
         //for logging purposes, log the user name, id and command name
+        const timestamp = new Date().toISOString();
         console.log(
-            `User: ${interaction.user.username}#${interaction.user.discriminator} (${interaction.user.id}) ran command ${interaction.commandName}`
+            `${timestamp} User: ${interaction.user.username}#${interaction.user.discriminator} (${interaction.user.id}) ran command ${interaction.commandName}`
         );
         await command.execute(interaction);
     } catch (error) {
@@ -569,7 +640,11 @@ const handleNewMatch = async (message) => {
         return;
     }
 
-    if (match.player1_score != null) {
+    if (
+        match.state != "open" &&
+        match.player1_confirmed != -1 &&
+        match.player2_confirmed != -1
+    ) {
         return console.log("Match already played");
     }
 

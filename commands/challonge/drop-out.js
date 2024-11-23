@@ -7,7 +7,10 @@ const {
     getTournamentIdByName,
     getParticipantDataFromTournamentUserId,
     removeParticipantFromTournament,
-} = require("../../testdatamanager");
+    getAllMatchesForPlayer,
+    updateLocalMatch,
+    getTournamentStatus,
+} = require("../../datamanager");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("drop-out")
@@ -25,20 +28,17 @@ module.exports = {
         const tournamentName = interaction.options.getString("tournament");
         const discordId = interaction.user.id;
 
-        // Connect to SQLite database
-
         try {
             // Step 1: Retrieve tournament_id and participant details
-            const tournamentRow = await getTournamentIdByName(tournamentName);
+            const tournamentId = await getTournamentIdByName(tournamentName);
 
-            if (!tournamentRow) {
+            if (!tournamentId) {
                 return interaction.reply(
                     "Tournament not found in the database."
                 );
             }
-
             const participantRow = await getParticipantDataFromTournamentUserId(
-                tournamentRow,
+                tournamentId,
                 discordId
             );
 
@@ -48,29 +48,90 @@ module.exports = {
                 );
             }
 
-            const challongeParticipantId = participantRow.participant_id;
-
+            const challongeParticipantId = participantRow.challonge_id;
+            const participantId = participantRow.participant_id;
+            console.log("challongeParticipantId");
+            console.log(challongeParticipantId);
+            const tournamentStatus = await getTournamentStatus(tournamentId);
             // Step 2: Remove participant from Challonge
-            const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentRow}/participants/${challongeParticipantId}.json`;
+            const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants/${participantId}.json`;
             const params = { api_key: process.env.API_KEY };
-            await axios.delete(apiUrl, { params });
 
-            if (tournamentRow.status == "started") {
+            if (tournamentStatus == "started") {
                 //award wins to the other player 4-0 and update in challong etc
                 //then mark the participant as dropped out in status
                 //get the matches of the participant
-            }
+                const matches = await getAllMatchesForPlayer(
+                    challongeParticipantId,
+                    tournamentId
+                );
+                for (const match of matches) {
+                    if (match.state == "complete") {
+                        continue;
+                    }
+                    console.log(match);
+                    const matchId = match.match_id;
+                    const opponentId =
+                        match.player1_id == challongeParticipantId
+                            ? match.player2_id
+                            : match.player1_id;
+                    const isPlayer1 =
+                        match.player1_id == challongeParticipantId;
+                    const opponentRow =
+                        await getParticipantDataFromTournamentUserId(
+                            tournamentId,
+                            opponentId
+                        );
+                    const scores_csv = isPlayer1 ? "0-2" : "2-0";
+                    const winnerId = opponentId;
+                    const data = {
+                        match: {
+                            scores_csv,
+                            winner_id: winnerId,
+                        },
+                    };
+                    const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json`;
+                    const res = await axios.put(apiUrl, data, { params });
+                    console.log(res.data);
+                    const matchInfo = {
+                        winnerChallongeId: winnerId,
+                        state: "forfeit",
+                        scores_csv: scores_csv,
+                        matchId: matchId,
+                        db_match: {
+                            match_id: matchId,
+                        },
+                    };
 
+                    await updateLocalMatch(matchInfo);
+                }
+            }
+            try {
+                //TODO (currently crashes challonge tournament for some reason)
+                //await axios.delete(apiUrl, { params });
+            } catch (error) {
+                console.error("API error:", error.data);
+                return interaction.reply(
+                    "Failed to drop out from the tournament on Challonge."
+                );
+            }
             // Step 3: Remove participant from the local database
             try {
-                await removeParticipantFromTournament(tournamentRow, discordId);
+                const status = getTournamentStatus(tournamentId);
+                if (status == "pending") {
+                    await removeParticipantFromTournament(
+                        tournamentId,
+                        discordId
+                    );
+                }
+
                 //create an embed
                 const embed = new EmbedBuilder()
                     .setTitle("Dropped out from the tournament")
                     .setDescription(
                         `You have successfully dropped out from the tournament **${tournamentName}**.`
                     )
-                    .setFooter({ text: "Tournament ID: " + tournamentRow })
+                    .setFooter({ text: "Tournament ID: " + tournamentId })
                     .setColor(0xff0000);
 
                 return interaction.reply({ embeds: [embed] });

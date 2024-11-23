@@ -9,7 +9,8 @@ const {
     updateParticipantMatchPlayerIdsAndMatches,
     getTournamentIdByName,
     updateTournamentStatus,
-} = require("../../testdatamanager");
+    createTournamentChannels,
+} = require("../../datamanager");
 const axios = require("axios");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,6 +23,15 @@ module.exports = {
                 .setRequired(true)
                 .setAutocomplete(true)
         )
+        .addStringOption((option) =>
+            option
+                .setName("channel-parent-id")
+                .setDescription(
+                    "The ID of the category to create the channels in."
+                )
+                .setRequired(false)
+        )
+
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     async autocomplete(interaction) {
         if (interaction.options.getFocused(true).name === "tournament") {
@@ -57,6 +67,8 @@ module.exports = {
                 `Tournament "${tournamentName}" not found.`
             );
         }
+        const parentId = interaction.options.getString("channel-parent-id");
+        const parentCategory = interaction.guild.channels.cache.get(parentId);
 
         //use challonge API to start the tournament
         //and use include_matches=1 to get the matches and put them in the database
@@ -74,8 +86,13 @@ module.exports = {
         //     return interaction.reply("Failed to start the tournament.");
         // }
         // console.log(response.data);
-        updateParticipantMatchPlayerIdsAndMatches(tournamentId);
-        updateTournamentStatus(tournamentId, "started");
+        await updateParticipantMatchPlayerIdsAndMatches(tournamentId);
+        await updateTournamentStatus(tournamentId, "started");
+        createTournamentChannels(
+            tournamentId,
+            interaction,
+            parentCategory ? parentCategory : null
+        );
         await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };
