@@ -109,7 +109,7 @@ const rest = new REST().setToken(process.env.TOKEN);
         const data2 = await rest.put(
             Routes.applicationGuildCommands(
                 process.env.CLIENT_ID,
-                process.env.AD_GUILD_ID
+                process.env.AD_GUILD
             ),
             { body: commands }
         );
@@ -310,7 +310,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     match.player2_confirmed == 1
                 ) {
                     const guild = await client.guilds.cache.get(
-                        process.env.GUILD_ID
+                        process.env.AD_GUILD
                     );
                     console.log("Both players have confirmed");
                     const channel = await findThreadByMatchId(
@@ -462,7 +462,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 );
                 await matchHandler.markMatchRejected(player);
                 const guild = await client.guilds.cache.get(
-                    process.env.GUILD_ID
+                    process.env.AD_GUILD
                 );
                 const matchChannel = await findThreadByMatchId(
                     guild,

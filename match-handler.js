@@ -435,7 +435,7 @@ class MatchHandler {
                 (match) => match.matchId === matchId
             ).live_discord_interaction = message;
             const guild = await this.client.guilds.cache.get(
-                process.env.GUILD_ID
+                process.env.AD_GUILD
             );
             const matchChannel = await findThreadByMatchId(
                 guild,

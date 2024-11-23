@@ -33,12 +33,6 @@ module.exports = {
                 .setName("challonge-username")
                 .setDescription("(Optional) Challonge username")
                 .setRequired(false)
-        )
-        .addStringOption((option) =>
-            option
-                .setName("test_user_id")
-                .setDescription("Test User ID")
-                .setRequired(false)
         ),
 
     async execute(interaction) {
@@ -75,8 +69,8 @@ module.exports = {
             interaction.client.keycloakClient
         );
 
-        const test_user_id = interaction.options.getString("test_user_id");
-        const discordId = test_user_id || interaction.user.id;
+        const testId = interaction.options.getString("test_user_id");
+        const discordId = testId || interaction.user.id;
 
         try {
             const tournamentId = await getTournamentIdByName(tournamentName);
