@@ -19,7 +19,11 @@ const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
 const AutodartsKeycloakClient = require("./adauth");
 const { handleConfirmRemove, handleCancelRemove } = require("./util"); //#endregion
-const { rejectMatch } = require("./datamanager");
+const {
+    rejectMatch,
+    calculateStandings,
+    getDivisionNumbers,
+} = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
@@ -361,6 +365,34 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             .setColor(0x00ff00);
 
                         await channel.send({ embeds: [embed] });
+
+                        const divisions = await getDivisionNumbers(
+                            match.tournament_id
+                        );
+                        console.log("Divisions:", divisions);
+                        const divisionNumber = divisions[match.group_id];
+                        console.log("Division number:", divisionNumber);
+                        const { embedTitle, tables, tournamentUrl } =
+                            await calculateStandings(
+                                match.tournament_id,
+                                false,
+                                divisionNumber
+                            );
+                        for (const tableContent of tables) {
+                            const embed = new EmbedBuilder()
+                                .setColor(0x3498db)
+                                .setTitle(embedTitle)
+                                .setDescription(`Division Standings`)
+                                .addFields({
+                                    name: `${tournamentUrl}`,
+                                    value: tableContent,
+                                })
+                                .setTimestamp();
+
+                            await channel.send({
+                                embeds: [embed],
+                            });
+                        }
                         channel.setArchived(true);
 
                         //now update the live matches channel

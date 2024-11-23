@@ -3,6 +3,8 @@ const axios = require("axios");
 const { only } = require("node:test");
 const { ChannelType } = require("discord.js");
 const { match } = require("assert");
+const { table } = require("table");
+const { fetchTournamentsFromDatabase, getLeagueStandings } = require("./util");
 // PostgreSQL configuration
 require("dotenv").config();
 const pool = new Pool({
@@ -1027,7 +1029,138 @@ async function createTournamentChannels(
     // Return the created channels and threads
     return fixtureForumChannels;
 }
+async function calculateStandings(
+    tournamentId,
+    mobileView = false,
+    division = null
+) {
+    // Initialize standings structure
+    const standings = {
+        tournamentId,
+        groups: {},
+    };
+
+    // Fetch tournament matches
+    const matches = await getAllMatchesFromTournamentId(tournamentId);
+    const tournamentUrl = await getChallongeTournamentURL(tournamentId);
+
+    // Process matches and populate standings
+    for (const match of matches) {
+        const groupId = match.group_id;
+        if (!groupId) continue;
+
+        if (!standings.groups[groupId]) {
+            standings.groups[groupId] = { standings: {} };
+        }
+
+        const playerIds = [match.player1_id, match.player2_id];
+        for (const playerId of playerIds) {
+            if (!standings.groups[groupId].standings[playerId]) {
+                const playerName = await getNameFromChallongeId(
+                    playerId,
+                    false
+                );
+                standings.groups[groupId].standings[playerId] = mobileView
+                    ? {
+                          name: playerName.substring(0, 7).padEnd(7, " "),
+                          points: 0,
+                          played: 0,
+                      }
+                    : {
+                          rank: 0,
+                          name: playerName.substring(0, 15).padEnd(15, " "),
+                          wins: 0,
+                          losses: 0,
+                          draws: 0,
+                          points: 0,
+                          played: 0,
+                      };
+            }
+        }
+
+        const [player1, player2] = playerIds;
+
+        // Calculate scores and results
+        standings.groups[groupId].standings[player1].points +=
+            match.player1_score;
+        standings.groups[groupId].standings[player2].points +=
+            match.player2_score;
+
+        if (match.winner_id === "draw") {
+            standings.groups[groupId].standings[player1].draws++;
+            standings.groups[groupId].standings[player2].draws++;
+            standings.groups[groupId].standings[player1].points++;
+            standings.groups[groupId].standings[player2].points++;
+        } else if (match.winner_id === player1) {
+            standings.groups[groupId].standings[player1].wins++;
+            standings.groups[groupId].standings[player2].losses++;
+            standings.groups[groupId].standings[player1].points += 2;
+        } else if (match.winner_id === player2) {
+            standings.groups[groupId].standings[player2].wins++;
+            standings.groups[groupId].standings[player1].losses++;
+            standings.groups[groupId].standings[player2].points += 2;
+        }
+        if (match.state == "complete") {
+            standings.groups[groupId].standings[player1].played++;
+            standings.groups[groupId].standings[player2].played++;
+        }
+    }
+
+    // Sort groups by ID
+    standings.groups = Object.fromEntries(
+        Object.entries(standings.groups).sort((a, b) => a[0] - b[0])
+    );
+
+    // Generate tables for each group
+    const tables = [];
+    let groupIndex = 0;
+
+    for (const groupId in standings.groups) {
+        groupIndex++;
+        if (division && division !== groupIndex) continue;
+
+        const group = standings.groups[groupId];
+        const sortedStandings = Object.values(group.standings).sort(
+            (a, b) => b.points - a.points
+        );
+
+        const tableData = mobileView
+            ? [
+                  ["Pos", "Name", "Pld", "Pts"],
+                  ...sortedStandings.map((player, index) => [
+                      index + 1,
+                      player.name,
+                      player.played,
+                      player.points,
+                  ]),
+              ]
+            : [
+                  ["Pos", "Name", "Pld", "Pts", "Win", "Los", "Drw"],
+                  ...sortedStandings.map((player, index) => [
+                      index + 1,
+                      player.name,
+                      player.played,
+                      player.points,
+                      player.wins,
+                      player.losses,
+                      player.draws,
+                  ]),
+              ];
+
+        // Generate table and push to result
+        tables.push(`Division ${groupIndex}\n\`\`\`${table(tableData)}\`\`\``);
+
+        if (division) break; // Stop if specific division is requested
+    }
+
+    return {
+        embedTitle: `Standings for Tournament`,
+        tables,
+        tournamentUrl,
+    };
+}
 module.exports = {
+    calculateStandings,
     createTournamentChannels,
     getAverageFromChallongeId,
     getTournamentIdByName,
