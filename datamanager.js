@@ -1181,7 +1181,22 @@ async function saveAdStats(match_id, tournament_id, stats) {
         throw new Error("Failed to save stats.");
     }
 }
+
+async function getAdStats(match_id, tournament_id) {
+    const query = `SELECT stats_data FROM ad_stats WHERE match_id = $1 AND tournament_id = $2`;
+    const values = [match_id, tournament_id];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].stats_data;
+    } catch (err) {
+        console.error("Error fetching stats:", err.message);
+        throw new Error("Failed to fetch stats.");
+    }
+}
 module.exports = {
+    getAdStats,
     calculateStandings,
     saveAdStats,
     createTournamentChannels,
