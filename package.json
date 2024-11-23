@@ -15,7 +15,7 @@
         "ws": "^8.18.0"
     },
     "scripts": {
-        "start": "node deploy-commands.js && node index.js"
+        "start": "node index.js"
     },
     "devDependencies": {
         "@types/node": "^22.9.0",
