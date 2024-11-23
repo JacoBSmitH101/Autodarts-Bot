@@ -44,6 +44,7 @@ module.exports = {
         }
     },
     async execute(interaction) {
+        interaction.deferReply({ ephemeral: true });
         const tournamentName = interaction.options.getString("league");
         const tournamentId = await getTournamentIdByName(tournamentName);
 
@@ -75,6 +76,6 @@ module.exports = {
                     .join("\n")
             );
 
-        interaction.reply({ embeds: [embed], ephemeral: true });
+        interaction.editReply({ embeds: [embed], ephemeral: true });
     },
 };
