@@ -624,6 +624,5 @@ module.exports = {
     rejectMatch,
     confirmMatch,
     updateParticipantMatchPlayerIdsAndMatches,
-    getNameFromChallongeId,
     getLeagueStandings,
 };

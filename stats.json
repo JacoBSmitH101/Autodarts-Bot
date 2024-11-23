@@ -1,0 +1,284 @@
+{
+  "id": "e68b5fb6-f579-429e-9459-0e47a963bf8c",
+  "host": {
+    "id": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+    "name": "jacobsmith31105@gmail.com",
+    "average": 103.26857142857143,
+    "country": "",
+    "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3",
+    "userSettings": {
+      "caller": "",
+      "callScores": true,
+      "callCheckouts": true,
+      "countEachThrow": true,
+      "showAnimations": true,
+      "showChalkboard": false,
+      "showCheckoutGuide": true
+    }
+  },
+  "games": [
+    {
+      "id": "8930ea85-9d5d-4068-b6c3-a067deca38b2",
+      "leg": 0,
+      "set": 0,
+      "turns": [
+        {
+          "id": "00584fc8-dbac-4ad1-b5ee-5dfc261c77cc",
+          "turn": 0,
+          "marks": null,
+          "round": 1,
+          "score": 0,
+          "busted": false,
+          "points": 121,
+          "throws": [
+            {
+              "id": "19a9981f-e82d-41f1-9116-26bd32cec3d3",
+              "entry": "manual_coords",
+              "marks": null,
+              "throw": 0,
+              "coords": {
+                "x": -0.008895807850550455,
+                "y": 0.5861040068201193
+              },
+              "segment": {
+                "bed": "Triple",
+                "name": "T20",
+                "number": 20,
+                "multiplier": 3
+              },
+              "createdAt": "2024-11-23T20:14:55.210368Z"
+            },
+            {
+              "id": "f01ee8d4-796a-48a6-9551-e014dce13ffd",
+              "entry": "manual_coords",
+              "marks": null,
+              "throw": 1,
+              "coords": {
+                "x": -0.791726898698988,
+                "y": 0.022702842951925557
+              },
+              "segment": {
+                "bed": "SingleOuter",
+                "name": "S11",
+                "number": 11,
+                "multiplier": 1
+              },
+              "createdAt": "2024-11-23T20:14:55.753549Z"
+            },
+            {
+              "id": "a088bd98-91a9-4cd2-b30d-be230a876381",
+              "entry": "manual_coords",
+              "marks": null,
+              "throw": 2,
+              "coords": {
+                "x": -0.02075688498461778,
+                "y": -0.0010193113162089377
+              },
+              "segment": {
+                "bed": "Double",
+                "name": "Bull",
+                "number": 25,
+                "multiplier": 2
+              },
+              "createdAt": "2024-11-23T20:14:56.715786Z"
+            }
+          ],
+          "playerId": "9ef263db-9a1a-4318-92c9-f2415758fbdb",
+          "createdAt": "2024-11-23T20:14:53.831047Z",
+          "finishedAt": "2024-11-23T20:14:57.726758Z"
+        }
+      ],
+      "scores": [
+        0,
+        121
+      ],
+      "winner": 0,
+      "matchId": "e68b5fb6-f579-429e-9459-0e47a963bf8c",
+      "variant": "X01",
+      "settings": {
+        "gameId": "00000000-0000-0000-0000-000000000000",
+        "inMode": "Straight",
+        "outMode": "Double",
+        "bullMode": "25/50",
+        "baseScore": 121,
+        "maxRounds": 80
+      },
+      "createdAt": "2024-11-23T20:14:53.829649Z",
+      "finishedAt": "2024-11-23T20:14:57.726758Z",
+      "winnerPlayerId": "9ef263db-9a1a-4318-92c9-f2415758fbdb"
+    }
+  ],
+  "hostId": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+  "scores": [
+    {
+      "legs": 1,
+      "sets": 0
+    },
+    {
+      "legs": 0,
+      "sets": 0
+    }
+  ],
+  "winner": 0,
+  "players": [
+    {
+      "id": "9ef263db-9a1a-4318-92c9-f2415758fbdb",
+      "host": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "average": 0,
+        "country": ""
+      },
+      "name": "jacobsmith31105@gmail.com",
+      "index": 0,
+      "cpuPPR": null,
+      "hostId": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+      "userId": "8204cedf-615a-464e-be16-7bbd82c9dc8e",
+      "avatarUrl": "https://gravatar.com/avatar/e7588cb671c8a650412eeb7f81b254a3"
+    },
+    {
+      "id": "b29055c7-714a-47db-b793-ed182f6c074f",
+      "host": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "average": 0,
+        "country": ""
+      },
+      "name": "yakoob19",
+      "index": 1,
+      "cpuPPR": null,
+      "hostId": "bb229295-742d-429f-bbbf-fe4a179ef537",
+      "userId": "bb229295-742d-429f-bbbf-fe4a179ef537",
+      "boardId": "22c910e2-0f19-4c65-9098-40edd2befaa0",
+      "avatarUrl": "https://gravatar.com/avatar/4d1948cf7119b42303e2db099be1efcd"
+    }
+  ],
+  "variant": "X01",
+  "duration": "8s",
+  "legStats": [
+    {
+      "leg": 1,
+      "set": 1,
+      "stats": [
+        {
+          "score": 121,
+          "gameId": "8930ea85-9d5d-4068-b6c3-a067deca38b2",
+          "less60": 0,
+          "plus60": 0,
+          "average": 121,
+          "plus100": 1,
+          "plus140": 0,
+          "plus170": 0,
+          "playerId": "9ef263db-9a1a-4318-92c9-f2415758fbdb",
+          "total180": 0,
+          "checkouts": 1,
+          "dartsThrown": 3,
+          "first9Score": 121,
+          "checkoutsHit": 1,
+          "dartsUntil170": 0,
+          "first9Average": 121,
+          "scoreUntil170": 0,
+          "checkoutPoints": 121,
+          "averageUntil170": 0,
+          "checkoutPercent": 1,
+          "checkoutPointsAverage": 0
+        },
+        {
+          "score": 0,
+          "gameId": "8930ea85-9d5d-4068-b6c3-a067deca38b2",
+          "less60": 0,
+          "plus60": 0,
+          "average": 0,
+          "plus100": 0,
+          "plus140": 0,
+          "plus170": 0,
+          "playerId": "b29055c7-714a-47db-b793-ed182f6c074f",
+          "total180": 0,
+          "checkouts": 0,
+          "dartsThrown": 0,
+          "first9Score": 0,
+          "checkoutsHit": 0,
+          "dartsUntil170": 0,
+          "first9Average": 0,
+          "scoreUntil170": 0,
+          "checkoutPoints": 0,
+          "averageUntil170": 0,
+          "checkoutPercent": 0,
+          "checkoutPointsAverage": 0
+        }
+      ],
+      "winner": 0,
+      "playerIndices": [
+        0,
+        1
+      ]
+    }
+  ],
+  "setStats": null,
+  "settings": {
+    "gameId": "00000000-0000-0000-0000-000000000000",
+    "inMode": "Straight",
+    "outMode": "Double",
+    "bullMode": "25/50",
+    "baseScore": 121,
+    "maxRounds": 80
+  },
+  "createdAt": "2024-11-23T20:14:50.040459Z",
+  "totalLegs": 1,
+  "totalSets": 1,
+  "finishedAt": "2024-11-23T20:14:57.726758Z",
+  "matchStats": [
+    {
+      "set": 0,
+      "score": 0,
+      "gameId": "00000000-0000-0000-0000-000000000000",
+      "less60": 0,
+      "plus60": 0,
+      "average": 121,
+      "legsWon": 1,
+      "plus100": 1,
+      "plus140": 0,
+      "plus170": 0,
+      "setsWon": 0,
+      "playerId": "9ef263db-9a1a-4318-92c9-f2415758fbdb",
+      "total180": 0,
+      "checkouts": 1,
+      "dartsThrown": 3,
+      "first9Score": 0,
+      "checkoutsHit": 1,
+      "dartsUntil170": 0,
+      "first9Average": 121,
+      "scoreUntil170": 0,
+      "checkoutPoints": 121,
+      "averageUntil170": 0,
+      "checkoutPercent": 1,
+      "checkoutPointsAverage": 0
+    },
+    {
+      "set": 0,
+      "score": 0,
+      "gameId": "00000000-0000-0000-0000-000000000000",
+      "less60": 0,
+      "plus60": 0,
+      "average": 0,
+      "legsWon": 0,
+      "plus100": 0,
+      "plus140": 0,
+      "plus170": 0,
+      "setsWon": 0,
+      "playerId": "00000000-0000-0000-0000-000000000000",
+      "total180": 0,
+      "checkouts": 0,
+      "dartsThrown": 0,
+      "first9Score": 0,
+      "checkoutsHit": 0,
+      "dartsUntil170": 0,
+      "first9Average": 0,
+      "scoreUntil170": 0,
+      "checkoutPoints": 0,
+      "averageUntil170": 0,
+      "checkoutPercent": 0,
+      "checkoutPointsAverage": 0
+    }
+  ],
+  "targetLegs": null,
+  "targetSets": null
+}

@@ -1,9 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
-const {
-    fetchTournamentsFromDatabase,
-    getNameFromChallongeId,
-    getLeagueStandings,
-} = require("../../util");
+const { fetchTournamentsFromDatabase } = require("../../util");
 const { calculateStandings } = require("../../datamanager");
 const {
     getTournamentIdByName,
