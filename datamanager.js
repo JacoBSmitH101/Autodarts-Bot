@@ -1167,10 +1167,23 @@ async function saveAdStats(match_id, tournament_id, stats) {
 
     const query = `
         INSERT INTO ad_stats (
-        
+            match_id, tournament_id, stats_data )
+        VALUES ($1, $2, $3)
+        ON CONFLICT (match_id, tournament_id) DO UPDATE
+        SET stats_data = EXCLUDED.stats_data
+    `;
+    const values = [match_id, tournament_id, stats];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error saving stats:", err.message);
+        throw new Error("Failed to save stats.");
+    }
 }
 module.exports = {
     calculateStandings,
+    saveAdStats,
     createTournamentChannels,
     getAverageFromChallongeId,
     getTournamentIdByName,
