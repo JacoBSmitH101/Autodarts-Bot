@@ -693,6 +693,8 @@ class MatchHandler {
             match.challonge_tournament_id,
             statsPlayer2
         );
+
+        //now insert into ad_stats table with match_id as db_match.match_id, tournament id and then all the stats object in stats_data
     }
     async handleDeleteMatch(matchId, client) {
         //basically just update hte live_discord_interaction message to say the match is deleted with a red color

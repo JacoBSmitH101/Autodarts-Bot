@@ -1162,6 +1162,13 @@ async function calculateStandings(
         tournamentUrl,
     };
 }
+async function saveAdStats(match_id, tournament_id, stats) {
+    //in ad_stats table. match_id and tournament_id are primary keys
+
+    const query = `
+        INSERT INTO ad_stats (
+        
+}
 module.exports = {
     calculateStandings,
     createTournamentChannels,
