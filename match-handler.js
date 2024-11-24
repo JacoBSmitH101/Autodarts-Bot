@@ -609,6 +609,14 @@ class MatchHandler {
                 ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
                 : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
 
+        //if one player has 4 legs and the other 3, the players played wrong so correct to 3-3
+        if (
+            (stats.scores[0].legs === 4 && stats.scores[1].legs === 3) ||
+            (stats.scores[0].legs === 3 && stats.scores[1].legs === 4)
+        ) {
+            scores_csv = "3-3";
+        }
+
         const matchInfo = {
             matchId: matchId,
             db_match: db_match,
@@ -675,25 +683,29 @@ class MatchHandler {
         //add stats to stats table
         const statsPlayer1 = stats.matchStats[0];
         const statsPlayer2 = stats.matchStats[1];
-        //there is a chance people accidentally play to 4 legs instead of just 3-3, so if one player has 4 and the other has 3, we will not update stats
-        if (statsPlayer1.legsWon === 4 && statsPlayer2.legsWon === 3) {
-            return;
+
+        const player1_legs = stats.matchStats[0].legsWon;
+        const player2_legs = stats.matchStats[1].legsWon;
+
+        //if one player has 4 and the other 3, the players played the incorrrect game length so dont add to stats
+
+        if (
+            (player1_legs === 4 && player2_legs === 3) ||
+            (player1_legs === 3 && player2_legs === 4)
+        ) {
+            await updateStats(
+                statsPlayer1_user_id,
+                db_match.match_id,
+                match.challonge_tournament_id,
+                statsPlayer1
+            );
+            await updateStats(
+                statsPlayer2_user_id,
+                db_match.match_id,
+                match.challonge_tournament_id,
+                statsPlayer2
+            );
         }
-        if (statsPlayer1.legsWon === 3 && statsPlayer2.legsWon === 4) {
-            return;
-        }
-        await updateStats(
-            statsPlayer1_user_id,
-            db_match.match_id,
-            match.challonge_tournament_id,
-            statsPlayer1
-        );
-        await updateStats(
-            statsPlayer2_user_id,
-            db_match.match_id,
-            match.challonge_tournament_id,
-            statsPlayer2
-        );
 
         //now insert into ad_stats table with match_id as db_match.match_id, tournament id and then all the stats object in stats_data
 

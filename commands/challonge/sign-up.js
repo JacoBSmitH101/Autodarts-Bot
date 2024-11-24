@@ -37,6 +37,22 @@ module.exports = {
 
     async execute(interaction) {
         const tournamentName = interaction.options.getString("tournament");
+
+        const tournamentId = await getTournamentIdByName(tournamentName);
+        const status = await getTournamentStatus(tournamentId);
+
+        if (status !== "pending") {
+            const embed = new EmbedBuilder()
+                .setColor(0xff0000) // Red color for an error
+                .setTitle("Sign-Up Error")
+                .setDescription(
+                    "Sign-ups for this tournament are currently closed."
+                )
+                .setFooter({ text: "Please try again later!" })
+                .setTimestamp();
+
+            return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
         const profileUrl = interaction.options.getString(
             "autodart-profile-url"
         );
@@ -47,15 +63,35 @@ module.exports = {
         const challongeName =
             interaction.options.getString("challonge-username");
 
+        ///first validate if either it starts with https://play.autodarts.io/users/
+        //or is in the form bb229295-742d-429f-bbbf-fe4a179ef537
+
+        const regex = new RegExp(
+            "^(https://play.autodarts.io/users/|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$"
+        );
+
+        if (!regex.test(profileUrl)) {
+            return interaction.reply(
+                "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+            );
+        }
+
         //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
         if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
-            autodartUsername = await getAutodartsUsernameFromID(
-                profileUrl,
-                interaction.client.keycloakClient
-            );
-            if (!autodartUsername) {
+            try {
+                autodartUsername = await getAutodartsUsernameFromID(
+                    profileUrl,
+                    interaction.client.keycloakClient
+                );
+                if (!autodartUsername) {
+                    return interaction.reply(
+                        "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+                    );
+                }
+            } catch (error) {
+                console.error("Error getting autodarts username:", error);
                 return interaction.reply(
-                    "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+                    "An error occurred while fetching the Autodarts username. Please try again later."
                 );
             }
         } else {
@@ -73,22 +109,6 @@ module.exports = {
         const discordId = testId || interaction.user.id;
 
         try {
-            const tournamentId = await getTournamentIdByName(tournamentName);
-            const status = await getTournamentStatus(tournamentId);
-
-            if (status !== "pending") {
-                const embed = new EmbedBuilder()
-                    .setColor(0xff0000) // Red color for an error
-                    .setTitle("Sign-Up Error")
-                    .setDescription(
-                        "Sign-ups for this tournament are currently closed."
-                    )
-                    .setFooter({ text: "Please try again later!" })
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
             //first check if already signed up
             const user = await getParticipantDataFromTournamentUserId(
                 tournamentId,
