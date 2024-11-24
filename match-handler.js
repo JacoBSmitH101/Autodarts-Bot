@@ -675,13 +675,7 @@ class MatchHandler {
         //add stats to stats table
         const statsPlayer1 = stats.matchStats[0];
         const statsPlayer2 = stats.matchStats[1];
-        //there is a chance people accidentally play to 4 legs instead of just 3-3, so if one player has 4 and the other has 3, we will not update stats
-        if (statsPlayer1.legsWon === 4 && statsPlayer2.legsWon === 3) {
-            return;
-        }
-        if (statsPlayer1.legsWon === 3 && statsPlayer2.legsWon === 4) {
-            return;
-        }
+
         await updateStats(
             statsPlayer1_user_id,
             db_match.match_id,
