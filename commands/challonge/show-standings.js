@@ -41,7 +41,14 @@ module.exports = {
     async execute(interaction) {
         interaction.deferReply({ ephemeral: true });
         const tournamentName = interaction.options.getString("tournament");
-        const mobileView = interaction.options.getBoolean("mobile") || false;
+        const mobileView = interaction.options.getBoolean("mobile") || true;
+
+        if (mobileView === false) {
+            interaction.followUp(
+                "Larger tables are not supported yet. Please run with mobile view enabled."
+            );
+            return;
+        }
         const division = interaction.options.getInteger("division");
 
         const tournamentId = await getTournamentIdByName(tournamentName);
