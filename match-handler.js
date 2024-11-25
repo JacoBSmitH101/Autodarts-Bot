@@ -505,8 +505,8 @@ class MatchHandler {
         );
 
         const winnderIndex = stats.winner; //0 is player1, 1 is player2
-        const winnerId = winnderIndex === 0 ? player1_user_id : player2_user_id;
-        const winnerChallongeId =
+        let winnerId = winnderIndex === 0 ? player1_user_id : player2_user_id;
+        let winnerChallongeId =
             winnderIndex === 0 ? player1_challonge_id : player2_challonge_id;
 
         if (stats.scores[0].legs === stats.scores[1].legs) {
