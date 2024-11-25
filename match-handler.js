@@ -637,17 +637,17 @@ class MatchHandler {
             winner_id = db_match.player2_id;
         }
 
-        //update challonge
-        const api_url = `https://api.challonge.com/v1/tournaments/${match.challonge_tournament_id}/matches/${db_match.match_id}.json`;
-        const params = {
-            api_key: process.env.API_KEY,
-        };
-        const data = {
-            match: {
-                scores_csv: scores_csv,
-                winner_id: winnerChallongeId,
-            },
-        };
+        // ! update challonge
+        // const api_url = `https://api.challonge.com/v1/tournaments/${match.challonge_tournament_id}/matches/${db_match.match_id}.json`;
+        // const params = {
+        //     api_key: process.env.API_KEY,
+        // };
+        // const data = {
+        //     match: {
+        //         scores_csv: scores_csv,
+        //         winner_id: winnerChallongeId,
+        //     },
+        // };
 
         // try {
         //     const response = await axios.put(api_url, data, { params });
@@ -689,23 +689,23 @@ class MatchHandler {
 
         //if one player has 4 and the other 3, the players played the incorrrect game length so dont add to stats
 
-        if (
-            (player1_legs === 4 && player2_legs === 3) ||
-            (player1_legs === 3 && player2_legs === 4)
-        ) {
-            await updateStats(
-                statsPlayer1_user_id,
-                db_match.match_id,
-                match.challonge_tournament_id,
-                statsPlayer1
-            );
-            await updateStats(
-                statsPlayer2_user_id,
-                db_match.match_id,
-                match.challonge_tournament_id,
-                statsPlayer2
-            );
-        }
+        // if (
+        //     (player1_legs === 4 && player2_legs === 3) ||
+        //     (player1_legs === 3 && player2_legs === 4)
+        // ) {
+        //     await updateStats(
+        //         statsPlayer1_user_id,
+        //         db_match.match_id,
+        //         match.challonge_tournament_id,
+        //         statsPlayer1
+        //     );
+        //     await updateStats(
+        //         statsPlayer2_user_id,
+        //         db_match.match_id,
+        //         match.challonge_tournament_id,
+        //         statsPlayer2
+        //     );
+        // }
 
         //now insert into ad_stats table with match_id as db_match.match_id, tournament id and then all the stats object in stats_data
 
