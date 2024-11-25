@@ -129,13 +129,11 @@ module.exports = {
     },
     async autocomplete(interaction) {
         // Check if the interaction is for the "tournament" option
-        if (interaction.options.getFocused(true).name === "tournament") {
+        if (interaction.options.getFocused(true).name === "league") {
             const focusedValue = interaction.options.getFocused();
 
             // Fetch tournament names from the database
-            const tournaments = await fetchTournamentsFromDatabase(
-                interaction.guildId
-            );
+            const tournaments = await fetchTournamentsFromDatabase(false);
 
             // Filter tournaments based on the user's input and limit results to 25 (Discord's max)
             const filteredTournaments = tournaments
