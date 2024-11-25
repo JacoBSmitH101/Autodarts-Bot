@@ -27,12 +27,7 @@ const {
 const confirmMatch = require("./datamanager").confirmMatch;
 
 const TOKEN = process.env.TOKEN;
-const ALLOWED_USER_IDS = [
-    "414395899570290690",
-    "335970728811954187",
-    "1142632757206466590",
-    "335970728811954187",
-];
+
 const AUTODARTS_WEBSOCKET_URL = "wss://api.autodarts.io/ms/v0/subscribe";
 const CERT_CHECK = false; // Set to true if you want to enable certificate checking
 const username = process.env.USERNAMES;
