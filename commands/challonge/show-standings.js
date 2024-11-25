@@ -26,7 +26,7 @@ module.exports = {
 
                 .setName("division")
                 .setDescription("The division number")
-                .setRequired(false)
+                .setRequired(true)
         )
 
         .addBooleanOption((option) =>
