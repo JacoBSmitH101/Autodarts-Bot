@@ -39,6 +39,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        interaction.deferReply({ ephemeral: true });
         const tournamentName = interaction.options.getString("tournament");
         const mobileView = interaction.options.getBoolean("mobile") || false;
         const division = interaction.options.getInteger("division");
@@ -62,7 +63,7 @@ module.exports = {
                 })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.editReply({ embeds: [embed], ephemeral: true });
         }
     },
     async autocomplete(interaction) {
