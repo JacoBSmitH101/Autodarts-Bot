@@ -754,7 +754,9 @@ class MatchHandler {
         //when not using a matchmode as a draw can happen in the league but not with autodarts
         //, there is no event when the match is manually ended
         //this will be called 30 seconds after the last update involving a leg winner to check if the match is finished
-        console.log("Checking if match is finished");
+        if (process.env.DEBUG === "true") {
+            console.log("Checking if match is finished");
+        }
         const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
         const headers = {
             Authorization: `Bearer ${client.keycloakClient.accessToken}`,
@@ -773,7 +775,6 @@ class MatchHandler {
             interaction.edit({ embeds: [embed] });
 
             stats = await axios.get(matchStatsUrl, { headers });
-            console.log(stats.data);
         } catch (error) {
             console.error("Match not finished:");
             console.log(error);

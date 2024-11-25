@@ -422,13 +422,14 @@ async function getActiveTournamentId() {
 
 async function getParticipantDataFromTournamentUserId(tournamentId, userId) {
     //make userId an integer
-
-    console.log(
-        "Fetching participant data for tournament",
-        tournamentId,
-        "and user",
-        userId
-    );
+    if (process.env.DEBUG == "true") {
+        console.log(
+            "Fetching participant data for tournament",
+            tournamentId,
+            "and user",
+            userId
+        );
+    }
     const query = `
         SELECT *
         FROM Participants P
