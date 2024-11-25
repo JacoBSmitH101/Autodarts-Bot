@@ -2,11 +2,13 @@
 
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { createTournamentChannels } = require("../../datamanager");
+const { PermissionFlagsBits } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("create-channels")
-        .setDescription("Create channels for a tournament"),
+        .setDescription("!! DO NOT RUN !! Create channels for a tournament")
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         interaction.deferReply({ ephemeral: true });
