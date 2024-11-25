@@ -23,7 +23,6 @@ module.exports = {
         )
         .addIntegerOption((option) =>
             option
-
                 .setName("division")
                 .setDescription("The division number")
                 .setRequired(true)

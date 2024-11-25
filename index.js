@@ -375,33 +375,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
                         await channel.send({ embeds: [embed] });
 
-                        const divisions = await getDivisionNumbers(
-                            match.tournament_id
-                        );
-                        console.log("Divisions:", divisions);
-                        const divisionNumber = divisions[match.group_id];
-                        console.log("Division number:", divisionNumber);
-                        const { embedTitle, tables, tournamentUrl } =
-                            await calculateStandings(
-                                match.tournament_id,
-                                false,
-                                divisionNumber
-                            );
-                        for (const tableContent of tables) {
-                            const embed = new EmbedBuilder()
-                                .setColor(0x3498db)
-                                .setTitle(embedTitle)
-                                .setDescription(`Division Standings`)
-                                .addFields({
-                                    name: `${tournamentUrl}`,
-                                    value: tableContent,
-                                })
-                                .setTimestamp();
+                        // const { embedTitle, tables, tournamentUrl } =
+                        //     await calculateStandings(
+                        //         match.tournament_id,
+                        //         false,
+                        //         divisionNumber
+                        //     );
+                        // for (const tableContent of tables) {
+                        //     const embed = new EmbedBuilder()
+                        //         .setColor(0x3498db)
+                        //         .setTitle(embedTitle)
+                        //         .setDescription(`Division Standings`)
+                        //         .addFields({
+                        //             name: `${tournamentUrl}`,
+                        //             value: tableContent,
+                        //         })
+                        //         .setTimestamp();
 
-                            await channel.send({
-                                embeds: [embed],
-                            });
-                        }
+                        //     await channel.send({
+                        //         embeds: [embed],
+                        //     });
+                        // }
                         channel.setArchived(true);
 
                         //now update the live matches channel
