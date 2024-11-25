@@ -481,7 +481,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     ephemeral: true,
                 });
 
-                moderatorChannelId = "1308144826218188947";
+                moderatorChannelId = "1308190896159719437";
 
                 const moderatorChannel =
                     client.channels.cache.get(moderatorChannelId);
