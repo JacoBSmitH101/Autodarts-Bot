@@ -63,7 +63,8 @@ module.exports = {
                 })
                 .setTimestamp();
 
-            await interaction.editReply({ embeds: [embed], ephemeral: true });
+            // Send an ephemeral message for each table content
+            await interaction.followUp({ embeds: [embed], ephemeral: true });
         }
     },
     async autocomplete(interaction) {
