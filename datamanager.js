@@ -1185,7 +1185,7 @@ async function saveAdStats(match_id, tournament_id, stats) {
 
 async function getAdStats(match_id, tournament_id) {
     const query = `SELECT stats_data FROM ad_stats WHERE match_id = $1 AND tournament_id = $2`;
-    const values = [match_id, tournament_id];
+    const values = [parseInt(match_id, 10), parseInt(tournament_id, 10)]; // Explicitly ensure integers
 
     try {
         const result = await pool.query(query, values);
@@ -1196,6 +1196,7 @@ async function getAdStats(match_id, tournament_id) {
         throw new Error("Failed to fetch stats.");
     }
 }
+
 module.exports = {
     getAdStats,
     calculateStandings,
