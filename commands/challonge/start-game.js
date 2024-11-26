@@ -6,7 +6,7 @@ module.exports = {
         .setName("start-game")
         .setDescription("Start a game on Autodarts.io with default settings."),
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: false });
 
         try {
             // Define the lobby settings
