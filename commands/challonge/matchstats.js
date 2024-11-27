@@ -25,7 +25,6 @@ module.exports = {
     async execute(interaction) {
         const matchId = interaction.options.getInteger("matchid");
         const tournamentId = interaction.options.getInteger("tournamentid");
-        interaction.deferReply({ ephemeral: false });
 
         try {
             // Fetch stats from the database
@@ -118,10 +117,10 @@ module.exports = {
                 embed.setThumbnail(matchData.host.avatarUrl);
             }
 
-            await interaction.followUp({ embeds: [embed] });
+            await interaction.reply({ embeds: [embed] });
         } catch (error) {
             console.error("Error fetching match stats:", error);
-            return interaction.followUp({
+            return interaction.reply({
                 content:
                     "An error occurred while fetching the stats. Please try again later.",
                 ephemeral: true,

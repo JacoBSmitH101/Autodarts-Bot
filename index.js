@@ -712,5 +712,10 @@ const testApiStats = async () => {
     console.log("Authenticated response:", response.data);
 };
 
+async function createLobby(data) {
+    const returndata = await client.keycloakClient.createLobby(data);
+    return returndata;
+}
+module.exports = { createLobby };
 // Login to Discord
 client.login(TOKEN);

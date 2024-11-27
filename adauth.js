@@ -133,6 +133,43 @@ class AutodartsAuthClient {
             console.error("Subscription failed:", error);
         }
     }
+    async createLobby(lobbyData) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
+
+            // Create the lobby
+            const response = await axios.post(
+                "https://api.autodarts.io/gs/v0/lobbies",
+                lobbyData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const lobbyId = response.data.id; // Get the lobby ID
+            if (this.debug) console.log("Lobby created:", response.data);
+
+            // Immediately send DELETE request
+            const deleteUrl = `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/players/by-index/0`;
+            const deleteResponse = await axios.delete(deleteUrl, {
+                headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (this.debug) console.log("Player deleted:", deleteResponse.data);
+
+            return response.data; // Return the original lobby creation response
+        } catch (error) {
+            console.error("Error in createLobby:", error.message);
+            throw new Error("Failed to create lobby or delete player.");
+        }
+    }
 
     stop() {
         this.run = false;
