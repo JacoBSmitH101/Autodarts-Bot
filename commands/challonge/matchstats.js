@@ -87,9 +87,9 @@ module.exports = {
                         } vs ${
                             stats2?.average?.toFixed(2) || "N/A"
                         }\n**Checkout %**: ${
-                            stats1?.checkoutPercent?.toFixed(2) || "0.00"
+                            (stats1?.checkoutPercent * 100).toFixed(2) || "0.00"
                         } vs ${
-                            stats2?.checkoutPercent?.toFixed(2) || "0.00"
+                            (stats2?.checkoutPercent * 100).toFixed(2) || "0.00"
                         }\n**Highest Checkout**: ${
                             stats1?.checkoutPoints || "0"
                         } vs ${stats2?.checkoutPoints || "0"}`,

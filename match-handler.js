@@ -460,18 +460,18 @@ class MatchHandler {
         }
 
         //mark as underway on challonge
-        const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
-        const params = {
-            api_key: process.env.API_KEY,
-        };
-        try {
-            const response = await axios.put(api_url, {}, { params });
-            if (response.status === 200) {
-                console.log("Challonge match marked as underway");
-            }
-        } catch (error) {
-            console.error("Error marking challonge match as underway:", error);
-        }
+        // const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
+        // const params = {
+        //     api_key: process.env.API_KEY,
+        // };
+        // try {
+        //     const response = await axios.put(api_url, {}, { params });
+        //     if (response.status === 200) {
+        //         console.log("Challonge match marked as underway");
+        //     }
+        // } catch (error) {
+        //     console.error("Error marking challonge match as underway:", error);
+        // }
     }
     async processFinishedMatch(matchId, stats, client) {
         //get match
@@ -720,14 +720,16 @@ class MatchHandler {
         const match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );
-        const interaction = match.live_discord_interaction;
-        const embed = new EmbedBuilder()
-            .setTitle("🎯 League Match Aborted")
-            .setDescription(`This match has been aborted.`)
-            .setColor(0xff0000) // Red color for finished match
-            .setTimestamp();
+        try {
+            const interaction = match.live_discord_interaction;
+            const embed = new EmbedBuilder()
+                .setTitle("🎯 League Match Aborted")
+                .setDescription(`This match has been aborted.`)
+                .setColor(0xff0000) // Red color for finished match
+                .setTimestamp();
 
-        interaction.edit({ embeds: [embed] });
+            interaction.edit({ embeds: [embed] });
+        } catch {}
         //remove match from ongoing_matches
         setTimeout(() => {
             this.ongoing_matches = this.ongoing_matches.filter(
