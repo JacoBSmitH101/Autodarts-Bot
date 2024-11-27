@@ -720,14 +720,16 @@ class MatchHandler {
         const match = this.ongoing_matches.find(
             (match) => match.matchId === matchId
         );
-        const interaction = match.live_discord_interaction;
-        const embed = new EmbedBuilder()
-            .setTitle("🎯 League Match Aborted")
-            .setDescription(`This match has been aborted.`)
-            .setColor(0xff0000) // Red color for finished match
-            .setTimestamp();
+        try {
+            const interaction = match.live_discord_interaction;
+            const embed = new EmbedBuilder()
+                .setTitle("🎯 League Match Aborted")
+                .setDescription(`This match has been aborted.`)
+                .setColor(0xff0000) // Red color for finished match
+                .setTimestamp();
 
-        interaction.edit({ embeds: [embed] });
+            interaction.edit({ embeds: [embed] });
+        } catch {}
         //remove match from ongoing_matches
         setTimeout(() => {
             this.ongoing_matches = this.ongoing_matches.filter(
