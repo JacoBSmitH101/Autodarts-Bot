@@ -16,6 +16,7 @@ const {
     getDivisionNumbers,
     findThreadByMatchId,
     saveAdStats,
+    getLiveMatchDataFromAutodartsMatchId,
 } = require("./datamanager");
 const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
@@ -198,7 +199,56 @@ class MatchHandler {
             }
         }
     }
-    async lobby_event(message) {}
+    async lobby_event(message) {
+        //for each message.players check the .userId which is  player1_autodarts_id and player2_autodarts_id.
+        //first get the lobby data from the database using the lobby_id
+        const lobbyId = message.data.id;
+        const match_data = await getLiveMatchDataFromAutodartsMatchId(lobbyId);
+
+        let player1_in = false;
+        let player2_in = false;
+        //do the loop
+        for (let i = 0; i < message.data.players.length; i++) {
+            const player = message.data.players[i];
+            const player_id = player.userId;
+            if (player_id == match_data.player1_autodarts_id) {
+                player1_in = true;
+            }
+            if (player_id == match_data.player2_autodarts_id) {
+                player2_in = true;
+            }
+        }
+
+        //if both, then follow up on the interaction found with match_channel_interaction_id
+        if (player1_in && player2_in) {
+            const channel = this.client.channels.cache.get(
+                match_data.match_channel_interaction_id
+            );
+            if (channel) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎯 All players in!`)
+                    .setDescription(`Press the button below to begin`)
+                    .setColor(0x00ff00) // Green color for active match
+                    .setTimestamp();
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`start_autoMatch_${lobbyId}`)
+                        .setLabel("Start Match")
+                        .setStyle(ButtonStyle.Success)
+                );
+
+                // follow up to the interaction_id with the embed and button
+                //get the original interaction
+                const interaction = await channel.messages.fetch(
+                    match_data.match_channel_interaction_id
+                );
+                interaction.reply({ embeds: [embed], components: [row] });
+            } else {
+                console.log("Channel not found");
+            }
+        }
+    }
 
     async match_update(message, tournamentId) {
         const matchId = message.data.id;

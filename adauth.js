@@ -170,6 +170,30 @@ class AutodartsAuthClient {
             throw new Error("Failed to create lobby or delete player.");
         }
     }
+    async startLobby(lobbyId) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
+
+            // Start the lobby
+            const response = await axios.post(
+                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/start`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (this.debug) console.log("Lobby started:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error in startLobby:", error.message);
+            throw new Error("Failed to start lobby.");
+        }
+    }
 
     stop() {
         this.run = false;

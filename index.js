@@ -23,6 +23,7 @@ const {
     rejectMatch,
     calculateStandings,
     getDivisionNumbers,
+    getLiveMatchDataFromAutodartsMatchId,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -226,8 +227,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
         }
         if (commandName === "autoMatch") {
-            const [submitterDiscordId, autodarts_match_id] = extra;
             if (action === "confirm") {
+                const [submitterDiscordId, autodarts_match_id] = extra;
+
                 console.log("Confirming match");
 
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
@@ -418,6 +420,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     }
                 }
             } else if (action === "reject") {
+                const [submitterDiscordId, autodarts_match_id] = extra;
+
                 const tournamentId = await getTournamentIdFromAutodartsMatchId(
                     autodarts_match_id
                 );
@@ -500,6 +504,31 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 } catch (error) {
                     console.error("Error deleting interaction message:", error);
                 }
+            } else if (action === "start") {
+                const [lobbyId] = extra;
+
+                await client.keycloakClient.startLobby(lobbyId);
+
+                await interaction.reply({
+                    content: "Game started! Good luck have fun!",
+                    ephemeral: false,
+                });
+                //edit the original message to remove the button
+                await interaction.message.edit({
+                    components: [],
+                });
+                //get the origina message and remove button as well
+                const data = await getLiveMatchDataFromAutodartsMatchId(
+                    lobbyId
+                );
+                const int = await interaction.channel.messages.fetch(
+                    data.match_channel_interaction_id
+                );
+                await int.edit({
+                    components: [],
+                });
+
+                //TODO then continue match handling
             }
         }
 

@@ -9,7 +9,7 @@ const {
     getMatchFromMatchId,
     createNewLiveMatch,
 } = require("../../datamanager");
-const { EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+const { PermissionFlagsBits } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -108,6 +108,21 @@ module.exports = {
                 components: [actionRow],
                 ephemeral: false,
             });
+
+            interaction.client.keycloakClient.subscribe(
+                async (message) => {
+                    interaction.client.matchHandler.lobby_event(message);
+                },
+                (ws) => {
+                    const paramsSubscribeMatchesEvents = {
+                        channel: "autodarts.lobbies",
+                        type: "subscribe",
+                        topic: `${autodarts_match_id}.state`,
+                    };
+                    ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
+                    console.log("Subscribed to lobby events.");
+                }
+            );
         } catch (error) {
             console.error("Error:", error);
             //TODO this needs to be actuall working
