@@ -132,6 +132,7 @@ client.keycloakClient = keycloakClient;
 const MatchHandler = require("./match-handler");
 const { match } = require("assert");
 const matchHandler = new MatchHandler(client);
+client.matchHandler = matchHandler;
 
 // Load commands
 const foldersPath = path.join(__dirname, "commands");

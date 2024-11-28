@@ -208,7 +208,7 @@ async function getUserIdFromAutodartsId(autodartsId) {
         return result.rows[0].user_id;
     } catch (err) {
         console.error("Failed to retrieve user ID:", err.message);
-        throw new Error("Failed to retrieve user ID.");
+        console.error("Failed to retrieve user ID.");
     }
 }
 
@@ -1196,7 +1196,47 @@ async function getAdStats(match_id, tournament_id) {
         throw new Error("Failed to fetch stats.");
     }
 }
+async function getMatchFromMatchId(matchId) {
+    const query = `SELECT * FROM Matches WHERE match_id = $1`;
+    const values = [matchId];
 
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0];
+    } catch (err) {
+        console.error("Error fetching match:", err.message);
+        throw new Error("Failed to fetch match.");
+    }
+}
+async function createNewLiveMatch(
+    match_id,
+    tournament_id,
+    player1_id,
+    player2_id,
+    autodarts_match_id,
+    match_channel_interaction_id
+) {
+    const query = `
+        INSERT INTO live_matches (match_id, tournament_id, player1_id, player2_id, autodarts_match_id, match_channel_interaction_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `;
+    const values = [
+        match_id,
+        tournament_id,
+        player1_id,
+        player2_id,
+        autodarts_match_id,
+        match_channel_interaction_id,
+    ];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error creating live match:", err.message);
+        throw new Error("Failed to create live match.");
+    }
+}
 module.exports = {
     getAdStats,
     calculateStandings,
@@ -1234,4 +1274,6 @@ module.exports = {
     getTournamentNameById,
     getUserIdFromChallongeId,
     findThreadByMatchId,
+    getMatchFromMatchId,
+    createNewLiveMatch,
 };

@@ -162,7 +162,7 @@ class AutodartsAuthClient {
                 },
             });
 
-            if (this.debug) console.log("Player deleted:", deleteResponse.data);
+            //if (this.debug) console.log("Player deleted:", deleteResponse.data);
 
             return response.data; // Return the original lobby creation response
         } catch (error) {
