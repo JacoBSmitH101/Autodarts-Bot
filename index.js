@@ -160,25 +160,26 @@ for (const folder of commandFolders) {
 }
 
 // Event: Client Ready
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-    // Start listening to the websocket
-    client.keycloakClient.subscribe(
-        async (message) => {
-            if (message.data.event == "create") {
-                handleNewMatch(message);
+
+    try {
+        // Subscribe to "autodarts.matches" events
+        await client.keycloakClient.subscribe(
+            "autodarts.matches", // Channel
+            "matches", // Topic
+            async (message) => {
+                if (message.data.event === "create") {
+                    handleNewMatch(message);
+                }
+            },
+            (ws) => {
+                console.log("Subscribed to matches");
             }
-        },
-        (ws) => {
-            const paramsSubscribeMatchesEvents = {
-                channel: "autodarts.matches",
-                type: "subscribe",
-                topic: `matches`,
-            };
-            ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
-            console.log("Subscribed to matches");
-        }
-    );
+        );
+    } catch (error) {
+        console.error("Failed to subscribe to matches:", error);
+    }
 });
 
 // Event: Interaction Create
@@ -529,6 +530,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 });
 
                 //TODO then continue match handling
+                //first unsubscribe from the lobby
+
+                await client.keycloakClient.unsubscribe(
+                    "autodarts.loobies",
+                    `${lobbyId}.events`
+                );
             }
         }
 
@@ -703,13 +710,13 @@ const subscribeToMatchUpdates = async (matchId, tournamentId) => {
         topic: `${matchId}.state`,
     };
 
-    client.keycloakClient.subscribe(
+    await client.keycloakClient.subscribe(
+        "autodarts.matches", // Channel
+        `${matchId}.state`, // Topic (match-specific updates)
         async (message) => {
             matchHandler.match_update(message, tournamentId);
         },
-        (ws) => {
-            // Add an event listener to wait for the WebSocket to open
-            ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
+        () => {
             console.log(`Subscribed to match updates for match ${matchId}`);
         }
     );
@@ -722,12 +729,13 @@ const subscribeToMatchEvents = async (matchId, tournamentId) => {
         topic: `${matchId}.events`,
     };
 
-    client.keycloakClient.subscribe(
+    await client.keycloakClient.subscribe(
+        "autodarts.matches", // Channel
+        `${matchId}.events`, // Topic (specific for match events)
         async (message) => {
             matchHandler.match_event(message, tournamentId);
         },
         (ws) => {
-            ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
             console.log(`Subscribed to match events for match ${matchId}`);
         }
     );

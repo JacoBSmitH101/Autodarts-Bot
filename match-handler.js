@@ -175,7 +175,7 @@ class MatchHandler {
         //   }
         // }
         if (process.env.DEBUG === "true") {
-            console.log(message);
+            //console.log(message);
         }
         if (message.data.event === "finish") {
             //match is finished, no need to check if it is finished
@@ -452,9 +452,14 @@ class MatchHandler {
             this.ongoing_matches.find(
                 (match) => match.matchId === matchId
             ).live_discord_interaction = message;
-            const guild = await this.client.guilds.cache.get(
+            let guild = await this.client.guilds.cache.get(
                 process.env.AD_GUILD
             );
+            if (process.env.DEBUG === "true") {
+                guild = await this.client.guilds.cache.get(
+                    process.env.GUILD_ID
+                );
+            }
             const matchChannel = await findThreadByMatchId(
                 guild,
                 db_match.match_id

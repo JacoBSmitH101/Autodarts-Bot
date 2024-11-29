@@ -31,7 +31,8 @@ module.exports = {
                     maxRounds: 50,
                 },
                 bullOffMode: "Normal",
-                isPrivate: false,
+                //! TODO CHANGE THIS TO FALSE
+                isPrivate: true,
             };
 
             // Create the lobby
@@ -109,17 +110,14 @@ module.exports = {
                 ephemeral: false,
             });
 
-            interaction.client.keycloakClient.subscribe(
+            await interaction.client.keycloakClient.subscribe(
+                "autodarts.lobbies", // Channel
+                `${autodarts_match_id}.state`, // Topic
                 async (message) => {
+                    console.log("Received lobby event:", message);
                     interaction.client.matchHandler.lobby_event(message);
                 },
                 (ws) => {
-                    const paramsSubscribeMatchesEvents = {
-                        channel: "autodarts.lobbies",
-                        type: "subscribe",
-                        topic: `${autodarts_match_id}.state`,
-                    };
-                    ws.send(JSON.stringify(paramsSubscribeMatchesEvents));
                     console.log("Subscribed to lobby events.");
                 }
             );

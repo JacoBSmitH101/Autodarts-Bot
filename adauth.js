@@ -27,6 +27,7 @@ class AutodartsAuthClient {
         this.expiresAt = null;
         this.refreshExpiresAt = null;
         this.ws = null;
+        this.activeSubscriptions = new Set();
 
         // Start token refresh on initialization
         this.startTokenManagement();
@@ -102,119 +103,86 @@ class AutodartsAuthClient {
         }
     }
 
-    async subscribe(callback, sendCallback) {
+    async ensureWebSocketOpen() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            return new Promise((resolve, reject) => {
+                const headers = { Authorization: `Bearer ${this.accessToken}` };
+
+                this.ws = new WebSocket(
+                    "wss://api.autodarts.io/ms/v0/subscribe",
+                    {
+                        headers,
+                        agent: new https.Agent({ rejectUnauthorized: false }),
+                    }
+                );
+
+                this.ws.on("open", () => {
+                    console.log("WebSocket connection opened.");
+                    // Resubscribe to all active subscriptions
+                    for (const subscription of this.activeSubscriptions) {
+                        const [channel, topic] = subscription.split(":");
+                        this.ws.send(
+                            JSON.stringify({
+                                channel,
+                                type: "subscribe",
+                                topic,
+                            })
+                        );
+                    }
+                    resolve();
+                });
+
+                this.ws.on("error", (error) => {
+                    console.error("WebSocket error:", error);
+                    reject(error);
+                });
+
+                this.ws.on("close", () => {
+                    console.log("WebSocket connection closed.");
+                    this.ws = null;
+                    // Optionally implement reconnection logic here
+                });
+            });
+        }
+    }
+
+    async subscribe(channel, topic, callback) {
         try {
-            while (!this.accessToken)
-                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
-            const headers = { Authorization: `Bearer ${this.accessToken}` };
+            await this.ensureWebSocketOpen();
 
-            this.ws = new WebSocket("wss://api.autodarts.io/ms/v0/subscribe", {
-                headers,
-                agent: new https.Agent({ rejectUnauthorized: false }),
+            const subscriptionKey = `${channel}:${topic}`;
+            if (!this.activeSubscriptions.has(subscriptionKey)) {
+                this.activeSubscriptions.add(subscriptionKey);
+                const params = { channel, type: "subscribe", topic };
+                console.log("Subscribing to:", params);
+                this.ws.send(JSON.stringify(params));
+                console.log(`Subscribed to ${channel}:${topic}`);
+            }
+
+            this.ws.on("message", (message) => {
+                callback(JSON.parse(message.toString()));
             });
-
-            this.ws.on("open", () => {
-                console.log("WebSocket connection opened.");
-                if (sendCallback) {
-                    sendCallback(this.ws);
-                }
-            });
-
-            this.ws.on("message", (message) =>
-                callback(JSON.parse(message.toString()))
-            );
-            this.ws.on("error", (error) =>
-                console.error("WebSocket error:", error)
-            );
-            this.ws.on("close", () =>
-                console.log("WebSocket connection closed.")
-            );
         } catch (error) {
             console.error("Subscription failed:", error);
         }
     }
-    async removePlayerFromLobby(lobbyId, playerIndex) {
+
+    async unsubscribe(channel, topic) {
         try {
-            while (!this.accessToken)
-                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                console.log("No active WebSocket connection to unsubscribe.");
+                return;
+            }
 
-            // Remove the player
-            const response = await axios.delete(
-                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/players/by-index/${playerIndex}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${this.accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if (this.debug) console.log("Player removed:", response.data);
-            return response.data;
+            const subscriptionKey = `${channel}:${topic}`;
+            if (this.activeSubscriptions.has(subscriptionKey)) {
+                const params = { channel, type: "unsubscribe", topic };
+                this.ws.send(JSON.stringify(params));
+                this.activeSubscriptions.delete(subscriptionKey);
+                console.log(`Unsubscribed from ${channel}:${topic}`);
+            }
         } catch (error) {
-            console.error("Error in removePlayerFromLobby:", error.message);
-        }
-    }
-
-    async createLobby(lobbyData) {
-        try {
-            while (!this.accessToken)
-                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
-
-            // Create the lobby
-            const response = await axios.post(
-                "https://api.autodarts.io/gs/v0/lobbies",
-                lobbyData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${this.accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            const lobbyId = response.data.id; // Get the lobby ID
-            if (this.debug) console.log("Lobby created:", response.data);
-
-            // Immediately send DELETE request
-            const deleteUrl = `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/players/by-index/0`;
-            const deleteResponse = await axios.delete(deleteUrl, {
-                headers: {
-                    Authorization: `Bearer ${this.accessToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            //if (this.debug) console.log("Player deleted:", deleteResponse.data);
-
-            return response.data; // Return the original lobby creation response
-        } catch (error) {
-            console.error("Error in createLobby:", error.message);
-            throw new Error("Failed to create lobby or delete player.");
-        }
-    }
-    async startLobby(lobbyId) {
-        try {
-            while (!this.accessToken)
-                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
-
-            // Start the lobby
-            const response = await axios.post(
-                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/start`,
-                {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${this.accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if (this.debug) console.log("Lobby started:", response.data);
-            return response.data;
-        } catch (error) {
-            console.error("Error in startLobby:", error.message);
-            throw new Error("Failed to start lobby.");
+            console.error("Unsubscription failed:", error);
         }
     }
 
