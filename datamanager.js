@@ -1250,7 +1250,18 @@ async function getLiveMatchDataFromAutodartsMatchId(autodartsMatchId) {
         throw new Error("Failed to fetch live match.");
     }
 }
+async function updateLiveMatchStatus(autodartsMatchId, status) {
+    const query = `UPDATE live_matches SET status = $1 WHERE autodarts_match_id = $2`;
+    const values = [status, autodartsMatchId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error updating live match status:", err.message);
+    }
+}
 module.exports = {
+    updateLiveMatchStatus,
     getLiveMatchDataFromAutodartsMatchId,
     getAdStats,
     calculateStandings,

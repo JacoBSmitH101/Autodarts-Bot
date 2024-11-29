@@ -207,6 +207,9 @@ class MatchHandler {
 
         let player1_in = false;
         let player2_in = false;
+        if (!message.data.players) {
+            return;
+        }
         //do the loop
         for (let i = 0; i < message.data.players.length; i++) {
             const player = message.data.players[i];

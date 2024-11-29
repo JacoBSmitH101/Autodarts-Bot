@@ -24,6 +24,7 @@ const {
     calculateStandings,
     getDivisionNumbers,
     getLiveMatchDataFromAutodartsMatchId,
+    updateLiveMatchStatus,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -536,6 +537,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     "autodarts.loobies",
                     `${lobbyId}.events`
                 );
+
+                //update live_match row status to bull up
+                await updateLiveMatchStatus(lobbyId, "bullup");
             }
         }
 

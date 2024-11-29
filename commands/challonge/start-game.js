@@ -114,7 +114,7 @@ module.exports = {
                 "autodarts.lobbies", // Channel
                 `${autodarts_match_id}.state`, // Topic
                 async (message) => {
-                    console.log("Received lobby event:", message);
+                    //console.log("Received lobby event:", message);
                     interaction.client.matchHandler.lobby_event(message);
                 },
                 (ws) => {

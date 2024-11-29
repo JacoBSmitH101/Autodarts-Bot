@@ -185,6 +185,75 @@ class AutodartsAuthClient {
             console.error("Unsubscription failed:", error);
         }
     }
+    async removePlayerFromLobby(lobbyId, playerIndex) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+            const response = await axios.delete(
+                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/players/by-index/${playerIndex}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (this.debug) console.log("Player removed:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error in removePlayerFromLobby:", error.message);
+        }
+    }
+
+    async createLobby(lobbyData) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+            const response = await axios.post(
+                "https://api.autodarts.io/gs/v0/lobbies",
+                lobbyData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (this.debug) console.log("Lobby created:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error in createLobby:", error.message);
+            throw new Error("Failed to create lobby.");
+        }
+    }
+
+    async startLobby(lobbyId) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+            const response = await axios.post(
+                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/start`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (this.debug) console.log("Lobby started:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error in startLobby:", error.message);
+            throw new Error("Failed to start lobby.");
+        }
+    }
 
     stop() {
         this.run = false;
