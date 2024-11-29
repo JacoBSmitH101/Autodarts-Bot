@@ -1260,7 +1260,33 @@ async function updateLiveMatchStatus(autodartsMatchId, status) {
         console.error("Error updating live match status:", err.message);
     }
 }
+async function getLiveMatchStatus(autodartsMatchId) {
+    const query = `SELECT status FROM live_matches WHERE autodarts_match_id = $1`;
+    const values = [autodartsMatchId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].status;
+    } catch (err) {
+        console.error("Error fetching live match status:", err.message);
+        throw new Error("Failed to fetch live match status.");
+    }
+}
+async function updateLiveInteraction(autodartsMatchId, interactionId) {
+    const query = `UPDATE live_matches SET live_status_interaction_id = $1 WHERE autodarts_match_id = $2`;
+    const values = [interactionId, autodartsMatchId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error updating live interaction:", err.message);
+        throw new Error("Failed to update live interaction.");
+    }
+}
 module.exports = {
+    updateLiveInteraction,
+    getLiveMatchStatus,
     updateLiveMatchStatus,
     getLiveMatchDataFromAutodartsMatchId,
     getAdStats,

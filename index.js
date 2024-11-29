@@ -25,6 +25,7 @@ const {
     getDivisionNumbers,
     getLiveMatchDataFromAutodartsMatchId,
     updateLiveMatchStatus,
+    getLiveMatchStatus,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -164,23 +165,23 @@ for (const folder of commandFolders) {
 client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 
-    try {
-        // Subscribe to "autodarts.matches" events
-        await client.keycloakClient.subscribe(
-            "autodarts.matches", // Channel
-            "matches", // Topic
-            async (message) => {
-                if (message.data.event === "create") {
-                    handleNewMatch(message);
-                }
-            },
-            (ws) => {
-                console.log("Subscribed to matches");
-            }
-        );
-    } catch (error) {
-        console.error("Failed to subscribe to matches:", error);
-    }
+    // try {
+    //     // Subscribe to "autodarts.matches" events
+    //     await client.keycloakClient.subscribe(
+    //         "autodarts.matches", // Channel
+    //         "matches", // Topic
+    //         async (message) => {
+    //             if (message.data.event === "create") {
+    //                 handleNewMatch(message);
+    //             }
+    //         },
+    //         (ws) => {
+    //             console.log("Subscribed to matches");
+    //         }
+    //     );
+    // } catch (error) {
+    //     console.error("Failed to subscribe to matches:", error);
+    // }
 });
 
 // Event: Interaction Create
@@ -509,6 +510,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (action === "start") {
                 const [lobbyId] = extra;
 
+                const status = await getLiveMatchStatus(lobbyId);
+
+                if (status !== "start offered") {
+                    await interaction.reply({
+                        content: "Match has already been started!",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
                 await client.keycloakClient.startLobby(lobbyId);
 
                 await interaction.reply({
@@ -540,6 +551,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
                 //update live_match row status to bull up
                 await updateLiveMatchStatus(lobbyId, "bullup");
+
+                await client.keycloakClient.subscribe(
+                    "autodarts.matches",
+                    `${lobbyId}.state`,
+                    async (message) => {
+                        matchHandler.match_update(message, data.tournament_id);
+                    }
+                );
+                await client.keycloakClient.subscribe(
+                    "autodarts.matches",
+                    `${lobbyId}.events`,
+                    async (message) => {
+                        matchHandler.match_event(message, data.tournament_id);
+                    }
+                );
             }
         }
 

@@ -17,6 +17,9 @@ const {
     findThreadByMatchId,
     saveAdStats,
     getLiveMatchDataFromAutodartsMatchId,
+    updateLiveMatchStatus,
+    getLiveMatchStatus,
+    updateLiveInteraction,
 } = require("./datamanager");
 const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
@@ -255,7 +258,14 @@ class MatchHandler {
                 const interaction = await channel.messages.fetch(
                     match_data.match_channel_interaction_id
                 );
-                interaction.reply({ embeds: [embed], components: [row] });
+                const status = await getLiveMatchStatus(lobbyId);
+                if (status == "waiting for players") {
+                    await interaction.reply({
+                        embeds: [embed],
+                        components: [row],
+                    });
+                    await updateLiveMatchStatus(lobbyId, "start offered");
+                }
             } else {
                 console.log("Channel not found");
             }
@@ -275,7 +285,7 @@ class MatchHandler {
             this.updateMatch(matchId, message);
         } else {
             //add the match
-            console.log(message.data.scores);
+            //console.log(message.data.scores);
             this.addMatch(matchId, message, tournamentId);
         }
     }
@@ -347,143 +357,217 @@ class MatchHandler {
     async addMatch(matchId, message, tournamentId) {
         //double check matchId is not already being tracked
         if (message.data.variant != "X01") {
+            //bull off
+            const liveMatchData = await getLiveMatchDataFromAutodartsMatchId(
+                matchId
+            );
+            if (!liveMatchData.live_status_interaction_id) {
+                //create nteraction in process.env.LIVE_MATCHES_CHANNEL_ID
+                const channel = this.client.channels.cache.get(
+                    process.env.LIVE_MATCHES_CHANNEL_ID
+                );
+
+                //embed saying Bull up in progress
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎯 Bull Up In Progress`)
+                    .setDescription(`Follow the live score and progress!`)
+                    .setColor(0x00ff00) // Green color for active match
+                    .setTimestamp()
+                    .addFields(
+                        // Player names and match status
+                        {
+                            name: `Bull Up`,
+                            value: `In Progress`,
+                            inline: true,
+                        },
+                        {
+                            name: "Follow along!",
+                            value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
+                            inline: false,
+                        }
+                    );
+
+                // Send message and update ongoing match with Discord message object
+                const message = await channel.send({ embeds: [embed] });
+                //set the interaction id in the live match data
+                await updateLiveInteraction(matchId, message.id);
+            } else {
+                const winnerId = message.data.gameWinner;
+                if (winnerId == -1) {
+                    //no winner
+                    return;
+                }
+
+                const winner = message.data.players[winnerId].userId;
+                const winnerName = message.data.players[winnerId].name;
+                const channel = this.client.channels.cache.get(
+                    process.env.LIVE_MATCHES_CHANNEL_ID
+                );
+
+                //update the live match interaction with the winner
+                const interaction = await channel.messages.fetch(
+                    liveMatchData.live_status_interaction_id
+                );
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎯 Bull Up Finished`)
+                    .setDescription(`Winner: ${winnerName}`)
+                    .setColor(0x00ff00) // Green color for active match
+                    .setTimestamp()
+                    .addFields(
+                        // Player names and match status
+                        {
+                            name: `Bull Up`,
+                            value: `Finished`,
+                            inline: true,
+                        },
+                        {
+                            name: "Follow along!",
+                            value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
+                            inline: false,
+                        }
+                    );
+                interaction.edit({ embeds: [embed] });
+            }
             return;
         }
-        const players = message.data.players;
-        console.log(players);
-        //associate with challonge match id
 
-        //get user_id from users table using autodarts_id
-        const player1_id = players[0].userId;
-        const player2_id = players[1].userId;
+        //game has begun
 
-        const player1_user_id = await getUserIdFromAutodartsId(player1_id);
+        // const players = message.data.players;
+        // console.log(players);
+        // //associate with challonge match id
 
-        const player2_user_id = await getUserIdFromAutodartsId(player2_id);
-        console.log(tournamentId);
-        console.log(player1_user_id);
-        //use participants table to get challonge_ids using user_ids and tournament_id
-        const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
-            player1_user_id,
-            tournamentId
-        );
-        const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
-            player2_user_id,
-            tournamentId
-        );
+        // //get user_id from users table using autodarts_id
+        // const player1_id = players[0].userId;
+        // const player2_id = players[1].userId;
 
-        //then find the match in the matches table using the challonge_ids and tournament_id
-        let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
-            player1_challonge_id,
-            player2_challonge_id,
-            tournamentId
-        );
+        // const player1_user_id = await getUserIdFromAutodartsId(player1_id);
 
-        this.ongoing_matches.push({
-            matchId: matchId,
-            players: players,
-            live_discord_interaction: null,
-            challonge_tournament_id: tournamentId,
-            challonge_match_id: db_match.match_id,
-            checking: false,
-        });
+        // const player2_user_id = await getUserIdFromAutodartsId(player2_id);
+        // console.log(tournamentId);
+        // console.log(player1_user_id);
+        // //use participants table to get challonge_ids using user_ids and tournament_id
+        // const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
+        //     player1_user_id,
+        //     tournamentId
+        // );
+        // const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
+        //     player2_user_id,
+        //     tournamentId
+        // );
 
-        //instead update not add
-        //get player names
-        const player1_name = players[0].name;
-        const player2_name = players[1].name;
+        // //then find the match in the matches table using the challonge_ids and tournament_id
+        // let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
+        //     player1_challonge_id,
+        //     player2_challonge_id,
+        //     tournamentId
+        // );
 
-        //get player scores
-        const player1_score = message.data.gameScores[0];
-        const player2_score = message.data.gameScores[1];
+        // this.ongoing_matches.push({
+        //     matchId: matchId,
+        //     players: players,
+        //     live_discord_interaction: null,
+        //     challonge_tournament_id: tournamentId,
+        //     challonge_match_id: db_match.match_id,
+        //     checking: false,
+        // });
 
-        const player1_legs = message.data.scores[0].legs;
-        const player2_legs = message.data.scores[1].legs;
+        // //instead update not add
+        // //get player names
+        // const player1_name = players[0].name;
+        // const player2_name = players[1].name;
 
-        //get match state
-        let matchState = "In Progress";
-        let matchDate = new Date().toLocaleDateString();
+        // //get player scores
+        // const player1_score = message.data.gameScores[0];
+        // const player2_score = message.data.gameScores[1];
 
-        const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
-        const link = hyperlink("Goto match", matchUrl);
-        //create interaction and store it in live_discord_interaction
-        const channel = this.client.channels.cache.get(
-            process.env.LIVE_MATCHES_CHANNEL_ID
-        );
-        //currently throwing player is message.data.player 0 for player1 and 1 for player2
-        const throwingPlayer = message.data.player;
+        // const player1_legs = message.data.scores[0].legs;
+        // const player2_legs = message.data.scores[1].legs;
 
-        const divisionNumbers = await getDivisionNumbers(tournamentId);
-        //is an object with group_id: division_number
-        const division = divisionNumbers[db_match.group_id];
-        if (channel) {
-            const embed = new EmbedBuilder()
-                .setTitle(`🎯 Division ${division} Match In Progress`)
-                .setDescription(`Follow the live score and progress!`)
-                .setColor(0x00ff00) // Green color for active match
-                .setTimestamp()
-                .addFields(
-                    // Player names and match status
-                    {
-                        name: `${
-                            throwingPlayer == 0 ? "*" : ""
-                        }${player1_name}`,
-                        value: `${player1_score}`,
-                        inline: true,
-                    },
-                    {
-                        name: " VS ",
-                        value: `${player1_legs} - ${player2_legs}`,
-                        inline: true,
-                    },
-                    {
-                        name: `${
-                            throwingPlayer == 1 ? "*" : ""
-                        }${player2_name}`,
-                        value: `${player2_score}`,
-                        inline: true,
-                    },
-                    {
-                        name: "Follow along!",
-                        value: `[Watch match on Autodarts](${matchUrl})`,
-                        inline: false,
-                    }
-                );
+        // //get match state
+        // let matchState = "In Progress";
+        // let matchDate = new Date().toLocaleDateString();
 
-            // Send message and update ongoing match with Discord message object
-            const message = await channel.send({ embeds: [embed] });
-            this.ongoing_matches.find(
-                (match) => match.matchId === matchId
-            ).live_discord_interaction = message;
-            let guild = await this.client.guilds.cache.get(
-                process.env.AD_GUILD
-            );
-            if (process.env.DEBUG === "true") {
-                guild = await this.client.guilds.cache.get(
-                    process.env.GUILD_ID
-                );
-            }
-            const matchChannel = await findThreadByMatchId(
-                guild,
-                db_match.match_id
-            );
-            if (process.env.DEBUG === "true") {
-                console.log(matchChannel);
-            }
-            //just say match begun
-            const embed2 = new EmbedBuilder()
-                .setTitle(`🎯 Match Started`)
-                .setDescription(
-                    `Match between ${player1_name} and ${player2_name} has begun!`
-                )
-                .setColor(0x00ff00) // Green color for active match
-                .setTimestamp();
+        // const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
+        // const link = hyperlink("Goto match", matchUrl);
+        // //create interaction and store it in live_discord_interaction
+        // const channel = this.client.channels.cache.get(
+        //     process.env.LIVE_MATCHES_CHANNEL_ID
+        // );
+        // //currently throwing player is message.data.player 0 for player1 and 1 for player2
+        // const throwingPlayer = message.data.player;
 
-            // Send message and update ongoing match with Discord message object
-            matchChannel.send({ embeds: [embed2] });
-        } else {
-            console.log("Channel not found");
-        }
+        // const divisionNumbers = await getDivisionNumbers(tournamentId);
+        // //is an object with group_id: division_number
+        // const division = divisionNumbers[db_match.group_id];
+        // if (channel) {
+        //     const embed = new EmbedBuilder()
+        //         .setTitle(`🎯 Division ${division} Match In Progress`)
+        //         .setDescription(`Follow the live score and progress!`)
+        //         .setColor(0x00ff00) // Green color for active match
+        //         .setTimestamp()
+        //         .addFields(
+        //             // Player names and match status
+        //             {
+        //                 name: `${
+        //                     throwingPlayer == 0 ? "*" : ""
+        //                 }${player1_name}`,
+        //                 value: `${player1_score}`,
+        //                 inline: true,
+        //             },
+        //             {
+        //                 name: " VS ",
+        //                 value: `${player1_legs} - ${player2_legs}`,
+        //                 inline: true,
+        //             },
+        //             {
+        //                 name: `${
+        //                     throwingPlayer == 1 ? "*" : ""
+        //                 }${player2_name}`,
+        //                 value: `${player2_score}`,
+        //                 inline: true,
+        //             },
+        //             {
+        //                 name: "Follow along!",
+        //                 value: `[Watch match on Autodarts](${matchUrl})`,
+        //                 inline: false,
+        //             }
+        //         );
+
+        //     // Send message and update ongoing match with Discord message object
+        //     const message = await channel.send({ embeds: [embed] });
+        //     this.ongoing_matches.find(
+        //         (match) => match.matchId === matchId
+        //     ).live_discord_interaction = message;
+        //     let guild = await this.client.guilds.cache.get(
+        //         process.env.AD_GUILD
+        //     );
+        //     if (process.env.DEBUG === "true") {
+        //         guild = await this.client.guilds.cache.get(
+        //             process.env.GUILD_ID
+        //         );
+        //     }
+        //     const matchChannel = await findThreadByMatchId(
+        //         guild,
+        //         db_match.match_id
+        //     );
+        //     if (process.env.DEBUG === "true") {
+        //         console.log(matchChannel);
+        //     }
+        //     //just say match begun
+        //     const embed2 = new EmbedBuilder()
+        //         .setTitle(`🎯 Match Started`)
+        //         .setDescription(
+        //             `Match between ${player1_name} and ${player2_name} has begun!`
+        //         )
+        //         .setColor(0x00ff00) // Green color for active match
+        //         .setTimestamp();
+
+        //     // Send message and update ongoing match with Discord message object
+        //     matchChannel.send({ embeds: [embed2] });
+        // } else {
+        //     console.log("Channel not found");
+        // }
 
         //mark as underway on challonge
         // const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
