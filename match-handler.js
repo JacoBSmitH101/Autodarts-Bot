@@ -217,7 +217,16 @@ class MatchHandler {
             if (player_id == match_data.player2_autodarts_id) {
                 player2_in = true;
             }
+            if (!player1_in && !player2_in) {
+                await this.client.keycloakClient.removePlayerFromLobby(
+                    lobbyId,
+                    i
+                );
+            }
         }
+
+        //if neither are in, then do a delete api call
+        //example delete url https://api.autodarts.io/gs/v0/lobbies/ca8043e3-d9de-4d14-8d17-2da2d38e57c4/players/by-index/1
 
         //if both, then follow up on the interaction found with match_channel_interaction_id
         if (player1_in && player2_in) {

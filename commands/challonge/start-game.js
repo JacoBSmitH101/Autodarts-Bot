@@ -31,7 +31,7 @@ module.exports = {
                     maxRounds: 50,
                 },
                 bullOffMode: "Normal",
-                isPrivate: true,
+                isPrivate: false,
             };
 
             // Create the lobby

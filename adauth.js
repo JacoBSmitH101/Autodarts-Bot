@@ -133,6 +133,29 @@ class AutodartsAuthClient {
             console.error("Subscription failed:", error);
         }
     }
+    async removePlayerFromLobby(lobbyId, playerIndex) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for token
+
+            // Remove the player
+            const response = await axios.delete(
+                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}/players/by-index/${playerIndex}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (this.debug) console.log("Player removed:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error in removePlayerFromLobby:", error.message);
+        }
+    }
+
     async createLobby(lobbyData) {
         try {
             while (!this.accessToken)
