@@ -187,20 +187,20 @@ class MatchHandler {
             }
             this.matchFinished(message.data.id, this.client);
         }
-        if (message.data.event === "delete") {
-            //match is finished, no need to check if it is finished
-            if (process.env.DEBUG === "true") {
-                console.log("Match is deleted");
-            }
-            //remove match from ongoing_matches
-            this.handleDeleteMatch(message.data.id, this.client);
-        }
-        if (message.data.event === "start") {
-            //match is starting, no need to check if it is finished
-            if (process.env.DEBUG === "true") {
-                console.log("Match is starting");
-            }
-        }
+        // if (message.data.event === "delete") {
+        //     //match is finished, no need to check if it is finished
+        //     if (process.env.DEBUG === "true") {
+        //         console.log("Match is deleted");
+        //     }
+        //     //remove match from ongoing_matches
+        //     this.handleDeleteMatch(message.data.id, this.client);
+        // }
+        // if (message.data.event === "start") {
+        //     //match is starting, no need to check if it is finished
+        //     if (process.env.DEBUG === "true") {
+        //         console.log("Match is starting");
+        //     }
+        // }
     }
     async lobby_event(message) {
         //for each message.players check the .userId which is  player1_autodarts_id and player2_autodarts_id.
@@ -275,92 +275,18 @@ class MatchHandler {
     async match_update(message, tournamentId) {
         const matchId = message.data.id;
         //associate this match with a match in the database via player ids
-        const players = message.data.players;
-        //first check if the match is already being tracked
-        const match = this.ongoing_matches.find(
-            (match) => match.matchId === matchId
-        );
-        if (match) {
-            //update the matc
-            this.updateMatch(matchId, message);
-        } else {
-            //add the match
-            //console.log(message.data.scores);
-            this.addMatch(matchId, message, tournamentId);
-        }
+
+        this.handleMatchUpdate(matchId, message, tournamentId);
     }
-    async updateMatch(matchId, message) {
-        //basically just edit the interaction message with the new scores
-        let match = this.ongoing_matches.find(
-            (match) => match.matchId === matchId
+
+    async handleMatchUpdate(matchId, message, tournamentId) {
+        const liveMatchData = await getLiveMatchDataFromAutodartsMatchId(
+            matchId
         );
-        const player1_score = message.data.gameScores[0];
-        const player2_score = message.data.gameScores[1];
-        const player1_legs = message.data.scores[0].legs;
-        const player2_legs = message.data.scores[1].legs;
-        const player1_name = message.data.players[0].name;
-        const player2_name = message.data.players[1].name;
-        const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
-
-        const interaction = match.live_discord_interaction;
-        const throwingPlayer = message.data.player;
-
-        const round = message.data.round;
-        //number of items in message.data.turns is the number of throws in the current round
-        const throwsThisRound = message.data.turns[0].throws.length || 0;
-        //darts thrown is round * 3 + throwsThisRound
-        const dartsThrown = (round - 1) * 3 + throwsThisRound;
-        if (interaction) {
-            const embed = new EmbedBuilder()
-                .setTitle("🎯 League Match In Progress")
-                .setDescription(`Follow the live score and progress!`)
-                .setColor(0x00ff00) // Green color for active match
-                .setTimestamp()
-                .addFields(
-                    // Player names and match status
-                    {
-                        name: `${
-                            throwingPlayer == 0 ? "*" : ""
-                        }${player1_name}`,
-                        value: `${player1_score}(${
-                            throwingPlayer == 0 ? dartsThrown : round * 3
-                        })`,
-                        inline: true,
-                    },
-                    {
-                        name: " VS ",
-                        value: `${player1_legs} - ${player2_legs}`,
-                        inline: true,
-                    },
-                    {
-                        name: `${
-                            throwingPlayer == 1 ? "*" : ""
-                        }${player2_name}`,
-                        value: `${player2_score}(${
-                            throwingPlayer == 1 ? dartsThrown : (round - 1) * 3
-                        })`,
-                        inline: true,
-                    },
-                    {
-                        name: "Follow along!",
-                        value: `[Watch match on Autodarts](${matchUrl})`,
-                        inline: false,
-                    }
-                );
-
-            // Update message
-            interaction.edit({ embeds: [embed] });
-        } else {
-            console.log("Interaction not found");
-        }
-    }
-    async addMatch(matchId, message, tournamentId) {
         //double check matchId is not already being tracked
         if (message.data.variant != "X01") {
             //bull off
-            const liveMatchData = await getLiveMatchDataFromAutodartsMatchId(
-                matchId
-            );
+
             if (!liveMatchData.live_status_interaction_id) {
                 //create nteraction in process.env.LIVE_MATCHES_CHANNEL_ID
                 const channel = this.client.channels.cache.get(
@@ -432,6 +358,87 @@ class MatchHandler {
         }
 
         //game has begun
+        //get the required data
+        const players = message.data.players;
+
+        //we only really need scores and legs and who is throwing
+        //then edit the interaction with the new scores
+        //get player names
+        const player1_name = players[0].name;
+        const player2_name = players[1].name;
+
+        //get player scores
+        const player1_score = message.data.gameScores[0];
+        const player2_score = message.data.gameScores[1];
+
+        // //for testing log everything we have
+        // console.log(players);
+        // console.log(player1_name);
+        // console.log(player2_name);
+        // console.log(player1_score);
+        // console.log(player2_score);
+        //index of player throwing
+        const player_throwing = message.data.player;
+
+        //get player legs
+        const player1_legs = message.data.scores[0].legs;
+        const player2_legs = message.data.scores[1].legs;
+
+        //update embed with new scores
+        const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
+        const link = hyperlink("Goto match", matchUrl);
+        //create interaction and store it in live_discord_interaction
+        const channel = this.client.channels.cache.get(
+            process.env.LIVE_MATCHES_CHANNEL_ID
+        );
+        //get live interaction from the liveMatchData
+        const interaction = await channel.messages.fetch(
+            liveMatchData.live_status_interaction_id
+        );
+
+        const round = message.data.round;
+
+        //number of items in message.data.turns is the number of throws in the current round
+        const throwsThisRound = message.data.turns[0].throws.length || 0;
+        //darts thrown is round * 3 + throwsThisRound
+        const dartsThrown = (round - 1) * 3 + throwsThisRound;
+
+        //create the embed
+        const embed = new EmbedBuilder()
+            .setTitle(`🎯 League Match In Progress`)
+            .setDescription(`Follow the live score and progress!`)
+            .setColor(0x00ff00) // Green color for active match
+            .setTimestamp()
+            .addFields(
+                // Player names and match status
+                {
+                    name: `${player_throwing == 0 ? "*" : ""}${player1_name}`,
+                    value: `${player1_score}(${
+                        player_throwing == 0 ? dartsThrown : round * 3
+                    })`,
+                    inline: true,
+                },
+                {
+                    name: " VS ",
+                    value: `${player1_legs} - ${player2_legs}`,
+                    inline: true,
+                },
+                {
+                    name: `${player_throwing == 1 ? "*" : ""}${player2_name}`,
+                    value: `${player2_score}(${
+                        player_throwing == 1 ? dartsThrown : (round - 1) * 3
+                    })`,
+                    inline: true,
+                },
+                {
+                    name: "Follow along!",
+                    value: `[Watch match on Autodarts](${matchUrl})`,
+                    inline: false,
+                }
+            );
+
+        // Send message and update ongoing match with Discord message object
+        interaction.edit({ embeds: [embed] });
 
         // const players = message.data.players;
         // console.log(players);

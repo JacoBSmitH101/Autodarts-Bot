@@ -1284,7 +1284,19 @@ async function updateLiveInteraction(autodartsMatchId, interactionId) {
         throw new Error("Failed to update live interaction.");
     }
 }
+async function getAllLiveMatches() {
+    const query = `SELECT * FROM live_matches`;
+
+    try {
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (err) {
+        console.error("Error fetching live matches:", err.message);
+        throw new Error("Failed to fetch live matches.");
+    }
+}
 module.exports = {
+    getAllLiveMatches,
     updateLiveInteraction,
     getLiveMatchStatus,
     updateLiveMatchStatus,

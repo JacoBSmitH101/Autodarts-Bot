@@ -26,6 +26,7 @@ const {
     getLiveMatchDataFromAutodartsMatchId,
     updateLiveMatchStatus,
     getLiveMatchStatus,
+    getAllLiveMatches,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -182,6 +183,17 @@ client.once(Events.ClientReady, async (readyClient) => {
     // } catch (error) {
     //     console.error("Failed to subscribe to matches:", error);
     // }
+
+    //look through all rows in live_matches table and subscribe to each match if status is not waiting for players
+    const matches = await getAllLiveMatches();
+    for (const match of matches) {
+        if (match.status !== "waiting for players") {
+            subscribeToMatchUpdates(
+                match.autodarts_match_id,
+                match.tournament_id
+            );
+        }
+    }
 });
 
 // Event: Interaction Create
