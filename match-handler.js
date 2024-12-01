@@ -1010,6 +1010,59 @@ class MatchHandler {
                 stats.data
             );
             await deleteLiveMatch(matchId);
+
+            const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
+            const params = { api_key: process.env.API_KEY };
+
+            const winnerIndex =
+                db_match.player1_score > db_match.player2_score
+                    ? 0
+                    : db_match.player1_score < db_match.player2_score
+                    ? 1
+                    : null;
+            winnerChallongeId =
+                winnerIndex !== null
+                    ? winnerIndex === 0
+                        ? db_match.player1_id
+                        : db_match.player2_id
+                    : null;
+            scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
+            const data = {
+                match: {
+                    scores_csv: scores_csv,
+                    winner_id: winnerChallongeId,
+                },
+            };
+
+            try {
+                const response = await axios.put(api_url, data, {
+                    params,
+                });
+                if (response.status === 200) {
+                    console.log("Challonge match updated");
+                }
+                //sent update in the match channel to say the match has been added to challonge
+                let guild;
+                if (process.env.DEBUG === "true") {
+                    guild = await client.guilds.cache.get(process.env.GUILD_ID);
+                } else {
+                    guild = await client.guilds.cache.get(process.env.AD_GUILD);
+                }
+                const matchPost = await findThreadByMatchId(
+                    guild,
+                    db_match.match_id
+                );
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎯 Match Finished`)
+                    .setDescription(
+                        `Your match has been completed and the results have been submitted to Challonge!`
+                    )
+                    .setColor(0x00ff00) // Green color for active match
+                    .setTimestamp();
+                matchPost.send({ embeds: [embed] });
+            } catch (error) {
+                console.error("Error updating challonge match:", error);
+            }
         } catch (error) {
             console.error("Match not finished:");
             console.log(error);
