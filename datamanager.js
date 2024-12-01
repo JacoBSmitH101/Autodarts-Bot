@@ -1090,7 +1090,7 @@ async function calculateStandings(
         standings.groups[groupId].standings[player2].points +=
             match.player2_score;
 
-        if (match.winner_id === null) {
+        if (match.winner_id === null && match.state === "complete") {
             standings.groups[groupId].standings[player1].draws++;
             standings.groups[groupId].standings[player2].draws++;
             standings.groups[groupId].standings[player1].points++;
