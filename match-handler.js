@@ -954,7 +954,7 @@ class MatchHandler {
                 })
                 .setTimestamp();
 
-            interaction.edit({ embeds: [matchSummaryEmbed] });
+            await interaction.edit({ embeds: [matchSummaryEmbed] });
             let scores_csv;
 
             //use participants table to get challonge_ids using user_ids and tournament_id
@@ -1003,6 +1003,17 @@ class MatchHandler {
                 state: "complete",
             };
             await updateLocalMatch(matchInfo);
+
+            //set db.match.player1_score to the appropriate value depending on who is player 1
+
+            db_match.player1_score =
+                db_match.player1_id === player1_challonge_id
+                    ? stats.data.scores[0].legs
+                    : stats.data.scores[1].legs;
+            db_match.player2_score =
+                db_match.player1_id === player1_challonge_id
+                    ? stats.data.scores[1].legs
+                    : stats.data.scores[0].legs;
 
             await saveAdStats(
                 db_match.match_id,
