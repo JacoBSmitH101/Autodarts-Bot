@@ -3,3 +3,5 @@ node_modules
 test.js
 out/*
 temp.js
+*.py
+analysis.log
