@@ -14,8 +14,7 @@ const { PermissionFlagsBits } = require("discord.js");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("start-game")
-        .setDescription("Start a game on Autodarts.io with default settings.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+        .setDescription("Start a game on Autodarts.io with default settings."),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
 
@@ -24,7 +23,7 @@ module.exports = {
             const lobbyData = {
                 variant: "X01",
                 settings: {
-                    baseScore: 501,
+                    baseScore: 121,
                     inMode: "Straight",
                     outMode: "Double",
                     bullMode: "25/50",
