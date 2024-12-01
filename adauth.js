@@ -231,6 +231,25 @@ class AutodartsAuthClient {
         }
     }
 
+    async deleteLobby(lobbyId) {
+        try {
+            while (!this.accessToken)
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            const response = await axios.delete(
+                `https://api.autodarts.io/gs/v0/lobbies/${lobbyId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("Error in deleteLobby:", error.message);
+            throw new Error("Failed to delete lobby.");
+        }
+    }
+
     async startLobby(lobbyId) {
         try {
             while (!this.accessToken)

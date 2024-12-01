@@ -20,6 +20,8 @@ const {
     updateLiveMatchStatus,
     getLiveMatchStatus,
     updateLiveInteraction,
+    getLocalMatchFromMatchId,
+    deleteLiveMatch,
 } = require("./datamanager");
 const { match } = require("assert");
 const sqlite3 = require("sqlite3").verbose();
@@ -233,6 +235,19 @@ class MatchHandler {
 
         //if neither are in, then do a delete api call
         //example delete url https://api.autodarts.io/gs/v0/lobbies/ca8043e3-d9de-4d14-8d17-2da2d38e57c4/players/by-index/1
+        //loop through each player in the lobby with a for i = 0 loop and if they arent one of the players, delete them
+        for (let i = 0; i < message.data.players.length; i++) {
+            const player = message.data.players[i];
+            const player_id = player.userId;
+            if (player_id != match_data.player1_autodarts_id) {
+                if (player_id != match_data.player2_autodarts_id) {
+                    await this.client.keycloakClient.removePlayerFromLobby(
+                        lobbyId,
+                        i
+                    );
+                }
+            }
+        }
 
         //if both, then follow up on the interaction found with match_channel_interaction_id
         if (player1_in && player2_in) {
@@ -323,36 +338,38 @@ class MatchHandler {
                     //no winner
                     return;
                 }
-
-                const winner = message.data.players[winnerId].userId;
-                const winnerName = message.data.players[winnerId].name;
-                const channel = this.client.channels.cache.get(
-                    process.env.LIVE_MATCHES_CHANNEL_ID
-                );
-
-                //update the live match interaction with the winner
-                const interaction = await channel.messages.fetch(
-                    liveMatchData.live_status_interaction_id
-                );
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 Bull Up Finished`)
-                    .setDescription(`Winner: ${winnerName}`)
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp()
-                    .addFields(
-                        // Player names and match status
-                        {
-                            name: `Bull Up`,
-                            value: `Finished`,
-                            inline: true,
-                        },
-                        {
-                            name: "Follow along!",
-                            value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
-                            inline: false,
-                        }
+                try {
+                    const winnerName = message.data.players[winnerId].name;
+                    const channel = this.client.channels.cache.get(
+                        process.env.LIVE_MATCHES_CHANNEL_ID
                     );
-                interaction.edit({ embeds: [embed] });
+
+                    //update the live match interaction with the winner
+                    const interaction = await channel.messages.fetch(
+                        liveMatchData.live_status_interaction_id
+                    );
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 Bull Up Finished`)
+                        .setDescription(`Winner: ${winnerName}`)
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp()
+                        .addFields(
+                            // Player names and match status
+                            {
+                                name: `Bull Up`,
+                                value: `Finished`,
+                                inline: true,
+                            },
+                            {
+                                name: "Follow along!",
+                                value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
+                                inline: false,
+                            }
+                        );
+                    interaction.edit({ embeds: [embed] });
+                } catch (error) {
+                    //console.log(error);
+                }
             }
             return;
         }
@@ -874,24 +891,125 @@ class MatchHandler {
         if (process.env.DEBUG === "true") {
             console.log("Checking if match is finished");
         }
+        await updateLiveMatchStatus(matchId, "finished");
         const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
         const headers = {
             Authorization: `Bearer ${client.keycloakClient.accessToken}`,
         };
         let stats;
-        let match = this.ongoing_matches.find(
-            (match) => match.matchId === matchId
-        );
+        let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
         try {
-            const interaction = match.live_discord_interaction;
-            const embed = new EmbedBuilder()
-                .setTitle("🎯 League Match Finished")
-                .setDescription(`Waiting for confirmation from players.`)
-                .setColor(0xff0000) // Red color for finished match
-                .setTimestamp();
-            interaction.edit({ embeds: [embed] });
-
             stats = await axios.get(matchStatsUrl, { headers });
+            const interaction = //get the interaction
+                this.client.channels.cache
+                    .get(process.env.LIVE_MATCHES_CHANNEL_ID)
+                    .messages.cache.get(match.live_status_interaction_id);
+            //embed saying match has finished and make sure score and average is displayed
+            //make it appealing as well
+
+            const player1_legs = stats.data.matchStats[0].legsWon;
+            const player2_legs = stats.data.matchStats[1].legsWon;
+
+            const player1_average = stats.data.matchStats[0].average;
+            const player2_average = stats.data.matchStats[1].average;
+
+            const player1_name = stats.data.players[0].name;
+            const player2_name = stats.data.players[1].name;
+            let winner, winner_legs, winner_average;
+            if (player1_legs > player2_legs) {
+                winner = player1_name;
+                winner_legs = player1_legs;
+                winner_average = player1_average;
+            } else if (player2_legs > player1_legs) {
+                winner = player2_name;
+                winner_legs = player2_legs;
+                winner_average = player2_average;
+            } else {
+                winner = "It's a draw!";
+            }
+
+            const matchSummaryEmbed = new EmbedBuilder()
+                .setColor(player1_legs === player2_legs ? "#ffaa00" : "#00ff00") // Yellow for draw, green for a win
+                .setTitle("🎯 Match Finished!")
+                .setDescription(
+                    winner === "It's a draw!"
+                        ? "The match ended in a **draw**! Here are the final stats:"
+                        : `The match is over, and **${winner}** is the winner! 🏆`
+                )
+                .addFields(
+                    {
+                        name: `🏆 ${player1_name}`,
+                        value: `**Legs Won:** ${player1_legs}\n**Average:** ${player1_average}`,
+                        inline: true,
+                    },
+                    {
+                        name: `🏆 ${player2_name}`,
+                        value: `**Legs Won:** ${player2_legs}\n**Average:** ${player2_average}`,
+                        inline: true,
+                    }
+                )
+                .setFooter({
+                    text: "Thanks for following this match!",
+                    iconURL: "https://example.com/logo.png", // Replace with a relevant image URL
+                })
+                .setTimestamp();
+
+            interaction.edit({ embeds: [matchSummaryEmbed] });
+            let scores_csv;
+
+            //use participants table to get challonge_ids using user_ids and tournament_id
+
+            const db_match = await getLocalMatchFromMatchId(match.match_id);
+
+            const player1_id = stats.data.players[0].userId;
+            const player2_id = stats.data.players[1].userId;
+
+            //use user table to get user_ids
+            const player1_user_id = await getUserIdFromAutodartsId(player1_id);
+            const player2_user_id = await getUserIdFromAutodartsId(player2_id);
+            const player1_challonge_id =
+                await getChallongeIdFromUserIdTournamentId(
+                    player1_user_id,
+                    match.challonge_tournament_id
+                );
+            const player2_challonge_id =
+                await getChallongeIdFromUserIdTournamentId(
+                    player2_user_id,
+                    match.challonge_tournament_id
+                );
+            //db match player order is used here
+            scores_csv =
+                db_match.player1_id === player1_challonge_id
+                    ? `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`
+                    : `${stats.data.scores[1].legs}-${stats.data.scores[0].legs}`;
+
+            const winnderIndex = stats.data.winner; //0 is player1, 1 is player2
+            let winnerId =
+                winnderIndex === 0 ? player1_user_id : player2_user_id;
+            let winnerChallongeId =
+                winnderIndex === 0
+                    ? player1_challonge_id
+                    : player2_challonge_id;
+
+            if (stats.data.scores[0].legs === stats.data.scores[1].legs) {
+                winnerId = null;
+                winnerChallongeId = null;
+            }
+            const matchInfo = {
+                matchId: matchId,
+                db_match: db_match,
+                scores_csv: scores_csv,
+                winnerChallongeId: winnerChallongeId,
+                state: "complete",
+            };
+            await updateLocalMatch(matchInfo);
+
+            await saveAdStats(
+                db_match.match_id,
+                db_match.tournament_id,
+                stats.data
+            );
+            await deleteLiveMatch(matchId);
         } catch (error) {
             console.error("Match not finished:");
             console.log(error);
@@ -899,7 +1017,10 @@ class MatchHandler {
             return;
         }
         //if it makes it here, the match is finished
-        this.processFinishedMatch(matchId, stats.data, client);
+
+        //check if the match has been played correctly
+        //either 3-3 or first to 4
+        //if not, mark the match as rejected
     }
 }
 

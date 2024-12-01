@@ -31,8 +31,7 @@ module.exports = {
                     maxRounds: 50,
                 },
                 bullOffMode: "Normal",
-                //! TODO CHANGE THIS TO FALSE
-                isPrivate: true,
+                isPrivate: false,
             };
 
             // Create the lobby
@@ -84,7 +83,7 @@ module.exports = {
 
             // Create the Abort button
             const abortButton = new ButtonBuilder()
-                .setCustomId(`abort_lobbyCreate_${matchId}`) // Unique ID for the button
+                .setCustomId(`abort_lobbyCreate_${autodarts_match_id}`) // Unique ID for the button
                 .setLabel(
                     ` ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎Cancel‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎`
                 )
@@ -133,6 +132,15 @@ module.exports = {
                     ephemeral: true,
                 });
                 return;
+            } else if (
+                error.message &&
+                error.message.includes("Failed to get match data")
+            ) {
+                await interaction.followUp({
+                    content:
+                        "This command can only be used in a match channel.",
+                    ephemeral: true,
+                });
             } else {
                 await interaction.followUp({
                     content:

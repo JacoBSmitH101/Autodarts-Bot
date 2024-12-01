@@ -1295,7 +1295,33 @@ async function getAllLiveMatches() {
         throw new Error("Failed to fetch live matches.");
     }
 }
+async function getLocalMatchFromMatchId(matchId) {
+    const query = `SELECT * FROM Matches WHERE match_id = $1`;
+    const values = [matchId];
+
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0];
+    } catch (err) {
+        console.error("Error fetching match:", err.message);
+        throw new Error("Failed to fetch match.");
+    }
+}
+async function deleteLiveMatch(autodartsMatchId) {
+    const query = `DELETE FROM live_matches WHERE autodarts_match_id = $1`;
+    const values = [autodartsMatchId];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error deleting live match:", err.message);
+        throw new Error("Failed to delete live match.");
+    }
+}
 module.exports = {
+    deleteLiveMatch,
+    getLocalMatchFromMatchId,
     getAllLiveMatches,
     updateLiveInteraction,
     getLiveMatchStatus,

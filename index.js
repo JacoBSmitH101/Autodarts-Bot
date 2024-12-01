@@ -27,6 +27,7 @@ const {
     updateLiveMatchStatus,
     getLiveMatchStatus,
     getAllLiveMatches,
+    deleteLiveMatch,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -578,6 +579,37 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         matchHandler.match_event(message, data.tournament_id);
                     }
                 );
+            }
+        }
+
+        if (commandName === "lobbyCreate") {
+            if (action == "abort") {
+                const [matchId] = extra;
+                const data = await getLiveMatchDataFromAutodartsMatchId(
+                    matchId
+                );
+                if (data) {
+                    await client.keycloakClient.deleteLobby(matchId);
+                    await client.keycloakClient.unsubscribe(
+                        "autodarts.lobbies",
+                        `${matchId}.state`
+                    );
+                    await client.keycloakClient.unsubscribe(
+                        "autodarts.lobbies",
+                        `${matchId}.events`
+                    );
+                    await interaction.message.delete();
+                    await deleteLiveMatch(matchId);
+                    await interaction.reply({
+                        content: "Match creation cancelled!",
+                        ephemeral: true,
+                    });
+                } else {
+                    await interaction.reply({
+                        content: "Match not found!",
+                        ephemeral: true,
+                    });
+                }
             }
         }
 
