@@ -924,7 +924,6 @@ async function findThreadByMatchId(guild, matchId) {
             // Search through threads for the match ID
             for (const [threadId, thread] of threads.threads) {
                 const foundMatchId = thread.name.match(/\[ID:(\d+)\]/)?.[1];
-                console.log(foundMatchId);
                 if (foundMatchId == matchId) {
                     return thread; // Return the found thread
                 }
