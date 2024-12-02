@@ -380,6 +380,10 @@ class MatchHandler {
 
         //we only really need scores and legs and who is throwing
         //then edit the interaction with the new scores
+        if (!players[0].name) {
+            //no player names, return
+            return;
+        }
         //get player names
         const player1_name = players[0].name;
         const player2_name = players[1].name;
@@ -910,8 +914,8 @@ class MatchHandler {
             const player1_legs = stats.data.matchStats[0].legsWon;
             const player2_legs = stats.data.matchStats[1].legsWon;
 
-            const player1_average = stats.data.matchStats[0].average;
-            const player2_average = stats.data.matchStats[1].average;
+            const player1_average = stats.data.matchStats[0].average.toFixed(2);
+            const player2_average = stats.data.matchStats[1].average.toFixed(2);
 
             const player1_name = stats.data.players[0].name;
             const player2_name = stats.data.players[1].name;
