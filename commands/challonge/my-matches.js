@@ -53,22 +53,15 @@ module.exports = {
 
     async execute(interaction) {
         const matchAmount = interaction.options.getInteger("amount") || 5;
-
         const tournamentName = interaction.options.getString("tournament");
         const discordId = interaction.user.id;
-
-        const db = new sqlite3.Database("./data.db", (err) => {
-            if (err) {
-                console.error("Database connection error:", err.message);
-                return interaction.reply("Failed to connect to the database.");
-            }
-        });
 
         try {
             // Step 1: Get tournament ID and participant's match-specific Challonge ID
             let tId = await getTournamentIdByName(tournamentName);
 
             const status = await getTournamentStatus(tId);
+
             if (status == "pending") {
                 const embed = new EmbedBuilder()
                     .setColor(0xff0000)
@@ -84,13 +77,13 @@ module.exports = {
 
             const { tournament_id: tournamentId, challonge_id: matchPlayerId } =
                 participantData;
-            // Step 2: Fetch matches for the participant from the Matches table
+
+            // Step 3: Fetch matches for the participant from the Matches table
             let matches = await getAllMatchesForPlayer(
                 matchPlayerId,
                 tournamentId
             );
-
-            //ensure that the matches are all in the same group else something is wrong so error out
+            // Ensure all matches are in the same group
             const groupIds = matches.map((match) => match.group_id);
             if (groupIds.some((id) => id !== groupIds[0])) {
                 return interaction.reply(
@@ -102,8 +95,6 @@ module.exports = {
                 (a, b) => a.suggested_play_order - b.suggested_play_order
             );
             matches = matches.slice(0, matchAmount);
-
-            // Step 3: Format matches for display
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
                 .setTitle(`Matches for ${interaction.user.username}`)
@@ -128,7 +119,6 @@ module.exports = {
 
                     const opponentDisplayName =
                         opponentTag + " (" + opponentName + ")";
-                    // Parse the score from the `score_csv` field
                     let scoreCsv = "0-0";
                     if (match.state == "complete") {
                         scoreCsv = `${match.player1_score}-${match.player2_score}`;
@@ -137,26 +127,22 @@ module.exports = {
                         .split("-")
                         .map(Number);
 
-                    // Display match result with icons
                     const result = match.winner_id
                         ? match.winner_id === matchPlayerId
                             ? "✅ **Won**"
                             : "❌ **Lost**"
                         : "⌛ **Pending**";
 
-                    // Display match state with better labels
                     const matchStatus =
                         match.state.charAt(0).toUpperCase() +
                         match.state.slice(1);
 
-                    // Format each match in an inline style within a full-width field
                     if (playerScore === 0 && opponentScore === 0) {
                         embed.addFields({
                             name: `⚪ Match ${index + 1} 🎯`,
                             value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${result}`,
                         });
                     } else {
-                        // use status indicators: 🟢, 🔴, ⚪
                         embed.addFields({
                             name: `${
                                 result == "✅ **Won**" ? "🟢 " : "🔴 "
@@ -166,15 +152,11 @@ module.exports = {
                     }
                 });
             }
-
             await interaction.reply({ embeds: [embed], ephemeral: true });
+            console.timeEnd("Step 6: Reply to Interaction");
         } catch (error) {
             console.error("Error retrieving match data:", error);
             await interaction.reply("Failed to retrieve your matches.");
-        } finally {
-            db.close((err) => {
-                if (err) console.error("Database close error:", err.message);
-            });
         }
     },
 };

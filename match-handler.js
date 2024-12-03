@@ -1040,7 +1040,7 @@ class MatchHandler {
                     ? winnerIndex === 0
                         ? db_match.player1_id
                         : db_match.player2_id
-                    : null;
+                    : "tie";
             scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
             const data = {
                 match: {

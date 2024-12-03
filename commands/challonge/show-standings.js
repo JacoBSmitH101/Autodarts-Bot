@@ -38,7 +38,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
         const tournamentName = interaction.options.getString("tournament");
         const mobileView = interaction.options.getBoolean("mobile") || true;
 
@@ -51,7 +51,6 @@ module.exports = {
         const division = interaction.options.getInteger("division");
 
         const tournamentId = await getTournamentIdByName(tournamentName);
-
         const { embedTitle, tables, tournamentUrl } = await calculateStandings(
             tournamentId,
             mobileView,
@@ -86,7 +85,6 @@ module.exports = {
                     .includes(focusedValue.toLowerCase())
             )
             .slice(0, 25);
-
         await interaction.respond(
             filteredTournaments.map((tournament) => ({
                 name: tournament.name,
