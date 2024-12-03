@@ -756,13 +756,11 @@ const upsertParticipant = async (userId, tournamentId, challongeId) => {
 
 const fetchTournamentsFromDatabase2 = async (active) => {
     try {
-        const client = await pool.connect();
         let query = `SELECT name FROM Tournaments`;
         if (active) {
             query += ` WHERE active = 1`;
         }
-        const result = await client.query(query);
-        client.release();
+        const result = await pool.query(query); // No explicit connect/release needed
         return result.rows;
     } catch (error) {
         console.error("Error fetching tournaments:", error);

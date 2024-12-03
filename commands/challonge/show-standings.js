@@ -85,7 +85,6 @@ module.exports = {
                     .includes(focusedValue.toLowerCase())
             )
             .slice(0, 25);
-
         await interaction.respond(
             filteredTournaments.map((tournament) => ({
                 name: tournament.name,
