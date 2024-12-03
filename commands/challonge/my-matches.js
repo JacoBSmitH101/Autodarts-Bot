@@ -132,6 +132,13 @@ module.exports = {
                             ? "✅ **Won**"
                             : "❌ **Lost**"
                         : "⌛ **Pending**";
+                    if (
+                        result == "⌛ **Pending**" &&
+                        match.state == "complete"
+                    ) {
+                        //draw with - icon
+                        result = "➖ **Draw**";
+                    }
 
                     const matchStatus =
                         match.state.charAt(0).toUpperCase() +
