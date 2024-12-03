@@ -1045,12 +1045,12 @@ async function calculateStandings(
     const standings = { tournamentId, groups: {} };
 
     // Fetch tournament data
-    console.time("fetchTournamentData");
-    const [matches, tournamentUrl] = await Promise.all([
-        getAllMatchesFromTournamentId(tournamentId),
-        getChallongeTournamentURL(tournamentId),
-    ]);
-    console.timeEnd("fetchTournamentData");
+    // const [matches, tournamentUrl] = await Promise.all([
+    //     getAllMatchesFromTournamentId(tournamentId),
+    //     getChallongeTournamentURL(tournamentId),
+    // ]);
+    //do the above without the url
+    const matches = await getAllMatchesFromTournamentId(tournamentId);
 
     // Preload player names
     const playerIds = [
@@ -1058,9 +1058,7 @@ async function calculateStandings(
             matches.flatMap((match) => [match.player1_id, match.player2_id])
         ),
     ];
-    console.time("preloadNames");
     const playerNames = await getNameFromChallongeId(playerIds);
-    console.timeEnd("preloadNames");
 
     // Process matches by group
     const matchesByGroup = matches.reduce((acc, match) => {
@@ -1168,7 +1166,7 @@ async function calculateStandings(
 
         tables.push(`Group ${groupId}\n\`\`\`${table(tableData)}\`\`\``);
     }
-
+    tournamentUrl = "You can also view on challonge";
     return { embedTitle: "Standings for Tournament", tables, tournamentUrl };
 }
 async function saveAdStats(match_id, tournament_id, stats) {
