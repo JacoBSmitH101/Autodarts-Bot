@@ -127,7 +127,7 @@ module.exports = {
                         .split("-")
                         .map(Number);
 
-                    const result = match.winner_id
+                    let result = match.winner_id
                         ? match.winner_id === matchPlayerId
                             ? "✅ **Won**"
                             : "❌ **Lost**"
