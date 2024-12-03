@@ -57,20 +57,18 @@ module.exports = {
             division
         );
 
-        for (const tableContent of tables) {
-            const embed = new EmbedBuilder()
-                .setColor(0x3498db)
-                .setTitle(embedTitle)
-                .setDescription(`Tournament: **${tournamentName}**`)
-                .addFields({
-                    name: `${tournamentUrl}`,
-                    value: tableContent,
-                })
-                .setTimestamp();
+        const embed = new EmbedBuilder()
+            .setColor(0x3498db)
+            .setTitle(embedTitle)
+            .setDescription(`Tournament: **${tournamentName}**`)
+            .addFields({
+                name: `${tournamentUrl}`,
+                value: tables[division - 1],
+            })
+            .setTimestamp();
 
-            // Send an ephemeral message for each table content
-            await interaction.followUp({ embeds: [embed], ephemeral: true });
-        }
+        // Send an ephemeral message for each table content
+        await interaction.followUp({ embeds: [embed], ephemeral: true });
     },
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
