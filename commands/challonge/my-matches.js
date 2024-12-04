@@ -152,7 +152,11 @@ module.exports = {
                     } else {
                         embed.addFields({
                             name: `${
-                                result == "✅ **Won**" ? "🟢 " : "🔴 "
+                                result == "✅ **Won**"
+                                    ? "🟢 "
+                                    : result == "❌ **Lost**"
+                                    ? "🔴 "
+                                    : "🟠"
                             }Match ${index + 1} 🎯`,
                             value: `> **Opponent**: ${opponentDisplayName} | **Status**: ${matchStatus} | **Score**: ${playerScore} - ${opponentScore} **Result**: ${result}`,
                         });
