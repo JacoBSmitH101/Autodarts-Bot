@@ -219,6 +219,13 @@ class MatchHandler {
         for (let i = 0; i < message.data.players.length; i++) {
             const player = message.data.players[i];
             const player_id = player.userId;
+            if (
+                !match_data ||
+                !match_data.player1_autodarts_id ||
+                !match_data.player2_autodarts_id
+            ) {
+                return;
+            }
             if (player_id == match_data.player1_autodarts_id) {
                 player1_in = true;
             }
