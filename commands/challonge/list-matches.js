@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    PermissionFlagsBits,
+} = require("discord.js");
 const axios = require("axios");
 const { fetchTournamentsFromDatabase } = require("../../util.js");
 require("dotenv").config();
@@ -13,7 +17,8 @@ module.exports = {
                 .setDescription("The ID or URL of the tournament")
                 .setRequired(true)
                 .setAutocomplete(true)
-        ),
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     async execute(interaction) {
         try {
             // Retrieve the tournament ID from the command options
