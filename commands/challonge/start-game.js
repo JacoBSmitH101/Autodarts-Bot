@@ -41,6 +41,7 @@ module.exports = {
                 throw new Error("Failed to create the game lobby.");
             }
             const autodarts_match_id = lobbyResponse.id;
+            console.log("autodarts_match_id", autodarts_match_id);
 
             // Construct the full URL for the lobby
             const lobbyUrl = `https://play.autodarts.io/lobbies/${autodarts_match_id}`;
@@ -62,7 +63,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setTitle("🎯 Your Game is Ready!")
                 .setDescription(
-                    `Click the button below to join your game on Autodarts:\n\n**[Join Your Match Now!](${lobbyUrl})**`
+                    `Click the button below to join your game on Autodarts:\n\n**[Join Your Match Now!](${lobbyUrl})** or copy this link: ${lobbyUrl}`
                 )
                 .setColor(0xe74c3c) // Warning red color
                 .addFields(

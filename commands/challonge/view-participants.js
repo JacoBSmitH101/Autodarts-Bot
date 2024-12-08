@@ -77,5 +77,6 @@ module.exports = {
             );
 
         interaction.editReply({ embeds: [embed], ephemeral: true });
+
     },
 };
