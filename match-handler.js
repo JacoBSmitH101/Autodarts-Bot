@@ -996,19 +996,25 @@ class MatchHandler {
                     player2_user_id,
                     match.challonge_tournament_id
                 );
+
+            if (!player1_challonge_id || !player2_challonge_id) {
+                console.error("Player challonge ids not found");
+                console.log(`Player 1: ${player1_challonge_id}`);
+                console.log(`Player 2: ${player2_challonge_id}`);
+
+                return;
+            }
             //db match player order is used here
             scores_csv =
                 db_match.player1_id === player1_challonge_id
                     ? `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`
                     : `${stats.data.scores[1].legs}-${stats.data.scores[0].legs}`;
 
-            const winnderIndex = stats.data.winner; //0 is player1, 1 is player2
+            winnerIndex = stats.data.winner; //0 is player1, 1 is player2
             let winnerId =
-                winnderIndex === 0 ? player1_user_id : player2_user_id;
+                winnerIndex === 0 ? player1_user_id : player2_user_id;
             let winnerChallongeId =
-                winnderIndex === 0
-                    ? player1_challonge_id
-                    : player2_challonge_id;
+                winnerIndex === 0 ? player1_challonge_id : player2_challonge_id;
 
             if (stats.data.scores[0].legs === stats.data.scores[1].legs) {
                 winnerId = null;
@@ -1044,7 +1050,7 @@ class MatchHandler {
             const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
             const params = { api_key: process.env.API_KEY };
 
-            const winnerIndex =
+            let winnerIndex =
                 db_match.player1_score > db_match.player2_score
                     ? 0
                     : db_match.player1_score < db_match.player2_score

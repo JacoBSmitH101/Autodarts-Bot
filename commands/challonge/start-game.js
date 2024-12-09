@@ -61,7 +61,9 @@ module.exports = {
 
             // Create the embed with match details
             const embed = new EmbedBuilder()
-                .setTitle("🎯 Your Game is Ready!")
+                .setTitle(
+                    "🎯 Get ready!! ⚠️ **JOIN USING THE LINK PROVIDED BELOW** ⚠️"
+                )
                 .setDescription(
                     `Click the button below to join your game on Autodarts:\n\n**[Join Your Match Now!](${lobbyUrl})** or copy this link: ${lobbyUrl}`
                 )
