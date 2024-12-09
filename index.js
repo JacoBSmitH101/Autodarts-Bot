@@ -218,6 +218,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         let [action, commandName, ...extra] = interaction.customId.split("_");
 
         console.log(interaction.customId);
+        console.log(action);
+        //finally user name
+        try {
+            console.log(interaction.user.username);
+        } catch (error) {
+            console.log("Error getting user name");
+        }
+
+        console.log(interaction.customId);
         // Route based on action and command name
         if (commandName === "remove-tournament") {
             if (action === "confirm") {
