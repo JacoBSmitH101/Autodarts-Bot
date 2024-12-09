@@ -1063,6 +1063,7 @@ class MatchHandler {
                         : db_match.player2_id
                     : "tie";
             scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
+            console.log(winnerChallongeId);
             const data = {
                 match: {
                     scores_csv: scores_csv,
