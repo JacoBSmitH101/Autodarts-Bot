@@ -1000,8 +1000,6 @@ class MatchHandler {
             console.log(`Player 2: ${player2_challonge_id}`);
             if (!player1_challonge_id || !player2_challonge_id) {
                 console.error("Player challonge ids not found");
-
-                return;
             }
             //db match player order is used here
             scores_csv =
