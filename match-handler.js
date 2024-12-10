@@ -989,18 +989,17 @@ class MatchHandler {
             const player1_challonge_id =
                 await getChallongeIdFromUserIdTournamentId(
                     player1_user_id,
-                    match.challonge_tournament_id
+                    db_match.tournament_id
                 );
             const player2_challonge_id =
                 await getChallongeIdFromUserIdTournamentId(
                     player2_user_id,
-                    match.challonge_tournament_id
+                    db_match.tournament_id
                 );
-
+            console.log(`Player 1: ${player1_challonge_id}`);
+            console.log(`Player 2: ${player2_challonge_id}`);
             if (!player1_challonge_id || !player2_challonge_id) {
                 console.error("Player challonge ids not found");
-                console.log(`Player 1: ${player1_challonge_id}`);
-                console.log(`Player 2: ${player2_challonge_id}`);
 
                 return;
             }
