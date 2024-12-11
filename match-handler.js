@@ -342,7 +342,33 @@ class MatchHandler {
             } else {
                 const winnerId = message.data.gameWinner;
                 if (winnerId == -1) {
-                    //no winner
+                    //no winner so just say in progress
+                    const channel = this.client.channels.cache.get(
+                        process.env.LIVE_MATCHES_CHANNEL_ID
+                    );
+                    const interaction = await channel.messages.fetch(
+                        liveMatchData.live_status_interaction_id
+                    );
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 Bull Up In Progress`)
+                        .setDescription(`Follow the live score and progress!`)
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp()
+                        .addFields(
+                            // Player names and match status
+                            {
+                                name: `Bull Up`,
+                                value: `In Progress`,
+                                inline: true,
+                            },
+                            {
+                                name: "Follow along!",
+                                value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
+                                inline: false,
+                            }
+                        );
+                    interaction.edit({ embeds: [embed] });
+
                     return;
                 }
                 try {
@@ -1007,7 +1033,7 @@ class MatchHandler {
                     ? `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`
                     : `${stats.data.scores[1].legs}-${stats.data.scores[0].legs}`;
 
-            winnerIndex = stats.data.winner; //0 is player1, 1 is player2
+            let winnerIndex = stats.data.winner; //0 is player1, 1 is player2
             let winnerId =
                 winnerIndex === 0 ? player1_user_id : player2_user_id;
             let winnerChallongeId =
@@ -1047,7 +1073,7 @@ class MatchHandler {
             const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
             const params = { api_key: process.env.API_KEY };
 
-            let winnerIndex =
+            winnerIndex =
                 db_match.player1_score > db_match.player2_score
                     ? 0
                     : db_match.player1_score < db_match.player2_score

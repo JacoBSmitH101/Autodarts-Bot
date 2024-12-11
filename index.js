@@ -28,6 +28,7 @@ const {
     getLiveMatchStatus,
     getAllLiveMatches,
     deleteLiveMatch,
+    updateLiveInteraction,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -588,6 +589,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         matchHandler.match_event(message, data.tournament_id);
                     }
                 );
+
+                //send message to live matches channel
+                const liveMatchesChannel = client.channels.cache.get(
+                    process.env.LIVE_MATCHES_CHANNEL_ID
+                );
+                if (liveMatchesChannel) {
+                    const embed = new EmbedBuilder()
+                        .setTitle("Match Started")
+                        .setDescription(`Match has been started`)
+                        .setColor(0x00ff00);
+                    const msg = await liveMatchesChannel.send({
+                        embeds: [embed],
+                    });
+                    await updateLiveMatchStatus(lobbyId, "bullup");
+                    await updateLiveInteraction(lobbyId, msg.id);
+                } else {
+                    console.log("Channel not found");
+                }
+
+                //update live_matches table live_status_interaction_id
             }
         }
 
