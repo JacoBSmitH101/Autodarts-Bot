@@ -205,91 +205,87 @@ class MatchHandler {
         // }
     }
     async lobby_event(message) {
-        //for each message.players check the .userId which is  player1_autodarts_id and player2_autodarts_id.
-        //first get the lobby data from the database using the lobby_id
         const lobbyId = message.data.id;
         const match_data = await getLiveMatchDataFromAutodartsMatchId(lobbyId);
 
+        if (!message.data.players || !match_data) return;
+
+        const {
+            player1_autodarts_id,
+            player2_autodarts_id,
+            match_channel_interaction_id,
+        } = match_data;
+
+        if (!player1_autodarts_id || !player2_autodarts_id) return;
+
         let player1_in = false;
         let player2_in = false;
-        if (!message.data.players) {
-            return;
-        }
-        //do the loop
-        for (let i = 0; i < message.data.players.length; i++) {
-            const player = message.data.players[i];
+
+        // Identify players to keep and remove
+        const removalPromises = [];
+        message.data.players.forEach((player, index) => {
             const player_id = player.userId;
-            if (
-                !match_data ||
-                !match_data.player1_autodarts_id ||
-                !match_data.player2_autodarts_id
-            ) {
-                return;
-            }
-            if (player_id == match_data.player1_autodarts_id) {
+            if (player_id === player1_autodarts_id) {
                 player1_in = true;
-            }
-            if (player_id == match_data.player2_autodarts_id) {
+            } else if (player_id === player2_autodarts_id) {
                 player2_in = true;
-            }
-            if (!player1_in && !player2_in) {
-                await this.client.keycloakClient.removePlayerFromLobby(
-                    lobbyId,
-                    i
-                );
-            }
-        }
-
-        //if neither are in, then do a delete api call
-        //example delete url https://api.autodarts.io/gs/v0/lobbies/ca8043e3-d9de-4d14-8d17-2da2d38e57c4/players/by-index/1
-        //loop through each player in the lobby with a for i = 0 loop and if they arent one of the players, delete them
-        for (let i = 0; i < message.data.players.length; i++) {
-            const player = message.data.players[i];
-            const player_id = player.userId;
-            if (player_id != match_data.player1_autodarts_id) {
-                if (player_id != match_data.player2_autodarts_id) {
-                    await this.client.keycloakClient.removePlayerFromLobby(
-                        lobbyId,
-                        i
-                    );
-                }
-            }
-        }
-
-        //if both, then follow up on the interaction found with match_channel_interaction_id
-        if (player1_in && player2_in) {
-            const channel = this.client.channels.cache.get(
-                match_data.match_channel_interaction_id
-            );
-            if (channel) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 All players in!`)
-                    .setDescription(`Press the button below to begin`)
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp();
-
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`start_autoMatch_${lobbyId}`)
-                        .setLabel("Start Match")
-                        .setStyle(ButtonStyle.Success)
-                );
-
-                // follow up to the interaction_id with the embed and button
-                //get the original interaction
-                const interaction = await channel.messages.fetch(
-                    match_data.match_channel_interaction_id
-                );
-                const status = await getLiveMatchStatus(lobbyId);
-                if (status == "waiting for players") {
-                    await interaction.reply({
-                        embeds: [embed],
-                        components: [row],
-                    });
-                    await updateLiveMatchStatus(lobbyId, "start offered");
-                }
             } else {
-                console.log("Channel not found");
+                // Remove non-matching players
+                removalPromises.push(
+                    this.client.keycloakClient.removePlayerFromLobby(
+                        lobbyId,
+                        index
+                    )
+                );
+            }
+        });
+
+        // Execute all removals concurrently
+        await Promise.all(removalPromises);
+
+        // If both players are in, proceed to send the start prompt
+        if (player1_in && player2_in) {
+            // Atomically check and update match status to prevent duplicate prompts
+            const status = await getLiveMatchStatus(lobbyId);
+            if (status !== "start offered") {
+                await updateLiveMatchStatus(lobbyId, "start offered");
+
+                const channel = this.client.channels.cache.get(
+                    match_channel_interaction_id
+                );
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 All players in!`)
+                        .setDescription(`Press the button below to begin`)
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp();
+
+                    const row = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`start_autoMatch_${lobbyId}`)
+                            .setLabel("Start Match")
+                            .setStyle(ButtonStyle.Success)
+                    );
+
+                    try {
+                        const interactionMessage = await channel.messages.fetch(
+                            match_channel_interaction_id
+                        );
+                        if (interactionMessage) {
+                            await interactionMessage.reply({
+                                embeds: [embed],
+                                components: [row],
+                            });
+                        }
+                    } catch (error) {
+                        console.error(
+                            "Failed to fetch or reply to interaction message:",
+                            error
+                        );
+                    }
+                } else {
+                    console.log("Channel not found");
+                }
             }
         }
     }
@@ -349,7 +345,11 @@ class MatchHandler {
                         .setDescription(
                             winnerId === -1
                                 ? `Follow the live score and progress!`
-                                : `Winner: ${message.data.players[winnerId].name}`
+                                : `Winner: ${
+                                      winnerId == -1
+                                          ? "NA"
+                                          : message.data.players[winnerId].name
+                                  }`
                         )
                         .setColor(0x00ff00) // Green color for active match
                         .setTimestamp()
