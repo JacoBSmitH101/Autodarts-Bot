@@ -164,7 +164,6 @@ module.exports = {
                 });
             }
             await interaction.reply({ embeds: [embed], ephemeral: true });
-            console.timeEnd("Step 6: Reply to Interaction");
         } catch (error) {
             console.error("Error retrieving match data:", error);
             await interaction.reply("Failed to retrieve your matches.");

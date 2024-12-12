@@ -930,6 +930,7 @@ class MatchHandler {
         interaction.edit({ embeds: [embed] });
     }
     async matchFinished(matchId, client) {
+        console.log("Match finished");
         //when not using a matchmode as a draw can happen in the league but not with autodarts
         //, there is no event when the match is manually ended
         //this will be called 30 seconds after the last update involving a leg winner to check if the match is finished
@@ -943,6 +944,7 @@ class MatchHandler {
         };
         let stats;
         let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
+        console.log(match);
         try {
             stats = await axios.get(matchStatsUrl, { headers });
             const interaction = //get the interaction
@@ -1012,6 +1014,7 @@ class MatchHandler {
             //use user table to get user_ids
             const player1_user_id = await getUserIdFromAutodartsId(player1_id);
             const player2_user_id = await getUserIdFromAutodartsId(player2_id);
+            console.log`DB_MATCH: ${db_match}`;
             const player1_challonge_id =
                 await getChallongeIdFromUserIdTournamentId(
                     player1_user_id,
