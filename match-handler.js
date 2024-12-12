@@ -302,60 +302,23 @@ class MatchHandler {
     }
 
     async handleMatchUpdate(matchId, message, tournamentId) {
-        const liveMatchData = await getLiveMatchDataFromAutodartsMatchId(
-            matchId
-        );
-        //double check matchId is not already being tracked
-        if (message.data.variant != "X01") {
-            //bull off
+        try {
+            const liveMatchData = await getLiveMatchDataFromAutodartsMatchId(
+                matchId
+            );
 
-            if (!liveMatchData.live_status_interaction_id) {
-                //create nteraction in process.env.LIVE_MATCHES_CHANNEL_ID
+            if (message.data.variant !== "X01") {
                 const channel = this.client.channels.cache.get(
                     process.env.LIVE_MATCHES_CHANNEL_ID
                 );
 
-                //embed saying Bull up in progress
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 Bull Up In Progress`)
-                    .setDescription(`Follow the live score and progress!`)
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp()
-                    .addFields(
-                        // Player names and match status
-                        {
-                            name: `Bull Up`,
-                            value: `In Progress`,
-                            inline: true,
-                        },
-                        {
-                            name: "Follow along!",
-                            value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
-                            inline: false,
-                        }
-                    );
-
-                // Send message and update ongoing match with Discord message object
-                const message = await channel.send({ embeds: [embed] });
-                //set the interaction id in the live match data
-                await updateLiveInteraction(matchId, message.id);
-            } else {
-                const winnerId = message.data.gameWinner;
-                if (winnerId == -1) {
-                    //no winner so just say in progress
-                    const channel = this.client.channels.cache.get(
-                        process.env.LIVE_MATCHES_CHANNEL_ID
-                    );
-                    const interaction = await channel.messages.fetch(
-                        liveMatchData.live_status_interaction_id
-                    );
+                if (!liveMatchData.live_status_interaction_id) {
                     const embed = new EmbedBuilder()
                         .setTitle(`🎯 Bull Up In Progress`)
                         .setDescription(`Follow the live score and progress!`)
                         .setColor(0x00ff00) // Green color for active match
                         .setTimestamp()
                         .addFields(
-                            // Player names and match status
                             {
                                 name: `Bull Up`,
                                 value: `In Progress`,
@@ -367,30 +330,36 @@ class MatchHandler {
                                 inline: false,
                             }
                         );
-                    interaction.edit({ embeds: [embed] });
 
-                    return;
-                }
-                try {
-                    const winnerName = message.data.players[winnerId].name;
-                    const channel = this.client.channels.cache.get(
-                        process.env.LIVE_MATCHES_CHANNEL_ID
-                    );
-
-                    //update the live match interaction with the winner
+                    // Send message and update ongoing match with Discord message object
+                    const sentMessage = await channel.send({ embeds: [embed] });
+                    await updateLiveInteraction(matchId, sentMessage.id);
+                } else {
                     const interaction = await channel.messages.fetch(
                         liveMatchData.live_status_interaction_id
                     );
+                    const winnerId = message.data.gameWinner;
+
                     const embed = new EmbedBuilder()
-                        .setTitle(`🎯 Bull Up Finished`)
-                        .setDescription(`Winner: ${winnerName}`)
+                        .setTitle(
+                            winnerId === -1
+                                ? `🎯 Bull Up In Progress`
+                                : `🎯 Bull Up Finished`
+                        )
+                        .setDescription(
+                            winnerId === -1
+                                ? `Follow the live score and progress!`
+                                : `Winner: ${message.data.players[winnerId].name}`
+                        )
                         .setColor(0x00ff00) // Green color for active match
                         .setTimestamp()
                         .addFields(
-                            // Player names and match status
                             {
                                 name: `Bull Up`,
-                                value: `Finished`,
+                                value:
+                                    winnerId === -1
+                                        ? `In Progress`
+                                        : `Finished`,
                                 inline: true,
                             },
                             {
@@ -399,93 +368,60 @@ class MatchHandler {
                                 inline: false,
                             }
                         );
-                    interaction.edit({ embeds: [embed] });
-                } catch (error) {
-                    //console.log(error);
+
+                    await interaction.edit({ embeds: [embed] });
                 }
+                return;
             }
-            return;
-        }
 
-        //game has begun
-        //get the required data
-        const players = message.data.players;
+            const players = message.data.players;
+            if (!players[0].name || !message.data.gameScores) {
+                return; // Exit if player names or game scores are missing
+            }
+            if (liveMatchData.status == "bullup") {
+                updateLiveMatchStatus(matchId, "in progress");
+            }
 
-        //we only really need scores and legs and who is throwing
-        //then edit the interaction with the new scores
-        if (!players[0].name || !message.data.gameScores) {
-            //no player names, return
-            return;
-        }
-        try {
-            //get player names
-            const player1_name = players[0].name;
-            const player2_name = players[1].name;
-
-            //get player scores
-            const player1_score = message.data.gameScores[0];
-            const player2_score = message.data.gameScores[1];
-
-            // //for testing log everything we have
-            // console.log(players);
-            // console.log(player1_name);
-            // console.log(player2_name);
-            // console.log(player1_score);
-            // console.log(player2_score);
-            //index of player throwing
-            const player_throwing = message.data.player;
-
-            //get player legs
-            const player1_legs = message.data.scores[0].legs;
-            const player2_legs = message.data.scores[1].legs;
-
-            //update embed with new scores
-            const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
-            const link = hyperlink("Goto match", matchUrl);
-            //create interaction and store it in live_discord_interaction
             const channel = this.client.channels.cache.get(
                 process.env.LIVE_MATCHES_CHANNEL_ID
             );
-            //get live interaction from the liveMatchData
             const interaction = await channel.messages.fetch(
                 liveMatchData.live_status_interaction_id
             );
-
+            const player_throwing = message.data.player;
             const round = message.data.round;
-
-            //number of items in message.data.turns is the number of throws in the current round
             const throwsThisRound = message.data.turns[0].throws.length || 0;
-            //darts thrown is round * 3 + throwsThisRound
             const dartsThrown = (round - 1) * 3 + throwsThisRound;
+            const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
 
-            //create the embed
             const embed = new EmbedBuilder()
                 .setTitle(`🎯 League Match In Progress`)
                 .setDescription(`Follow the live score and progress!`)
                 .setColor(0x00ff00) // Green color for active match
                 .setTimestamp()
                 .addFields(
-                    // Player names and match status
                     {
-                        name: `${
-                            player_throwing == 0 ? "*" : ""
-                        }${player1_name}`,
-                        value: `${player1_score}(${
-                            player_throwing == 0 ? dartsThrown : round * 3
+                        name: `${player_throwing === 0 ? "*" : ""}${
+                            players[0].name
+                        }`,
+                        value: `${message.data.gameScores[0]}(${
+                            player_throwing === 0 ? dartsThrown : round * 3
                         })`,
                         inline: true,
                     },
                     {
-                        name: " VS ",
-                        value: `${player1_legs} - ${player2_legs}`,
+                        name: "VS",
+                        value: `${message.data.scores[0].legs} - ${message.data.scores[1].legs}`,
                         inline: true,
                     },
                     {
-                        name: `${
-                            player_throwing == 1 ? "*" : ""
-                        }${player2_name}`,
-                        value: `${player2_score}(${
-                            player_throwing == 1 ? dartsThrown : (round - 1) * 3
+                        name: `${player_throwing === 1 ? "*" : ""}${
+                            players[1].name
+                        }`,
+                        value: `${message.data.gameScores[1]}(${
+                            player_throwing === 1
+                                ? dartsThrown
+                                : (round - 1) * 3
                         })`,
                         inline: true,
                     },
@@ -497,160 +433,10 @@ class MatchHandler {
                 );
 
             // Send message and update ongoing match with Discord message object
-            interaction.edit({ embeds: [embed] });
+            await interaction.edit({ embeds: [embed] });
         } catch (error) {
-            console.log(error);
+            console.error("Error handling match update:", error);
         }
-
-        // const players = message.data.players;
-        // console.log(players);
-        // //associate with challonge match id
-
-        // //get user_id from users table using autodarts_id
-        // const player1_id = players[0].userId;
-        // const player2_id = players[1].userId;
-
-        // const player1_user_id = await getUserIdFromAutodartsId(player1_id);
-
-        // const player2_user_id = await getUserIdFromAutodartsId(player2_id);
-        // console.log(tournamentId);
-        // console.log(player1_user_id);
-        // //use participants table to get challonge_ids using user_ids and tournament_id
-        // const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
-        //     player1_user_id,
-        //     tournamentId
-        // );
-        // const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
-        //     player2_user_id,
-        //     tournamentId
-        // );
-
-        // //then find the match in the matches table using the challonge_ids and tournament_id
-        // let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
-        //     player1_challonge_id,
-        //     player2_challonge_id,
-        //     tournamentId
-        // );
-
-        // this.ongoing_matches.push({
-        //     matchId: matchId,
-        //     players: players,
-        //     live_discord_interaction: null,
-        //     challonge_tournament_id: tournamentId,
-        //     challonge_match_id: db_match.match_id,
-        //     checking: false,
-        // });
-
-        // //instead update not add
-        // //get player names
-        // const player1_name = players[0].name;
-        // const player2_name = players[1].name;
-
-        // //get player scores
-        // const player1_score = message.data.gameScores[0];
-        // const player2_score = message.data.gameScores[1];
-
-        // const player1_legs = message.data.scores[0].legs;
-        // const player2_legs = message.data.scores[1].legs;
-
-        // //get match state
-        // let matchState = "In Progress";
-        // let matchDate = new Date().toLocaleDateString();
-
-        // const matchUrl = `https://play.autodarts.io/matches/${matchId}`;
-        // const link = hyperlink("Goto match", matchUrl);
-        // //create interaction and store it in live_discord_interaction
-        // const channel = this.client.channels.cache.get(
-        //     process.env.LIVE_MATCHES_CHANNEL_ID
-        // );
-        // //currently throwing player is message.data.player 0 for player1 and 1 for player2
-        // const throwingPlayer = message.data.player;
-
-        // const divisionNumbers = await getDivisionNumbers(tournamentId);
-        // //is an object with group_id: division_number
-        // const division = divisionNumbers[db_match.group_id];
-        // if (channel) {
-        //     const embed = new EmbedBuilder()
-        //         .setTitle(`🎯 Division ${division} Match In Progress`)
-        //         .setDescription(`Follow the live score and progress!`)
-        //         .setColor(0x00ff00) // Green color for active match
-        //         .setTimestamp()
-        //         .addFields(
-        //             // Player names and match status
-        //             {
-        //                 name: `${
-        //                     throwingPlayer == 0 ? "*" : ""
-        //                 }${player1_name}`,
-        //                 value: `${player1_score}`,
-        //                 inline: true,
-        //             },
-        //             {
-        //                 name: " VS ",
-        //                 value: `${player1_legs} - ${player2_legs}`,
-        //                 inline: true,
-        //             },
-        //             {
-        //                 name: `${
-        //                     throwingPlayer == 1 ? "*" : ""
-        //                 }${player2_name}`,
-        //                 value: `${player2_score}`,
-        //                 inline: true,
-        //             },
-        //             {
-        //                 name: "Follow along!",
-        //                 value: `[Watch match on Autodarts](${matchUrl})`,
-        //                 inline: false,
-        //             }
-        //         );
-
-        //     // Send message and update ongoing match with Discord message object
-        //     const message = await channel.send({ embeds: [embed] });
-        //     this.ongoing_matches.find(
-        //         (match) => match.matchId === matchId
-        //     ).live_discord_interaction = message;
-        //     let guild = await this.client.guilds.cache.get(
-        //         process.env.AD_GUILD
-        //     );
-        //     if (process.env.DEBUG === "true") {
-        //         guild = await this.client.guilds.cache.get(
-        //             process.env.GUILD_ID
-        //         );
-        //     }
-        //     const matchChannel = await findThreadByMatchId(
-        //         guild,
-        //         db_match.match_id
-        //     );
-        //     if (process.env.DEBUG === "true") {
-        //         console.log(matchChannel);
-        //     }
-        //     //just say match begun
-        //     const embed2 = new EmbedBuilder()
-        //         .setTitle(`🎯 Match Started`)
-        //         .setDescription(
-        //             `Match between ${player1_name} and ${player2_name} has begun!`
-        //         )
-        //         .setColor(0x00ff00) // Green color for active match
-        //         .setTimestamp();
-
-        //     // Send message and update ongoing match with Discord message object
-        //     matchChannel.send({ embeds: [embed2] });
-        // } else {
-        //     console.log("Channel not found");
-        // }
-
-        //mark as underway on challonge
-        // const api_url = `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${db_match.match_id}/mark_as_underway.json`;
-        // const params = {
-        //     api_key: process.env.API_KEY,
-        // };
-        // try {
-        //     const response = await axios.put(api_url, {}, { params });
-        //     if (response.status === 200) {
-        //         console.log("Challonge match marked as underway");
-        //     }
-        // } catch (error) {
-        //     console.error("Error marking challonge match as underway:", error);
-        // }
     }
     async processFinishedMatch(matchId, stats, client) {
         //get match
