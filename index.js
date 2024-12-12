@@ -542,8 +542,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     });
                     return;
                 }
-
-                await client.keycloakClient.startLobby(lobbyId);
+                try {
+                    await client.keycloakClient.startLobby(lobbyId);
+                } catch (error) {
+                    console.error("Error starting lobby:", error);
+                    await interaction.reply({
+                        content:
+                            "Error starting match! Please start your own lobby.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
 
                 await interaction.reply({
                     content: "Game started! Good luck have fun!",
