@@ -619,7 +619,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     matchId
                 );
                 if (data) {
-                    await client.keycloakClient.deleteLobby(matchId);
+                    try {
+                        await client.keycloakClient.deleteLobby(matchId);
+                    } catch (error) {
+                        console.error("Error deleting lobby:", error);
+                    }
                     await client.keycloakClient.unsubscribe(
                         "autodarts.lobbies",
                         `${matchId}.state`
@@ -629,6 +633,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                         `${matchId}.events`
                     );
                     await interaction.message.delete();
+
                     await deleteLiveMatch(matchId);
                     await interaction.reply({
                         content: "Match creation cancelled!",
