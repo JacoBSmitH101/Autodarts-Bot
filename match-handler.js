@@ -245,47 +245,81 @@ class MatchHandler {
 
         // If both players are in, proceed to send the start prompt
         if (player1_in && player2_in) {
-            // Atomically check and update match status to prevent duplicate prompts
+            // Early check to prevent duplicate processing
             const status = await getLiveMatchStatus(lobbyId);
-            if (status !== "start offered") {
-                await updateLiveMatchStatus(lobbyId, "start offered");
-
-                const channel = this.client.channels.cache.get(
-                    match_channel_interaction_id
-                );
-                if (channel) {
-                    const embed = new EmbedBuilder()
-                        .setTitle(`🎯 All players in!`)
-                        .setDescription(`Press the button below to begin`)
-                        .setColor(0x00ff00) // Green color for active match
-                        .setTimestamp();
-
-                    const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`start_autoMatch_${lobbyId}`)
-                            .setLabel("Start Match")
-                            .setStyle(ButtonStyle.Success)
+            if (status === "start offered") {
+                if (process.env.DEBUG === "true") {
+                    console.log(
+                        `Start already offered for lobby ${lobbyId}. Exiting.`
                     );
+                }
+                return;
+            }
 
-                    try {
-                        const interactionMessage = await channel.messages.fetch(
-                            match_channel_interaction_id
-                        );
-                        if (interactionMessage) {
+            // Immediately set the match status to "start offered" to prevent reprocessing
+            await updateLiveMatchStatus(lobbyId, "start offered");
+
+            const channel = this.client.channels.cache.get(
+                match_channel_interaction_id
+            );
+            if (channel) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎯 All players in!`)
+                    .setDescription(`Press the button below to begin`)
+                    .setColor(0x00ff00) // Green color for active match
+                    .setTimestamp();
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`start_autoMatch_${lobbyId}`)
+                        .setLabel("Start Match")
+                        .setStyle(ButtonStyle.Success)
+                );
+
+                try {
+                    // Fetch the interaction message once
+                    const interactionMessage = await channel.messages.fetch(
+                        match_channel_interaction_id
+                    );
+                    if (interactionMessage) {
+                        // Check if the start prompt has already been sent
+                        const existingStartPrompt =
+                            interactionMessage.components.some((row) =>
+                                row.components.some(
+                                    (button) =>
+                                        button.customId ===
+                                        `start_autoMatch_${lobbyId}`
+                                )
+                            );
+
+                        if (!existingStartPrompt) {
                             await interactionMessage.reply({
                                 embeds: [embed],
                                 components: [row],
                             });
+                            if (process.env.DEBUG === "true") {
+                                console.log(
+                                    `Start prompt sent for lobby ${lobbyId}.`
+                                );
+                            }
+                        } else {
+                            if (process.env.DEBUG === "true") {
+                                console.log(
+                                    `Start prompt already exists for lobby ${lobbyId}.`
+                                );
+                            }
                         }
-                    } catch (error) {
-                        console.error(
-                            "Failed to fetch or reply to interaction message:",
-                            error
-                        );
                     }
-                } else {
-                    console.log("Channel not found");
+                } catch (error) {
+                    console.error(
+                        "Failed to fetch or reply to interaction message:",
+                        error
+                    );
+                    // Optionally revert the status if necessary
+                    await updateLiveMatchStatus(lobbyId, "active"); // Or another appropriate status
                 }
+            } else {
+                console.log("Channel not found");
             }
         }
     }
@@ -716,213 +750,239 @@ class MatchHandler {
         interaction.edit({ embeds: [embed] });
     }
     async matchFinished(matchId, client) {
-        console.log("Match finished");
-        //when not using a matchmode as a draw can happen in the league but not with autodarts
-        //, there is no event when the match is manually ended
-        //this will be called 30 seconds after the last update involving a leg winner to check if the match is finished
-        if (process.env.DEBUG === "true") {
-            console.log("Checking if match is finished");
-        }
-        await updateLiveMatchStatus(matchId, "finished");
-        const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
-        const headers = {
-            Authorization: `Bearer ${client.keycloakClient.accessToken}`,
-        };
-        let stats;
-        let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
-        console.log(match);
-        try {
-            stats = await axios.get(matchStatsUrl, { headers });
-            const interaction = //get the interaction
-                this.client.channels.cache
-                    .get(process.env.LIVE_MATCHES_CHANNEL_ID)
-                    .messages.cache.get(match.live_status_interaction_id);
-            //embed saying match has finished and make sure score and average is displayed
-            //make it appealing as well
-
-            const player1_legs = stats.data.matchStats[0].legsWon;
-            const player2_legs = stats.data.matchStats[1].legsWon;
-
-            const player1_average = stats.data.matchStats[0].average.toFixed(2);
-            const player2_average = stats.data.matchStats[1].average.toFixed(2);
-
-            const player1_name = stats.data.players[0].name;
-            const player2_name = stats.data.players[1].name;
-            let winner, winner_legs, winner_average;
-            if (player1_legs > player2_legs) {
-                winner = player1_name;
-                winner_legs = player1_legs;
-                winner_average = player1_average;
-            } else if (player2_legs > player1_legs) {
-                winner = player2_name;
-                winner_legs = player2_legs;
-                winner_average = player2_average;
-            } else {
-                winner = "It's a draw!";
-            }
-
-            const matchSummaryEmbed = new EmbedBuilder()
-                .setColor(player1_legs === player2_legs ? "#ffaa00" : "#00ff00") // Yellow for draw, green for a win
-                .setTitle("🎯 Match Finished!")
-                .setDescription(
-                    winner === "It's a draw!"
-                        ? "The match ended in a **draw**! Here are the final stats:"
-                        : `The match is over, and **${winner}** is the winner! 🏆`
-                )
-                .addFields(
-                    {
-                        name: `🏆 ${player1_name}`,
-                        value: `**Legs Won:** ${player1_legs}\n**Average:** ${player1_average}`,
-                        inline: true,
-                    },
-                    {
-                        name: `🏆 ${player2_name}`,
-                        value: `**Legs Won:** ${player2_legs}\n**Average:** ${player2_average}`,
-                        inline: true,
-                    }
-                )
-                .setFooter({
-                    text: "Thanks for following this match!",
-                    iconURL: "https://example.com/logo.png", // Replace with a relevant image URL
-                })
-                .setTimestamp();
-
-            await interaction.edit({ embeds: [matchSummaryEmbed] });
-            let scores_csv;
-
-            //use participants table to get challonge_ids using user_ids and tournament_id
-
-            const db_match = await getLocalMatchFromMatchId(match.match_id);
-
-            const player1_id = stats.data.players[0].userId;
-            const player2_id = stats.data.players[1].userId;
-
-            //use user table to get user_ids
-            const player1_user_id = await getUserIdFromAutodartsId(player1_id);
-            const player2_user_id = await getUserIdFromAutodartsId(player2_id);
-            console.log`DB_MATCH: ${db_match}`;
-            const player1_challonge_id =
-                await getChallongeIdFromUserIdTournamentId(
-                    player1_user_id,
-                    db_match.tournament_id
+        // Early check to prevent duplicate processing
+        const currentStatus = await getLiveMatchStatus(matchId);
+        if (currentStatus === "finished") {
+            if (process.env.DEBUG === "true") {
+                console.log(
+                    `Match ${matchId} is already marked as finished. Exiting.`
                 );
-            const player2_challonge_id =
-                await getChallongeIdFromUserIdTournamentId(
-                    player2_user_id,
-                    db_match.tournament_id
-                );
-            console.log(`Player 1: ${player1_challonge_id}`);
-            console.log(`Player 2: ${player2_challonge_id}`);
-            if (!player1_challonge_id || !player2_challonge_id) {
-                console.error("Player challonge ids not found");
             }
-            //db match player order is used here
-            scores_csv =
-                db_match.player1_id === player1_challonge_id
-                    ? `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`
-                    : `${stats.data.scores[1].legs}-${stats.data.scores[0].legs}`;
-
-            let winnerIndex = stats.data.winner; //0 is player1, 1 is player2
-            let winnerId =
-                winnerIndex === 0 ? player1_user_id : player2_user_id;
-            let winnerChallongeId =
-                winnerIndex === 0 ? player1_challonge_id : player2_challonge_id;
-
-            if (stats.data.scores[0].legs === stats.data.scores[1].legs) {
-                winnerId = null;
-                winnerChallongeId = null;
-            }
-            const matchInfo = {
-                matchId: matchId,
-                db_match: db_match,
-                scores_csv: scores_csv,
-                winnerChallongeId: winnerChallongeId,
-                state: "complete",
-            };
-            await updateLocalMatch(matchInfo);
-
-            //set db.match.player1_score to the appropriate value depending on who is player 1
-
-            db_match.player1_score =
-                db_match.player1_id === player1_challonge_id
-                    ? stats.data.scores[0].legs
-                    : stats.data.scores[1].legs;
-            db_match.player2_score =
-                db_match.player1_id === player1_challonge_id
-                    ? stats.data.scores[1].legs
-                    : stats.data.scores[0].legs;
-
-            await saveAdStats(
-                db_match.match_id,
-                db_match.tournament_id,
-                stats.data
-            );
-            await deleteLiveMatch(matchId);
-
-            const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
-            const params = { api_key: process.env.API_KEY };
-
-            winnerIndex =
-                db_match.player1_score > db_match.player2_score
-                    ? 0
-                    : db_match.player1_score < db_match.player2_score
-                    ? 1
-                    : null;
-            winnerChallongeId =
-                winnerIndex !== null
-                    ? winnerIndex === 0
-                        ? db_match.player1_id
-                        : db_match.player2_id
-                    : "tie";
-            scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
-            console.log(winnerChallongeId);
-            const data = {
-                match: {
-                    scores_csv: scores_csv,
-                    winner_id: winnerChallongeId,
-                },
-            };
-
-            try {
-                const response = await axios.put(api_url, data, {
-                    params,
-                });
-                if (response.status === 200) {
-                    console.log("Challonge match updated");
-                }
-                //sent update in the match channel to say the match has been added to challonge
-                let guild;
-                if (process.env.DEBUG === "true") {
-                    guild = await client.guilds.cache.get(process.env.GUILD_ID);
-                } else {
-                    guild = await client.guilds.cache.get(process.env.AD_GUILD);
-                }
-                const matchPost = await findThreadByMatchId(
-                    guild,
-                    db_match.match_id
-                );
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 Match Finished`)
-                    .setDescription(
-                        `Your match has been completed and the results have been submitted to Challonge!`
-                    )
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp();
-                matchPost.send({ embeds: [embed] });
-            } catch (error) {
-                console.error("Error updating challonge match:", error);
-            }
-        } catch (error) {
-            console.error("Match not finished:");
-            console.log(error);
-            match.checking = true;
             return;
         }
-        //if it makes it here, the match is finished
 
-        //check if the match has been played correctly
-        //either 3-3 or first to 4
-        //if not, mark the match as rejected
+        console.log("Match finished");
+
+        // Immediately set the match status to "finished" to prevent reprocessing
+        await updateLiveMatchStatus(matchId, "finished");
+
+        // Optional: Implement a simple lock to prevent concurrent executions
+
+        // Implement acquireLock based on your environment
+        try {
+            if (process.env.DEBUG === "true") {
+                console.log("Checking if match is finished");
+            }
+
+            const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
+            const headers = {
+                Authorization: `Bearer ${client.keycloakClient.accessToken}`,
+            };
+            let stats;
+            let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
+            console.log(match);
+            try {
+                stats = await axios.get(matchStatsUrl, { headers });
+                const interaction = this.client.channels.cache
+                    .get(process.env.LIVE_MATCHES_CHANNEL_ID)
+                    .messages.cache.get(match.live_status_interaction_id);
+
+                // Extract match statistics
+                const [player1, player2] = stats.data.players;
+                const [stats1, stats2] = stats.data.matchStats;
+
+                const player1_legs = stats1.legsWon;
+                const player2_legs = stats2.legsWon;
+
+                const player1_average = stats1.average.toFixed(2);
+                const player2_average = stats2.average.toFixed(2);
+
+                let winner, winner_legs, winner_average;
+                if (player1_legs > player2_legs) {
+                    winner = player1.name;
+                    winner_legs = player1_legs;
+                    winner_average = player1_average;
+                } else if (player2_legs > player1_legs) {
+                    winner = player2.name;
+                    winner_legs = player2_legs;
+                    winner_average = player2_average;
+                } else {
+                    winner = "It's a draw!";
+                }
+
+                const matchSummaryEmbed = new EmbedBuilder()
+                    .setColor(
+                        player1_legs === player2_legs ? "#ffaa00" : "#00ff00"
+                    ) // Yellow for draw, green for a win
+                    .setTitle("🎯 Match Finished!")
+                    .setDescription(
+                        winner === "It's a draw!"
+                            ? "The match ended in a **draw**! Here are the final stats:"
+                            : `The match is over, and **${winner}** is the winner! 🏆`
+                    )
+                    .addFields(
+                        {
+                            name: `🏆 ${player1.name}`,
+                            value: `**Legs Won:** ${player1_legs}\n**Average:** ${player1_average}`,
+                            inline: true,
+                        },
+                        {
+                            name: `🏆 ${player2.name}`,
+                            value: `**Legs Won:** ${player2_legs}\n**Average:** ${player2_average}`,
+                            inline: true,
+                        }
+                    )
+                    .setFooter({
+                        text: "Thanks for following this match!",
+                        iconURL: "https://example.com/logo.png", // Replace with a relevant image URL
+                    })
+                    .setTimestamp();
+
+                await interaction.edit({ embeds: [matchSummaryEmbed] });
+
+                // Continue with the rest of your logic...
+
+                // Example: Updating Challonge
+                const db_match = await getLocalMatchFromMatchId(match.match_id);
+
+                const player1_user_id = await getUserIdFromAutodartsId(
+                    player1.userId
+                );
+                const player2_user_id = await getUserIdFromAutodartsId(
+                    player2.userId
+                );
+
+                const player1_challonge_id =
+                    await getChallongeIdFromUserIdTournamentId(
+                        player1_user_id,
+                        db_match.tournament_id
+                    );
+                const player2_challonge_id =
+                    await getChallongeIdFromUserIdTournamentId(
+                        player2_user_id,
+                        db_match.tournament_id
+                    );
+
+                if (!player1_challonge_id || !player2_challonge_id) {
+                    console.error("Player Challonge IDs not found");
+                }
+
+                const scores_csv =
+                    db_match.player1_id === player1_challonge_id
+                        ? `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`
+                        : `${stats.data.scores[1].legs}-${stats.data.scores[0].legs}`;
+
+                let winnerIndex = stats.data.winner; // 0 is player1, 1 is player2
+                let winnerId =
+                    winnerIndex === 0 ? player1_user_id : player2_user_id;
+                let winnerChallongeId =
+                    winnerIndex === 0
+                        ? player1_challonge_id
+                        : player2_challonge_id;
+
+                if (stats.data.scores[0].legs === stats.data.scores[1].legs) {
+                    winnerId = null;
+                    winnerChallongeId = null;
+                }
+
+                const matchInfo = {
+                    matchId: matchId,
+                    db_match: db_match,
+                    scores_csv: scores_csv,
+                    winnerChallongeId: winnerChallongeId,
+                    state: "complete",
+                };
+                await updateLocalMatch(matchInfo);
+
+                db_match.player1_score =
+                    db_match.player1_id === player1_challonge_id
+                        ? stats.data.scores[0].legs
+                        : stats.data.scores[1].legs;
+                db_match.player2_score =
+                    db_match.player1_id === player1_challonge_id
+                        ? stats.data.scores[1].legs
+                        : stats.data.scores[0].legs;
+
+                await saveAdStats(
+                    db_match.match_id,
+                    db_match.tournament_id,
+                    stats.data
+                );
+                await deleteLiveMatch(matchId);
+
+                const api_url = `https://api.challonge.com/v1/tournaments/${db_match.tournament_id}/matches/${db_match.match_id}.json`;
+                const params = { api_key: process.env.API_KEY };
+
+                winnerIndex =
+                    db_match.player1_score > db_match.player2_score
+                        ? 0
+                        : db_match.player1_score < db_match.player2_score
+                        ? 1
+                        : null;
+                winnerChallongeId =
+                    winnerIndex !== null
+                        ? winnerIndex === 0
+                            ? db_match.player1_id
+                            : db_match.player2_id
+                        : "tie";
+                const final_scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
+
+                const data = {
+                    match: {
+                        scores_csv: final_scores_csv,
+                        winner_id: winnerChallongeId,
+                    },
+                };
+
+                try {
+                    const response = await axios.put(api_url, data, {
+                        params,
+                    });
+                    if (response.status === 200) {
+                        console.log("Challonge match updated");
+                    }
+
+                    // Send update in the match channel
+                    let guild;
+                    if (process.env.DEBUG === "true") {
+                        guild = await client.guilds.cache.get(
+                            process.env.GUILD_ID
+                        );
+                    } else {
+                        guild = await client.guilds.cache.get(
+                            process.env.AD_GUILD
+                        );
+                    }
+                    const matchPost = await findThreadByMatchId(
+                        guild,
+                        db_match.match_id
+                    );
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 Match Finished`)
+                        .setDescription(
+                            `Your match has been completed and the results have been submitted to Challonge!`
+                        )
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp();
+                    await matchPost.send({ embeds: [embed] });
+                } catch (error) {
+                    console.error("Error updating Challonge match:", error);
+                }
+            } catch (error) {
+                console.error("Match not finished:");
+                console.log(error);
+                // Revert the status if necessary
+                await updateLiveMatchStatus(matchId, "active"); // Or another appropriate status
+                return;
+            }
+        } finally {
+            // Release the lock
+        }
+
+        // Optionally, you can add additional validation here to ensure the match was processed correctly
+        // For example:
+        // - Verify the final scores
+        // - Ensure data consistency
     }
 }
 
