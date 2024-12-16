@@ -1109,7 +1109,7 @@ async function calculateStandings(
                 player2_score;
 
             if (state === "complete") {
-                if (winner_id === null) {
+                if (winner_id === null || winner_id == "tie") {
                     standings.groups[groupId].standings[player1_id].draws++;
                     standings.groups[groupId].standings[player2_id].draws++;
                     standings.groups[groupId].standings[player1_id].points++;
