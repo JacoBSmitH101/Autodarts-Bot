@@ -1084,21 +1084,15 @@ async function calculateStandings(
             players.forEach((playerId) => {
                 if (!standings.groups[groupId].standings[playerId]) {
                     const playerName = playerNames[playerId];
-                    standings.groups[groupId].standings[playerId] = mobileView
-                        ? {
-                              name: playerName.substring(0, 7).padEnd(7, " "),
-                              points: 0,
-                              played: 0,
-                          }
-                        : {
-                              rank: 0,
-                              name: playerName.substring(0, 15).padEnd(15, " "),
-                              wins: 0,
-                              losses: 0,
-                              draws: 0,
-                              points: 0,
-                              played: 0,
-                          };
+                    standings.groups[groupId].standings[playerId] = {
+                        rank: 0,
+                        name: playerName.substring(0, 12).padEnd(12, " "),
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        points: 0,
+                        played: 0,
+                    };
                 }
             });
 
@@ -1109,7 +1103,7 @@ async function calculateStandings(
                 player2_score;
 
             if (state === "complete") {
-                if (winner_id === null || winner_id == "tie") {
+                if (winner_id == null || winner_id == "tie") {
                     standings.groups[groupId].standings[player1_id].draws++;
                     standings.groups[groupId].standings[player2_id].draws++;
                     standings.groups[groupId].standings[player1_id].points++;
@@ -1127,6 +1121,10 @@ async function calculateStandings(
                 }
                 standings.groups[groupId].standings[player1_id].played++;
                 standings.groups[groupId].standings[player2_id].played++;
+                if (player1_id == 32074493 || player2_id == 32074493) {
+                    console.log(match);
+                    console.log(standings.groups[groupId].standings[32074493]);
+                }
             }
         }
     }
@@ -1139,28 +1137,15 @@ async function calculateStandings(
             (a, b) => b.points - a.points
         );
 
-        const tableData = mobileView
-            ? [
-                  ["Pos", "Name", "Pld", "Pts"],
-                  ...sortedStandings.map((player, index) => [
-                      index + 1,
-                      player.name,
-                      player.played,
-                      player.points,
-                  ]),
-              ]
-            : [
-                  ["Pos", "Name", "Pld", "Pts", "Win", "Los", "Drw"],
-                  ...sortedStandings.map((player, index) => [
-                      index + 1,
-                      player.name,
-                      player.played,
-                      player.points,
-                      player.wins,
-                      player.losses,
-                      player.draws,
-                  ]),
-              ];
+        const tableData = [
+            ["Pos", "Name", "Pld", "Pts"],
+            ...sortedStandings.map((player, index) => [
+                index + 1,
+                player.name,
+                player.played,
+                player.points,
+            ]),
+        ];
 
         tables.push(`Group ${groupId}\n\`\`\`${table(tableData)}\`\`\``);
     }
