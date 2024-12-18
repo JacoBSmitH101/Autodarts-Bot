@@ -365,45 +365,43 @@ class MatchHandler {
                     const sentMessage = await channel.send({ embeds: [embed] });
                     await updateLiveInteraction(matchId, sentMessage.id);
                 } else {
-                    const interaction = await channel.messages.fetch(
-                        liveMatchData.live_status_interaction_id
-                    );
-                    const winnerId = message.data.gameWinner;
-
-                    const embed = new EmbedBuilder()
-                        .setTitle(
-                            winnerId === -1
-                                ? `🎯 Bull Up In Progress`
-                                : `🎯 Bull Up Finished`
-                        )
-                        .setDescription(
-                            winnerId === -1
-                                ? `Follow the live score and progress!`
-                                : `Winner: ${
-                                      winnerId == -1
-                                          ? "NA"
-                                          : message.data.players[winnerId].name
-                                  }`
-                        )
-                        .setColor(0x00ff00) // Green color for active match
-                        .setTimestamp()
-                        .addFields(
-                            {
-                                name: `Bull Up`,
-                                value:
-                                    winnerId === -1
-                                        ? `In Progress`
-                                        : `Finished`,
-                                inline: true,
-                            },
-                            {
-                                name: "Follow along!",
-                                value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
-                                inline: false,
-                            }
-                        );
-
-                    await interaction.edit({ embeds: [embed] });
+                    // const interaction = await channel.messages.fetch(
+                    //     liveMatchData.live_status_interaction_id
+                    // );
+                    // const winnerId = message.data.gameWinner;
+                    // const embed = new EmbedBuilder()
+                    //     .setTitle(
+                    //         winnerId === -1
+                    //             ? `🎯 Bull Up In Progress`
+                    //             : `🎯 Bull Up Finished`
+                    //     )
+                    //     .setDescription(
+                    //         winnerId === -1
+                    //             ? `Follow the live score and progress!`
+                    //             : `Winner: ${
+                    //                   winnerId == -1
+                    //                       ? "NA"
+                    //                       : message.data.players[winnerId].name
+                    //               }`
+                    //     )
+                    //     .setColor(0x00ff00) // Green color for active match
+                    //     .setTimestamp()
+                    //     .addFields(
+                    //         {
+                    //             name: `Bull Up`,
+                    //             value:
+                    //                 winnerId === -1
+                    //                     ? `In Progress`
+                    //                     : `Finished`,
+                    //             inline: true,
+                    //         },
+                    //         {
+                    //             name: "Follow along!",
+                    //             value: `[Watch match on Autodarts](https://play.autodarts.io/matches/${matchId})`,
+                    //             inline: false,
+                    //         }
+                    //     );
+                    // await interaction.edit({ embeds: [embed] });
                 }
                 return;
             }
@@ -422,6 +420,9 @@ class MatchHandler {
             const interaction = await channel.messages.fetch(
                 liveMatchData.live_status_interaction_id
             );
+            if (!interaction) {
+                return;
+            }
             const player_throwing = message.data.player;
             const round = message.data.round;
             const throwsThisRound = message.data.turns[0].throws.length || 0;
@@ -471,246 +472,6 @@ class MatchHandler {
         } catch (error) {
             console.error("Error handling match update:", error);
         }
-    }
-    async processFinishedMatch(matchId, stats, client) {
-        //get match
-        const match = this.ongoing_matches.find(
-            (match) => match.matchId === matchId
-        );
-
-        const player1_id = stats.players[0].userId;
-        const player2_id = stats.players[1].userId;
-
-        //use user table to get user_ids
-        const player1_user_id = await getUserIdFromAutodartsId(player1_id);
-        const player2_user_id = await getUserIdFromAutodartsId(player2_id);
-
-        //use participants table to get challonge_ids using user_ids and tournament_id
-        const player1_challonge_id = await getChallongeIdFromUserIdTournamentId(
-            player1_user_id,
-            match.challonge_tournament_id
-        );
-        const player2_challonge_id = await getChallongeIdFromUserIdTournamentId(
-            player2_user_id,
-            match.challonge_tournament_id
-        );
-
-        //use matches table to get challonge_match_id using challonge_ids and tournament_id
-        //keep in mind that it is possible player1_id in the match is player_2 that we are using here
-        let db_match = await getLocalMatchFromPlayersChallongeIdTournamentId(
-            player1_challonge_id,
-            player2_challonge_id,
-            match.challonge_tournament_id
-        );
-
-        const winnderIndex = stats.winner; //0 is player1, 1 is player2
-        let winnerId = winnderIndex === 0 ? player1_user_id : player2_user_id;
-        let winnerChallongeId =
-            winnderIndex === 0 ? player1_challonge_id : player2_challonge_id;
-
-        if (stats.scores[0].legs === stats.scores[1].legs) {
-            winnerId = null;
-            winnerChallongeId = null;
-        }
-
-        //----------------------- confirm with players-----------------------
-
-        let confirmations = {
-            player1: false,
-            player2: false,
-        };
-
-        const sendConfirmationWithButtons = async (
-            player,
-            playerUser,
-            opponentUser,
-            stats,
-            client
-        ) => {
-            try {
-                // Create an embed with match details
-                const opponentDisplayName =
-                    opponentUser.globalName || opponentUser.username;
-
-                const embed = new EmbedBuilder()
-                    .setTitle("Match Result Confirmation")
-                    .setDescription(
-                        `Your match against ${opponentDisplayName} has ended with a score of ${stats.scores[0].legs}-${stats.scores[1].legs}. Please confirm if this result is correct and if this was a league match.`
-                    )
-                    .setColor(0x00ff00);
-                // Create buttons for confirm and reject
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `confirm_autoMatch_${playerUser.id}_${matchId}`
-                        )
-                        .setLabel("Confirm")
-                        .setStyle(ButtonStyle.Success),
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `reject_autoMatch_${playerUser.id}_${matchId}`
-                        )
-                        .setLabel("Reject")
-                        .setStyle(ButtonStyle.Danger)
-                );
-
-                // Send the embed and buttons to the user in DMs
-                const message = await playerUser.send({
-                    embeds: [embed],
-                    components: [row],
-                });
-            } catch (error) {
-                console.error(
-                    "Error sending confirmation with buttons:",
-                    error
-                );
-                return "error"; // Return "error" if DM fails
-            }
-        };
-
-        const player1User = await client.users.fetch(player1_user_id);
-        const player2User = await client.users.fetch(player2_user_id);
-        try {
-            sendConfirmationWithButtons(
-                "player2",
-                player2User,
-                player1User,
-                stats,
-                client
-            );
-        } catch (error) {
-            console.error("Error sending confirmation with buttons:", error);
-        }
-        try {
-            sendConfirmationWithButtons(
-                "player1",
-                player1User,
-                player2User,
-                stats,
-                client
-            );
-        } catch (error) {
-            console.error("Error sending confirmation with buttons:", error);
-        }
-
-        //we will add everything to the local db anyway, then the button handled in the discord bot will add to challonge or remove from local db
-
-        //-----------------------CONFIMED-------------------------------------
-
-        //update match in database (winner_id, state, player1_score, player2_score(use legs), autodarts_match_id)
-
-        let scores_csv;
-        //db match player order is used here
-        scores_csv =
-            db_match.player1_id === player1_challonge_id
-                ? `${stats.scores[0].legs}-${stats.scores[1].legs}`
-                : `${stats.scores[1].legs}-${stats.scores[0].legs}`;
-
-        //if one player has 4 legs and the other 3, the players played wrong so correct to 3-3
-        if (
-            (stats.scores[0].legs === 4 && stats.scores[1].legs === 3) ||
-            (stats.scores[0].legs === 3 && stats.scores[1].legs === 4)
-        ) {
-            scores_csv = "3-3";
-        }
-
-        const matchInfo = {
-            matchId: matchId,
-            db_match: db_match,
-            scores_csv: scores_csv,
-            winnerChallongeId: winnerChallongeId,
-            state: "complete",
-        };
-        await updateLocalMatch(matchInfo);
-
-        //need to create scores-csv for challonge, will just be eg 4-3. got to organise based on if db_match.player1_id is player1_id or not
-        //first check if db_match.player1_id player1_challonge_id
-
-        //set winner_id
-        let winner_id;
-        if (stats.winner === 0) {
-            winner_id = db_match.player1_id;
-        } else {
-            winner_id = db_match.player2_id;
-        }
-
-        // ! update challonge
-        // const api_url = `https://api.challonge.com/v1/tournaments/${match.challonge_tournament_id}/matches/${db_match.match_id}.json`;
-        // const params = {
-        //     api_key: process.env.API_KEY,
-        // };
-        // const data = {
-        //     match: {
-        //         scores_csv: scores_csv,
-        //         winner_id: winnerChallongeId,
-        //     },
-        // };
-
-        // try {
-        //     const response = await axios.put(api_url, data, { params });
-        //     if (response.status === 200) {
-        //         console.log("Challonge match updated");
-        //     }
-        // } catch (error) {
-        //     console.error("Error updating challonge match:", error);
-        // }
-
-        //now update stats table, one record for each player
-        // user_id, match_id(challonge), tournament_id, average, average_until_170, first_9_average
-        // checkout_percent, darts_thrown, best_checkout, points_60_plus, points_100_plus, points_140_plus, points_170_plus, points_180
-
-        //for each player in stats, get their user_id from the user table from autodarts_id
-        //then get their challonge_id from the participants table from user_id and tournament_id
-        //then add this record to the stats table
-
-        const statsPlayer1_user_id = await getUserIdFromAutodartsId(player1_id);
-        const statsPlayer2_user_id = await getUserIdFromAutodartsId(player2_id);
-
-        const statsPlayer1_challonge_id =
-            await getChallongeIdFromUserIdTournamentId(
-                statsPlayer1_user_id,
-                match.challonge_tournament_id
-            );
-        const statsPlayer2_challonge_id =
-            await getChallongeIdFromUserIdTournamentId(
-                statsPlayer2_user_id,
-                match.challonge_tournament_id
-            );
-
-        //add stats to stats table
-        const statsPlayer1 = stats.matchStats[0];
-        const statsPlayer2 = stats.matchStats[1];
-
-        const player1_legs = stats.matchStats[0].legsWon;
-        const player2_legs = stats.matchStats[1].legsWon;
-
-        //if one player has 4 and the other 3, the players played the incorrrect game length so dont add to stats
-
-        // if (
-        //     (player1_legs === 4 && player2_legs === 3) ||
-        //     (player1_legs === 3 && player2_legs === 4)
-        // ) {
-        //     await updateStats(
-        //         statsPlayer1_user_id,
-        //         db_match.match_id,
-        //         match.challonge_tournament_id,
-        //         statsPlayer1
-        //     );
-        //     await updateStats(
-        //         statsPlayer2_user_id,
-        //         db_match.match_id,
-        //         match.challonge_tournament_id,
-        //         statsPlayer2
-        //     );
-        // }
-
-        //now insert into ad_stats table with match_id as db_match.match_id, tournament id and then all the stats object in stats_data
-
-        await saveAdStats(
-            db_match.match_id,
-            match.challonge_tournament_id,
-            stats
-        );
     }
     async handleDeleteMatch(matchId, client) {
         //basically just update hte live_discord_interaction message to say the match is deleted with a red color
