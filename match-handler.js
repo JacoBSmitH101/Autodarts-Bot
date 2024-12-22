@@ -741,7 +741,7 @@ class MatchHandler {
                     const embed = new EmbedBuilder()
                         .setTitle(`🎯 Match Finished`)
                         .setDescription(
-                            `Your match has been completed and the results have been submitted to Challonge!`
+                            `Your match has been completed and the results have been submitted to Challonge!\nHere is the link to the match: [Autodarts Match](https://play.autodarts.io/history/matches/${db_match.autodarts_match_id})`
                         )
                         .setColor(0x00ff00) // Green color for active match
                         .setTimestamp();
