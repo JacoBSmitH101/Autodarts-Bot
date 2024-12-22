@@ -553,6 +553,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     });
                     return;
                 }
+                await updateLiveMatchStatus(lobbyId, "bullup");
 
                 await interaction.reply({
                     content: "Game started! Good luck have fun!",
@@ -582,7 +583,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 );
 
                 //update live_match row status to bull up
-                await updateLiveMatchStatus(lobbyId, "bullup");
 
                 await client.keycloakClient.subscribe(
                     "autodarts.matches",
