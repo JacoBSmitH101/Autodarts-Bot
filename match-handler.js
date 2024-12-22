@@ -213,8 +213,16 @@ class MatchHandler {
         }
         this.lobbyLocks[lobbyId] = true;
         const match_data = await getLiveMatchDataFromAutodartsMatchId(lobbyId);
+        //log the time and message
+        // if (process.env.DEBUG === "true") {
+        // console.log(`[${new Date().toISOString()}]`, message);
 
-        if (!message.data.players || !match_data) return;
+        if (
+            !message.data.players ||
+            !match_data ||
+            message.channel == "autodarts.matches"
+        )
+            return;
 
         const {
             player1_autodarts_id,
@@ -256,7 +264,7 @@ class MatchHandler {
         if (player1_in && player2_in) {
             // Early check to prevent duplicate processing
             const status = await getLiveMatchStatus(lobbyId);
-            if (status === "start offered") {
+            if (status == "start offered") {
                 if (process.env.DEBUG === "true") {
                     console.log(
                         `Start already offered for lobby ${lobbyId}. Exiting.`
