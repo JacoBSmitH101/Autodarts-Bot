@@ -29,6 +29,7 @@ const sqlite3 = require("sqlite3").verbose();
 class MatchHandler {
     constructor(client) {
         console.log("MatchHandler initialized");
+        this.lobbyLocks = {};
         //will store objects with:
         // {
         //     matchId: "xxx",
@@ -206,6 +207,11 @@ class MatchHandler {
     }
     async lobby_event(message) {
         const lobbyId = message.data.id;
+        //check lobby lock for lobbyId
+        if (this.lobbyLocks[lobbyId]) {
+            return;
+        }
+        this.lobbyLocks[lobbyId] = true;
         const match_data = await getLiveMatchDataFromAutodartsMatchId(lobbyId);
 
         if (!message.data.players || !match_data) return;
@@ -216,7 +222,10 @@ class MatchHandler {
             match_channel_interaction_id,
         } = match_data;
 
-        if (!player1_autodarts_id || !player2_autodarts_id) return;
+        if (!player1_autodarts_id || !player2_autodarts_id) {
+            this.lobbyLocks[lobbyId] = false;
+            return;
+        }
 
         let player1_in = false;
         let player2_in = false;
@@ -253,6 +262,7 @@ class MatchHandler {
                         `Start already offered for lobby ${lobbyId}. Exiting.`
                     );
                 }
+                this.lobbyLocks[lobbyId] = false;
                 return;
             }
 
@@ -322,6 +332,8 @@ class MatchHandler {
                 console.log("Channel not found");
             }
         }
+
+        this.lobbyLocks[lobbyId] = false;
     }
 
     async match_update(message, tournamentId) {
