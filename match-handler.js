@@ -561,6 +561,10 @@ class MatchHandler {
             };
             let stats;
             let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
+            let matchStatus = await getLocalMatchFromMatchId(match.match_id);
+            if (matchStatus.state === "complete") {
+                return;
+            }
             console.log(match);
             try {
                 stats = await axios.get(matchStatsUrl, { headers });
