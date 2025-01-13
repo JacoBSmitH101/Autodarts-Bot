@@ -361,6 +361,12 @@ class MatchHandler {
                 const channel = this.client.channels.cache.get(
                     process.env.LIVE_MATCHES_CHANNEL_ID
                 );
+                let dbmatch = await getLocalMatchFromMatchId(
+                    liveMatchData.match_id
+                );
+                if (dbmatch.state === "started") {
+                    return;
+                }
 
                 if (!liveMatchData.live_status_interaction_id) {
                     const embed = new EmbedBuilder()
@@ -384,6 +390,9 @@ class MatchHandler {
                     // Send message and update ongoing match with Discord message object
                     const sentMessage = await channel.send({ embeds: [embed] });
                     await updateLiveInteraction(matchId, sentMessage.id);
+                    dbmatch.state = "started";
+
+                    await updateLocalMatch(dbmatch);
                 } else {
                     // const interaction = await channel.messages.fetch(
                     //     liveMatchData.live_status_interaction_id
@@ -561,6 +570,10 @@ class MatchHandler {
             };
             let stats;
             let match = await getLiveMatchDataFromAutodartsMatchId(matchId);
+            let matchStatus = await getLocalMatchFromMatchId(match.match_id);
+            if (matchStatus.state === "complete") {
+                return;
+            }
             console.log(match);
             try {
                 stats = await axios.get(matchStatsUrl, { headers });
