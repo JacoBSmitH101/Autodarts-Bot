@@ -52,7 +52,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        const matchAmount = interaction.options.getInteger("amount") || 10;
+        const matchAmount = interaction.options.getInteger("amount") || 20;
         const tournamentName = interaction.options.getString("tournament");
         const discordId = interaction.user.id;
 
