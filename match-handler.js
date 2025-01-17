@@ -577,10 +577,14 @@ class MatchHandler {
             console.log(match);
             try {
                 stats = await axios.get(matchStatsUrl, { headers });
+                if (match.live_status_interaction_id == null) {
+                    return;
+                }
                 const interaction = this.client.channels.cache
                     .get(process.env.LIVE_MATCHES_CHANNEL_ID)
                     .messages.cache.get(match.live_status_interaction_id);
-
+                //TODO HERE
+                await updateLiveInteraction(matchId, null);
                 // Extract match statistics
                 const [player1, player2] = stats.data.players;
                 const [stats1, stats2] = stats.data.matchStats;
