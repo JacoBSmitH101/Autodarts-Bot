@@ -6,6 +6,7 @@ const {
     getAllMatchesForPlayer,
     getTournamentIdByName,
     getTournamentStatus,
+    getParticipantDivisionNumberFromUserId,
 } = require("../../datamanager");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -95,9 +96,15 @@ module.exports = {
                 (a, b) => a.suggested_play_order - b.suggested_play_order
             );
             matches = matches.slice(0, matchAmount);
+            const groupNumber = await getParticipantDivisionNumberFromUserId(
+                interaction.user.id.toString(),
+                tournamentId
+            );
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
-                .setTitle(`Matches for ${interaction.user.username}`)
+                .setTitle(
+                    `Matches for ${interaction.user.username} | Division ${groupNumber}`
+                )
                 .setDescription(`League: **${tournamentName}**`)
                 .setTimestamp();
 

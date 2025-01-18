@@ -14,6 +14,7 @@ const {
     messageLink,
     REST,
     Routes,
+    ActivityType,
 } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
 const axios = require("axios");
@@ -29,6 +30,7 @@ const {
     getAllLiveMatches,
     deleteLiveMatch,
     updateLiveInteraction,
+    saveStandingsSnapshot,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -41,6 +43,7 @@ const password = process.env.PASSWORDS;
 const clientId = process.env.AD_CLIENT_ID;
 const clientSecret = process.env.AD_CLIENT_SECRET; // Optional, if needed
 const debug = process.env.DEBUG == "True";
+const cron = require("node-cron");
 const {
     getTournamentIdByName,
     getMatchFromAutodartsMatchId,
@@ -196,6 +199,34 @@ client.once(Events.ClientReady, async (readyClient) => {
             );
         }
     }
+    client.user.setPresence({
+        activities: [
+            {
+                name: "you play darts",
+                type: ActivityType.Watching,
+                url: "https://play.autodarts.io",
+            },
+        ],
+    });
+});
+
+// Schedule an event once a week to save the current standings into the DB
+const snapshotStandings = async () => {
+    //get all active tournaments
+    const activeTournamentId = await getActiveTournamentId();
+    const standings = await calculateStandings(
+        activeTournamentId,
+        false,
+        null,
+        true
+    );
+
+    await saveStandingsSnapshot(activeTournamentId, standings);
+};
+
+cron.schedule("0 2 * * 0", async () => {
+    await snapshotStandings();
+    console.log("Weekly snapshot taken at 2 AM on Sunday!");
 });
 
 // Event: Interaction Create

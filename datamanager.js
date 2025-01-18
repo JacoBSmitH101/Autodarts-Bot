@@ -5,6 +5,7 @@ const { ChannelType } = require("discord.js");
 const { match } = require("assert");
 const { table } = require("table");
 const { fetchTournamentsFromDatabase, getLeagueStandings } = require("./util");
+const { chownSync } = require("fs");
 // PostgreSQL configuration
 require("dotenv").config();
 const pool = new Pool({
@@ -1037,7 +1038,8 @@ async function createTournamentChannels(
 async function calculateStandings(
     tournamentId,
     mobileView = false,
-    division = null
+    division = null,
+    raw = false
 ) {
     // Initialize standings
     const standings = { tournamentId, groups: {} };
@@ -1128,7 +1130,7 @@ async function calculateStandings(
             }
         }
     }
-
+    if (raw) return standings;
     // Generate tables
     const tables = [];
     for (const groupId in standings.groups) {
@@ -1305,16 +1307,73 @@ async function deleteLiveMatch(autodartsMatchId) {
         await pool.query(query, values);
     } catch (err) {
         console.error("Error deleting live match:", err.message);
-        throw new Error("Failed to delete live match.");
+    }
+}
+async function getParticipantDivisionNumber(participant_id) {
+    const query = `SELECT p.participant_id,
+       (grp.key)::int AS group_number
+FROM participants p
+JOIN tournaments t 
+  ON p.tournament_id = t.tournament_id
+CROSS JOIN LATERAL jsonb_each_text(t.groups) AS grp(key, val)
+WHERE p.participant_id = $1
+  AND (grp.val)::int = p.group_id;`;
+    const values = [participant_id];
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].group_number;
+    } catch (err) {
+        console.error("Error fetching division number:", err.message);
+    }
+}
+async function getParticipantDivisionNumberFromUserId(user_id, tournament_id) {
+    const query = `SELECT (grp.key)::int AS group_number
+FROM participants p
+JOIN tournaments t 
+  ON p.tournament_id = t.tournament_id
+CROSS JOIN LATERAL jsonb_each_text(t.groups) AS grp(key, val)
+WHERE p.participant_id = (
+    SELECT participant_id
+    FROM participants
+    WHERE user_id = $1 AND tournament_id = $2
+)
+  AND (grp.val)::int = p.group_id;
+
+`;
+    const values = [user_id, tournament_id];
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) return null;
+        return result.rows[0].group_number;
+    } catch (err) {
+        console.error("Error fetching division number:", err.message);
+    }
+}
+async function saveStandingsSnapshot(tournamentId, standings) {
+    const query = `
+        INSERT INTO standings_history (tournament_id, standings)
+        VALUES ($1, $2)
+    `;
+    const values = [tournamentId, standings];
+
+    try {
+        await pool.query(query, values);
+    } catch (err) {
+        console.error("Error saving standings snapshot:", err.message);
+        throw new Error("Failed to save standings snapshot.");
     }
 }
 module.exports = {
     deleteLiveMatch,
+    saveStandingsSnapshot,
     getLocalMatchFromMatchId,
     getAllLiveMatches,
     updateLiveInteraction,
     getLiveMatchStatus,
     updateLiveMatchStatus,
+    getParticipantDivisionNumber,
+    getParticipantDivisionNumberFromUserId,
     getLiveMatchDataFromAutodartsMatchId,
     getAdStats,
     calculateStandings,
