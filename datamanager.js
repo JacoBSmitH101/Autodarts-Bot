@@ -943,44 +943,35 @@ async function findThreadByMatchId(guild, matchId) {
 async function createTournamentChannels(
     tournamentId,
     interaction,
-    parent = null
+    divisionChannels,
+    client
 ) {
-    // List to store all created forum channels and threads
-    const fixtureForumChannels = [];
+    const fixtureThreads = [];
 
     try {
-        // Fetch tournament matches and groups
+        // Fetch tournament matches
         const matches = await getAllMatchesFromTournamentId(tournamentId);
+        // We get each group from the matches (e.g., "Group A", "Group B" if that's how your DB stores it)
         const groups = new Set(matches.map((match) => match.group_id));
+        // Get the division number for each group
         const divisionNumbers = await getDivisionNumbers(tournamentId);
 
-        // Emojis for divisions
-        const divisionEmojis = {
-            1: "🔴",
-            2: "🟢",
-            3: "🔵",
-            4: "🟠",
-            5: "🟣",
-            6: "🟡",
-            7: "⚪",
-            8: "⚫",
-        };
-
-        // Process each group to create forum channels and threads
         for (const group of groups) {
             try {
-                // Create a forum channel for the group
-                const forumChannel = await interaction.guild.channels.create({
-                    name: `${divisionEmojis[divisionNumbers[group]]}division-${
-                        divisionNumbers[group]
-                    }-fixtures`,
-                    type: ChannelType.GuildForum,
-                    parent: parent,
-                });
+                // Determine the division number from your logic
+                const division = divisionNumbers[group];
+                // Get the existing channel for this division
+                const channelId = divisionChannels[division];
+                console.log(channelId);
+                const channel = await client.channels.cache.get(channelId);
+                if (!channel) {
+                    console.warn(
+                        `No channel provided for division ${division}. Skipping...`
+                    );
+                    continue;
+                }
 
-                console.log(`Created forum channel: ${forumChannel.name}`);
-
-                // Sort matches by suggested play order for thread creation
+                // Sort group matches by suggested play order
                 const groupMatches = matches
                     .filter((match) => match.group_id === group)
                     .sort(
@@ -1003,37 +994,46 @@ async function createTournamentChannels(
                         match.player2_id
                     );
 
-                    // Create a thread for the match
-                    const thread = await forumChannel.threads.create({
-                        name: `Round ${suggestedPlayOrder}: ${player1Name} vs ${player2Name} [ID:${match.match_id}]`,
+                    // Create thread in the division channel
+                    const thread = await channel.threads.create({
+                        name: `Round ${suggestedPlayOrder}: ${
+                            Object.values(player1Name)[0]
+                        } vs ${Object.values(player2Name)[0]} [ID:${
+                            match.match_id
+                        }]`,
+                        autoArchiveDuration: 1440, // 1 day = 1440 mins (or 4320 for 3 days, etc.)
+                        type: ChannelType.PublicThread,
+                        reason: `Thread for match #${match.match_id}`,
                         message: {
-                            content: `Thread for match between <@${player1DiscordId}> and <@${player2DiscordId}>. Organise your match here!`,
+                            content: `Thread for match between <@${player1DiscordId}> and <@${player2DiscordId}>. Organize your match here!`,
                         },
                     });
 
+                    // Add both players to the thread (if you want private threads, adjust accordingly)
+                    try {
+                        await thread.members.add(player1DiscordId);
+                        await thread.members.add(player2DiscordId);
+                    } catch (addErr) {
+                        console.error("Error adding user to thread: ", addErr);
+                    }
+
                     console.log(
-                        `Created thread: ${thread.name} in forum channel: ${forumChannel.name}`
+                        `Created thread: ${thread.name} in channel: ${channel.name}`
                     );
-
-                    // Add created thread to the list
-                    fixtureForumChannels.push(thread);
+                    fixtureThreads.push(thread);
                 }
-
-                // Add forum channel to the list
-                fixtureForumChannels.push(forumChannel);
             } catch (error) {
                 console.error(
-                    `Error creating forum channel or threads for group ${group}:`,
+                    `Error creating threads for group ${group}:`,
                     error
                 );
             }
         }
     } catch (error) {
-        console.error("Error creating tournament channels:", error);
+        console.error("Error creating tournament threads:", error);
     }
 
-    // Return the created channels and threads
-    return fixtureForumChannels;
+    return fixtureThreads;
 }
 async function calculateStandings(
     tournamentId,
