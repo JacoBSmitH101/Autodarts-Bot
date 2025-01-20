@@ -31,6 +31,8 @@ const {
     deleteLiveMatch,
     updateLiveInteraction,
     saveStandingsSnapshot,
+    getMatchFromMatchId,
+    getParticipantDivisionNumberFromUserId,
 } = require("./datamanager");
 const confirmMatch = require("./datamanager").confirmMatch;
 
@@ -223,6 +225,49 @@ const snapshotStandings = async () => {
 
     await saveStandingsSnapshot(activeTournamentId, standings);
 };
+// In your main bot file (e.g., index.js or bot.js)
+client.on("threadUpdate", async (oldThread, newThread) => {
+    try {
+        // Check if the thread went from unarchived to archived
+        if (!oldThread.archived && newThread.archived) {
+            console.log(
+                `Thread ${newThread.name} just got archived. Unarchiving...`
+            );
+
+            //extract match id from thread name
+            //use const foundMatchId = thread.name.match(/\[ID:(\d+)\]/)?.[1]; to get the match id
+            const matchId = newThread.name.match(/\[ID:(\d+)\]/)?.[1];
+            const match = await getMatchFromMatchId(matchId);
+            if (!match) {
+                console.error("Match not found");
+                return;
+            }
+            //check match state == complete
+            if (match.state == "complete") {
+                //dont unarchive
+                return;
+            }
+            //only unarchive if match is not complete
+
+            // Unarchive the thread
+            await newThread.setArchived(false);
+            //for testing, send a message to the thread
+            const channel = await newThread.fetch();
+
+            const embed = new EmbedBuilder()
+                .setTitle("Match Reminder")
+                .setDescription(
+                    `This is a reminder that you have a match scheduled. Please confirm the match in the thread.`
+                )
+                .setColor(0x00ff00);
+
+            await channel.send({ embeds: [embed] });
+            console.log(`Thread ${newThread.name} has been unarchived.`);
+        }
+    } catch (error) {
+        console.error(`Error unarchiving thread: ${error}`);
+    }
+});
 
 cron.schedule("0 2 * * 0", async () => {
     await snapshotStandings();
@@ -615,13 +660,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
                 //update live_match row status to bull up
 
-                await client.keycloakClient.subscribe(
-                    "autodarts.matches",
-                    `${lobbyId}.state`,
-                    async (message) => {
-                        matchHandler.match_update(message, data.tournament_id);
-                    }
-                );
+                // await client.keycloakClient.subscribe(
+                //     "autodarts.matches",
+                //     `${lobbyId}.state`,
+                //     async (message) => {
+                //         matchHandler.match_update(message, data.tournament_id);
+                //     }
+                // );
                 await client.keycloakClient.subscribe(
                     "autodarts.matches",
                     `${lobbyId}.events`,
@@ -634,10 +679,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const liveMatchesChannel = client.channels.cache.get(
                     process.env.LIVE_MATCHES_CHANNEL_ID
                 );
+                const divisionNumber =
+                    await getParticipantDivisionNumberFromUserId(
+                        interaction.user.id,
+                        data.tournament_id
+                    );
+
                 if (liveMatchesChannel) {
                     const embed = new EmbedBuilder()
-                        .setTitle("Match Started")
-                        .setDescription(`Match has been started`)
+                        .setTitle(`Match started in Division ${divisionNumber}`)
+                        .setDescription(
+                            `Follow along with the match here! [Autodarts Match](https://play.autodarts.io/matches/${lobbyId})`
+                        )
                         .setColor(0x00ff00);
                     const msg = await liveMatchesChannel.send({
                         embeds: [embed],

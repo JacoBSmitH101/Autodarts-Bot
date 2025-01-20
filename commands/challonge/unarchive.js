@@ -9,21 +9,22 @@ const {
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("create-channels")
+        .setName("unarchive")
         .setDescription("!! DO NOT RUN !! Create channels for a tournament")
+        .addStringOption((option) =>
+            option
+                .setName("thread-id")
+                .setDescription("The id of the thead to unarchive")
+                .setRequired(true)
+        )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        interaction.deferReply({ ephemeral: true });
-        //TODO make sure this is set for production
-        await createTournamentChannels(
-            15428772,
-            interaction,
-            {
-                1: "1330313936020443297",
-            },
-            interaction.client
-        );
+        await interaction.deferReply({ ephemeral: true });
+
+        const threadId = interaction.options.getString("thread-id");
+        const thread = await interaction.channel.threads.fetch(threadId);
+        await thread.setArchived(false);
 
         await interaction.followUp("Channels created.");
     },
