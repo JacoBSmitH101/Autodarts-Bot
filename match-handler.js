@@ -643,7 +643,7 @@ class MatchHandler {
                 // Example: Updating Challonge
                 const db_match = await getLocalMatchFromMatchId(match.match_id);
 
-                if (db_match.autodarts_match_id == null) return;
+                //if (db_match.autodarts_match_id == null) return;
 
                 const player1_user_id = await getUserIdFromAutodartsId(
                     player1.userId

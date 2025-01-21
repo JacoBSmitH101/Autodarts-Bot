@@ -195,10 +195,10 @@ client.once(Events.ClientReady, async (readyClient) => {
     const matches = await getAllLiveMatches();
     for (const match of matches) {
         if (match.status !== "waiting for players") {
-            subscribeToMatchUpdates(
-                match.autodarts_match_id,
-                match.tournament_id
-            );
+            // subscribeToMatchUpdates(
+            //     match.autodarts_match_id,
+            //     match.tournament_id
+            // );
         }
     }
     client.user.setPresence({
@@ -892,7 +892,7 @@ const handleNewMatch = async (message) => {
     } else {
         console.log("Channel not found");
     }
-    subscribeToMatchUpdates(message.data.body.id, tournamentId);
+    //subscribeToMatchUpdates(message.data.body.id, tournamentId);
     setTimeout(
         subscribeToMatchEvents,
         1000,
