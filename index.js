@@ -268,10 +268,9 @@ client.on("threadUpdate", async (oldThread, newThread) => {
         console.error(`Error unarchiving thread: ${error}`);
     }
 });
-
-cron.schedule("0 2 * * 0", async () => {
+cron.schedule("0 2 * * *", async () => {
     await snapshotStandings();
-    console.log("Weekly snapshot taken at 2 AM on Sunday!");
+    console.log("Daily snapshot taken at 2 AM!");
 });
 
 // Event: Interaction Create
