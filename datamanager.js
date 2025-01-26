@@ -940,6 +940,10 @@ async function findThreadByMatchId(guild, matchId) {
         return null;
     }
 }
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function createTournamentChannels(
     tournamentId,
     interaction,
@@ -980,6 +984,7 @@ async function createTournamentChannels(
                     );
 
                 for (const match of groupMatches) {
+                    await delay(2000);
                     const suggestedPlayOrder = match.suggested_play_order;
                     const player1Name = await getNameFromChallongeId(
                         match.player1_id
@@ -1005,14 +1010,20 @@ async function createTournamentChannels(
                         type: ChannelType.PublicThread,
                         reason: `Thread for match #${match.match_id}`,
                         message: {
-                            content: `Thread for match between <@${player1DiscordId}> and <@${player2DiscordId}>. Organize your match here!`,
+                            content: `Thread for match between ${player1Name} and ${player2Name}. Organize your match here!`,
                         },
                     });
 
                     // Add both players to the thread (if you want private threads, adjust accordingly)
                     try {
-                        await thread.members.add(player1DiscordId);
-                        await thread.members.add(player2DiscordId);
+                        // await thread.members.add(player1DiscordId);
+                        // await thread.members.add(player2DiscordId);
+                        if (player1DiscordId == 414395899570290690) {
+                            await thread.members.add(player1DiscordId);
+                        }
+                        if (player2DiscordId == 414395899570290690) {
+                            await thread.members.add(player2DiscordId);
+                        }
                     } catch (addErr) {
                         console.error("Error adding user to thread: ", addErr);
                     }

@@ -227,6 +227,7 @@ const snapshotStandings = async () => {
 };
 // In your main bot file (e.g., index.js or bot.js)
 client.on("threadUpdate", async (oldThread, newThread) => {
+    console.log("Thread updated");
     try {
         // Check if the thread went from unarchived to archived
         if (!oldThread.archived && newThread.archived) {
