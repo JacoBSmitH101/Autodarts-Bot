@@ -262,7 +262,7 @@ client.on("threadUpdate", async (oldThread, newThread) => {
                 )
                 .setColor(0x00ff00);
 
-            await channel.send({ embeds: [embed] });
+            //await channel.send({ embeds: [embed] });
             console.log(`Thread ${newThread.name} has been unarchived.`);
         }
     } catch (error) {
