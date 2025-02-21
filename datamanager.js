@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const axios = require("axios");
 const { only } = require("node:test");
-const { ChannelType } = require("discord.js");
+const { ChannelType, ThreadAutoArchiveDuration } = require("discord.js");
 const { match } = require("assert");
 const { table } = require("table");
 const { fetchTournamentsFromDatabase, getLeagueStandings } = require("./util");
@@ -1006,7 +1006,7 @@ async function createTournamentChannels(
                         } vs ${Object.values(player2Name)[0]} [ID:${
                             match.match_id
                         }]`,
-                        autoArchiveDuration: 1440, // 1 day = 1440 mins (or 4320 for 3 days, etc.)
+                        autoArchiveDuration: ThreadAutoArchiveDuration.OneHour, // 1 day = 1440 mins (or 4320 for 3 days, etc.)
                         type: ChannelType.PublicThread,
                         reason: `Thread for match #${match.match_id}`,
                         message: {
