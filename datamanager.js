@@ -1249,7 +1249,7 @@ async function getLiveMatchDataFromAutodartsMatchId(autodartsMatchId) {
         return result.rows[0];
     } catch (err) {
         console.error("Error fetching live match:", err.message);
-        throw new Error("Failed to fetch live match.");
+        //throw new Error("Failed to fetch live match.");
     }
 }
 async function updateLiveMatchStatus(autodartsMatchId, status) {
@@ -1272,7 +1272,7 @@ async function getLiveMatchStatus(autodartsMatchId) {
         return result.rows[0].status;
     } catch (err) {
         console.error("Error fetching live match status:", err.message);
-        throw new Error("Failed to fetch live match status.");
+        //throw new Error("Failed to fetch live match status.");
     }
 }
 async function updateLiveInteraction(autodartsMatchId, interactionId) {
@@ -1294,7 +1294,7 @@ async function getAllLiveMatches() {
         return result.rows;
     } catch (err) {
         console.error("Error fetching live matches:", err.message);
-        throw new Error("Failed to fetch live matches.");
+        //throw new Error("Failed to fetch live matches.");
     }
 }
 async function getLocalMatchFromMatchId(matchId) {
