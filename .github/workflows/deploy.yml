@@ -35,11 +35,6 @@ jobs:
       env:
         KUBECONFIG: $HOME/.kube/config
 
-    - name: Verify Kubernetes Context
-      run: |
-        kubectl config get-contexts
-        kubectl get nodes
-
     - name: Deploy to Minikube
       run: |
         kubectl set image deployment/discord-bot-dev discord-bot=yakoob19/discord-bot:season3-dev-$TIMESTAMP
