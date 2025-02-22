@@ -1294,7 +1294,7 @@ async function getAllLiveMatches() {
         return result.rows;
     } catch (err) {
         console.error("Error fetching live matches:", err.message);
-        //throw new Error("Failed to fetch live matches.");
+        return []; // Return an empty array instead of throwing
     }
 }
 async function getLocalMatchFromMatchId(matchId) {
