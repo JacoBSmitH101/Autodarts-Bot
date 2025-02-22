@@ -103,7 +103,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
                 .setTitle(
-                    `Matches ( THIS IS A MESSAGE FORA TEST COMMIT ) for ${interaction.user.username} | Division ${groupNumber}`
+                    `Matches for ${interaction.user.username} | Division ${groupNumber}`
                 )
                 .setDescription(`League: **${tournamentName}**`)
                 .setTimestamp();
