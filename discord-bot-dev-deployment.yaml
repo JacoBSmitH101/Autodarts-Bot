@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot-dev
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: discord-bot-dev
+  template:
+    metadata:
+      labels:
+        app: discord-bot-dev
+    spec:
+      containers:
+      - name: discord-bot
+        image: yakoob19/discord-bot:dev
+        env:
+        - name: NODE_ENV
+          value: "development"
+        - name: DISCORD_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: discord-token-dev
+              key: token
