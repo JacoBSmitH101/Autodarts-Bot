@@ -128,7 +128,10 @@ module.exports = {
                     const opponentDisplayName =
                         opponentTag + " (" + opponentName + ")";
                     let scoreCsv = "0-0";
-                    if (match.state == "complete") {
+                    if (
+                        match.state == "complete" ||
+                        match.state == "forfeited"
+                    ) {
                         scoreCsv = `${match.player1_score}-${match.player2_score}`;
                     }
                     const [playerScore, opponentScore] = scoreCsv
@@ -160,7 +163,9 @@ module.exports = {
                     } else {
                         embed.addFields({
                             name: `${
-                                result == "✅ **Won**"
+                                match.state == "forfeited"
+                                    ? "FORFEITED "
+                                    : result == "✅ **Won**"
                                     ? "🟢 "
                                     : result == "❌ **Lost**"
                                     ? "🔴 "
