@@ -17,7 +17,8 @@ module.exports = {
         .setDescription("Start a game on Autodarts.io with default settings."),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
-        interaction.followUp("Creating the game lobby...");
+        if (new Date() >= new Date("2025-02-23")) return;
+
         return;
         try {
             // Define the lobby settings
