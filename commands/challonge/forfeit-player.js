@@ -17,12 +17,31 @@ module.exports = {
             option
                 .setName("player")
                 .setDescription("The player to forfeit the match")
-                .setRequired(true)
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("user-id")
+                .setDescription(
+                    "The user id of the player to forfeit the match"
+                )
+                .setRequired(false)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
+        //make sure either player or user-id is provided
+        if (
+            !interaction.options.getUser("player") &&
+            !interaction.options.getString("user-id")
+        ) {
+            return await interaction.followUp({
+                content:
+                    "You must provide either the player or user-id to forfeit the match.",
+                ephemeral: true,
+            });
+        }
         try {
             // Check if the user has admin permissions
             if (
@@ -38,6 +57,7 @@ module.exports = {
 
             // Get the player to forfeit
             const player = interaction.options.getUser("player");
+            const userId = interaction.options.getString("user-id");
 
             // Placeholder for the forfeit logic
             // TODO: Insert the logic to handle the match forfeit here
@@ -45,10 +65,22 @@ module.exports = {
             const tournamentId = await getActiveTournamentId();
             console.log("tournamentId", tournamentId);
             console.log("player", player.id);
-            let playerId = await getParticipantDataFromTournamentUserId(
-                tournamentId,
-                player.id
-            );
+            // let playerId = await getParticipantDataFromTournamentUserId(
+            //     tournamentId,
+            //     player.id
+            // );
+            let playerId;
+            if (userId) {
+                playerId = await getParticipantDataFromTournamentUserId(
+                    tournamentId,
+                    userId
+                );
+            } else {
+                playerId = await getParticipantDataFromTournamentUserId(
+                    tournamentId,
+                    player.id
+                );
+            }
             playerId = await playerId.challonge_id;
             await forfeitAllGames(tournamentId, playerId);
             // Send confirmation message
