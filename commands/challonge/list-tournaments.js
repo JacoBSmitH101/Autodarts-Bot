@@ -19,6 +19,8 @@ module.exports = {
                 return interaction.reply("Failed to connect to the database.");
             }
         });
+        await interaction.reply("NOT UP TO DATE - DO NOT USE");
+        return;
 
         // Fetch tournaments from the database
         const query = `
