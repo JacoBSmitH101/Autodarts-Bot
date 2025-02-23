@@ -1,6 +1,10 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { EmbedBuilder } = require("discord.js");
 const { PermissionFlagsBits } = require("discord.js");
+const {
+    getActiveTournamentId,
+    getParticipantDataFromTournamentUserId,
+} = require("../../datamanager");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -36,12 +40,20 @@ module.exports = {
 
             // Placeholder for the forfeit logic
             // TODO: Insert the logic to handle the match forfeit here
-
+            //GET ACTIVE tournament ID
+            const tournamentId = await getActiveTournamentId();
+            let playerId = await getParticipantDataFromTournamentUserId(
+                tournamentId,
+                player.id
+            );
+            playerId = playerId.challonge_id;
+            interaction.followUp(`Player ID: ${playerId}`);
+            return;
             // Send confirmation message
             const embed = new EmbedBuilder()
                 .setTitle("⚠️ Forfeit Action Taken")
                 .setDescription(
-                    `Player ${player} has been forfeited from their match.`
+                    `Player ${player.id} has been forfeited from their match.`
                 )
                 .setColor(0xe74c3c)
                 .setTimestamp();
