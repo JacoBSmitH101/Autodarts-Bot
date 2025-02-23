@@ -1115,7 +1115,7 @@ async function calculateStandings(
             standings.groups[groupId].standings[player2_id].points +=
                 player2_score;
 
-            if (state === "complete") {
+            if (state === "complete" || state === "forfeited") {
                 if (winner_id == null || winner_id == "tie") {
                     standings.groups[groupId].standings[player1_id].draws++;
                     standings.groups[groupId].standings[player2_id].draws++;
