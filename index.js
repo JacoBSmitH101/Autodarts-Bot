@@ -261,7 +261,6 @@ client.on("threadUpdate", async (oldThread, newThread) => {
                     `This is a reminder that you have a match scheduled. Please confirm the match in the thread.`
                 )
                 .setColor(0x00ff00);
-
             //await channel.send({ embeds: [embed] });
             console.log(`Thread ${newThread.name} has been unarchived.`);
         }
