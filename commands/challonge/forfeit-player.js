@@ -63,8 +63,6 @@ module.exports = {
             // TODO: Insert the logic to handle the match forfeit here
             //GET ACTIVE tournament ID
             const tournamentId = await getActiveTournamentId();
-            console.log("tournamentId", tournamentId);
-            console.log("player", player.id);
             // let playerId = await getParticipantDataFromTournamentUserId(
             //     tournamentId,
             //     player.id
