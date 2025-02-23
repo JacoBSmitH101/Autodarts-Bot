@@ -227,6 +227,7 @@ const snapshotStandings = async () => {
 };
 // In your main bot file (e.g., index.js or bot.js)
 client.on("threadUpdate", async (oldThread, newThread) => {
+    console.log("Thread updated");
     try {
         // Check if the thread went from unarchived to archived
         if (!oldThread.archived && newThread.archived) {
@@ -260,18 +261,16 @@ client.on("threadUpdate", async (oldThread, newThread) => {
                     `This is a reminder that you have a match scheduled. Please confirm the match in the thread.`
                 )
                 .setColor(0x00ff00);
-
-            await channel.send({ embeds: [embed] });
+            //await channel.send({ embeds: [embed] });
             console.log(`Thread ${newThread.name} has been unarchived.`);
         }
     } catch (error) {
         console.error(`Error unarchiving thread: ${error}`);
     }
 });
-
-cron.schedule("0 2 * * 0", async () => {
+cron.schedule("0 2 * * *", async () => {
     await snapshotStandings();
-    console.log("Weekly snapshot taken at 2 AM on Sunday!");
+    console.log("Daily snapshot taken at 2 AM!");
 });
 
 // Event: Interaction Create

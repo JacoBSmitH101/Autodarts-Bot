@@ -17,10 +17,14 @@ module.exports = {
         interaction.deferReply({ ephemeral: true });
         //TODO make sure this is set for production
         await createTournamentChannels(
-            15428772,
+            15397196,
             interaction,
             {
-                1: "1330313936020443297",
+
+                1: "1342229505309151356",
+                2: "1341513530670715002",
+                3: "1341513539713761281",
+                4: "1341513547431153674",
             },
             interaction.client
         );
