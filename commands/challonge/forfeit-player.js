@@ -49,7 +49,7 @@ module.exports = {
                 tournamentId,
                 player.id
             );
-            playerId = playerId.challonge_id;
+            playerId = await playerId.challonge_id;
             await forfeitAllGames(tournamentId, playerId);
             // Send confirmation message
             const embed = new EmbedBuilder()

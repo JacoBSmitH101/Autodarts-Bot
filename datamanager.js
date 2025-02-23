@@ -1376,20 +1376,20 @@ async function saveStandingsSnapshot(tournamentId, standings) {
     }
 }
 async function forfeitAllGames(tournamentId, userId) {
-    // This query sets the winner_id to the opponent's ID for all open games where the forfeiting user is a participant
+    // Corrected query: Only uses the necessary parameters
     const query = `
         UPDATE Matches
         SET winner_id = CASE
-            WHEN player1_id = $3 THEN player2_id
-            WHEN player2_id = $3 THEN player1_id
-            ELSE winner_id  -- Just a fallback, should never happen in this scenario
+            WHEN player1_id = $2 THEN player2_id
+            WHEN player2_id = $2 THEN player1_id
+            ELSE winner_id
         END
-        WHERE tournament_id = $2
+        WHERE tournament_id = $1
         AND state = 'open'
-        AND (player1_id = $3 OR player2_id = $3)
+        AND (player1_id = $2 OR player2_id = $2)
     `;
 
-    const values = [userId, tournamentId, userId];
+    const values = [tournamentId, userId]; // Only 2 parameters needed now
 
     try {
         const result = await pool.query(query, values);
@@ -1401,6 +1401,7 @@ async function forfeitAllGames(tournamentId, userId) {
         throw new Error("Failed to forfeit games.");
     }
 }
+
 module.exports = {
     deleteLiveMatch,
     forfeitAllGames,
