@@ -18,8 +18,6 @@ module.exports = {
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
-        interaction.followUp("This command is not implemented yet.");
-        return;
         try {
             // Check if the user has admin permissions
             if (
