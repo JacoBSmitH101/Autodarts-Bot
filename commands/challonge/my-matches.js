@@ -53,6 +53,7 @@ module.exports = {
     },
 
     async execute(interaction) {
+        //test comment
         const matchAmount = interaction.options.getInteger("amount") || 20;
         const tournamentName = interaction.options.getString("tournament");
         const discordId = interaction.user.id;
@@ -103,7 +104,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
                 .setTitle(
-                    `Matches for ${interaction.user.username} | Division ${groupNumber}`
+                    `Your matches (${interaction.user.username}) | Division ${groupNumber}`
                 )
                 .setDescription(`League: **${tournamentName}**`)
                 .setTimestamp();
@@ -127,7 +128,10 @@ module.exports = {
                     const opponentDisplayName =
                         opponentTag + " (" + opponentName + ")";
                     let scoreCsv = "0-0";
-                    if (match.state == "complete") {
+                    if (
+                        match.state == "complete" ||
+                        match.state == "forfeited"
+                    ) {
                         scoreCsv = `${match.player1_score}-${match.player2_score}`;
                     }
                     const [playerScore, opponentScore] = scoreCsv
@@ -159,7 +163,9 @@ module.exports = {
                     } else {
                         embed.addFields({
                             name: `${
-                                result == "✅ **Won**"
+                                match.state == "forfeited"
+                                    ? "FORFEITED "
+                                    : result == "✅ **Won**"
                                     ? "🟢 "
                                     : result == "❌ **Lost**"
                                     ? "🔴 "

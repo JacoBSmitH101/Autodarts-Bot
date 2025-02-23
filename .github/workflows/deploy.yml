@@ -1,0 +1,49 @@
+name: Auto Deploy to Minikube
+
+on:
+  push:
+    branches:
+      - season3-dev  # Trigger on pushes to season3-dev branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4  # Updated to latest version
+
+    - name: Set Up Docker Buildx
+      uses: docker/setup-buildx-action@v3  # Updated version
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3  # Updated version
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      id: build  # Add an ID to access outputs in later steps
+      run: |
+        TIMESTAMP=$(date +%s)
+        echo "IMAGE_TAG=season3-dev-$TIMESTAMP" >> $GITHUB_ENV
+        docker build --no-cache -t yakoob19/discord-bot:season3-dev-$TIMESTAMP --build-arg NODE_ENV=development .
+        docker push yakoob19/discord-bot:season3-dev-$TIMESTAMP
+
+    - name: Set Up Kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" | base64 --decode > $HOME/.kube/config
+      env:
+        KUBECONFIG: $HOME/.kube/config
+
+    - name: Deploy to Minikube
+      run: |
+        kubectl set image deployment/discord-bot-dev discord-bot=yakoob19/discord-bot:${{ env.IMAGE_TAG }}
+        kubectl rollout status deployment/discord-bot-dev
+
+    - name: Rollback on Failure
+      if: failure()
+      run: |
+        echo "Deployment failed! Rolling back..."
+        kubectl rollout undo deployment/discord-bot-dev

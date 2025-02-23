@@ -27,10 +27,11 @@ module.exports = {
                     inMode: "Straight",
                     outMode: "Double",
                     bullMode: "25/50",
-                    maxRounds: 50,
+                    maxRounds: 80,
                 },
                 bullOffMode: "Normal",
                 isPrivate: false,
+                legs: 3,
             };
 
             // Create the lobby
