@@ -84,9 +84,7 @@ module.exports = {
             // Send confirmation message
             const embed = new EmbedBuilder()
                 .setTitle("⚠️ Forfeit Action Taken")
-                .setDescription(
-                    `Player ${player.id} has been forfeited from their match.`
-                )
+                .setDescription(`Player has been forfeited from their match.`)
                 .setColor(0xe74c3c)
                 .setTimestamp();
 
