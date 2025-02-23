@@ -4,6 +4,7 @@ const { PermissionFlagsBits } = require("discord.js");
 const {
     getActiveTournamentId,
     getParticipantDataFromTournamentUserId,
+    forfeitAllGames,
 } = require("../../datamanager");
 
 module.exports = {
@@ -49,8 +50,7 @@ module.exports = {
                 player.id
             );
             playerId = playerId.challonge_id;
-            interaction.followUp(`Player ID: ${playerId}`);
-            return;
+            await forfeitAllGames(tournamentId, playerId);
             // Send confirmation message
             const embed = new EmbedBuilder()
                 .setTitle("⚠️ Forfeit Action Taken")

@@ -1375,8 +1375,35 @@ async function saveStandingsSnapshot(tournamentId, standings) {
         throw new Error("Failed to save standings snapshot.");
     }
 }
+async function forfeitAllGames(tournamentId, userId) {
+    // This query sets the winner_id to the opponent's ID for all open games where the forfeiting user is a participant
+    const query = `
+        UPDATE Matches
+        SET winner_id = CASE
+            WHEN player1_id = $3 THEN player2_id
+            WHEN player2_id = $3 THEN player1_id
+            ELSE winner_id  -- Just a fallback, should never happen in this scenario
+        END
+        WHERE tournament_id = $2
+        AND state = 'open'
+        AND (player1_id = $3 OR player2_id = $3)
+    `;
+
+    const values = [userId, tournamentId, userId];
+
+    try {
+        const result = await pool.query(query, values);
+        console.log(
+            `Forfeited ${result.rowCount} games for user ${userId} in tournament ${tournamentId}.`
+        );
+    } catch (err) {
+        console.error("Error forfeiting games:", err.message);
+        throw new Error("Failed to forfeit games.");
+    }
+}
 module.exports = {
     deleteLiveMatch,
+    forfeitAllGames,
     saveStandingsSnapshot,
     getLocalMatchFromMatchId,
     getAllLiveMatches,
