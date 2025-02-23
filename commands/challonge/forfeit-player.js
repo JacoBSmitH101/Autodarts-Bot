@@ -5,7 +5,9 @@ const { PermissionFlagsBits } = require("discord.js");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("forfeit")
-        .setDescription("Forefeit remianing games for this player")
+        .setDescription(
+            "Forefeit remianing games for this player that havent been played"
+        )
         .addUserOption((option) =>
             option
                 .setName("player")
