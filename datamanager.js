@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const axios = require("axios");
 const { only } = require("node:test");
-const { ChannelType } = require("discord.js");
+const { ChannelType, ThreadAutoArchiveDuration } = require("discord.js");
 const { match } = require("assert");
 const { table } = require("table");
 const { fetchTournamentsFromDatabase, getLeagueStandings } = require("./util");
@@ -1006,7 +1006,7 @@ async function createTournamentChannels(
                         } vs ${Object.values(player2Name)[0]} [ID:${
                             match.match_id
                         }]`,
-                        autoArchiveDuration: 1440, // 1 day = 1440 mins (or 4320 for 3 days, etc.)
+                        autoArchiveDuration: ThreadAutoArchiveDuration.OneHour, // 1 day = 1440 mins (or 4320 for 3 days, etc.)
                         type: ChannelType.PublicThread,
                         reason: `Thread for match #${match.match_id}`,
                         message: {
@@ -1249,7 +1249,7 @@ async function getLiveMatchDataFromAutodartsMatchId(autodartsMatchId) {
         return result.rows[0];
     } catch (err) {
         console.error("Error fetching live match:", err.message);
-        throw new Error("Failed to fetch live match.");
+        //throw new Error("Failed to fetch live match.");
     }
 }
 async function updateLiveMatchStatus(autodartsMatchId, status) {
@@ -1272,7 +1272,7 @@ async function getLiveMatchStatus(autodartsMatchId) {
         return result.rows[0].status;
     } catch (err) {
         console.error("Error fetching live match status:", err.message);
-        throw new Error("Failed to fetch live match status.");
+        //throw new Error("Failed to fetch live match status.");
     }
 }
 async function updateLiveInteraction(autodartsMatchId, interactionId) {
@@ -1294,7 +1294,7 @@ async function getAllLiveMatches() {
         return result.rows;
     } catch (err) {
         console.error("Error fetching live matches:", err.message);
-        throw new Error("Failed to fetch live matches.");
+        return []; // Return an empty array instead of throwing
     }
 }
 async function getLocalMatchFromMatchId(matchId) {
@@ -1375,8 +1375,48 @@ async function saveStandingsSnapshot(tournamentId, standings) {
         throw new Error("Failed to save standings snapshot.");
     }
 }
+async function forfeitAllGames(tournamentId, userId) {
+    // Updated query to set winner, score, and state
+    const query = `
+        UPDATE Matches
+        SET 
+            winner_id = CASE
+                WHEN player1_id = $2 THEN player2_id
+                WHEN player2_id = $2 THEN player1_id
+                ELSE winner_id
+            END,
+            player1_score = CASE
+                WHEN player1_id = $2 THEN 0
+                WHEN player2_id = $2 THEN 4
+                ELSE player1_score
+            END,
+            player2_score = CASE
+                WHEN player2_id = $2 THEN 0
+                WHEN player1_id = $2 THEN 4
+                ELSE player2_score
+            END,
+            state = 'forfeited'
+        WHERE tournament_id = $1
+        AND state = 'open'
+        AND (player1_id = $2 OR player2_id = $2)
+    `;
+
+    const values = [tournamentId, userId]; // Only 2 parameters needed now
+
+    try {
+        const result = await pool.query(query, values);
+        console.log(
+            `Forfeited ${result.rowCount} games for user ${userId} in tournament ${tournamentId}.`
+        );
+    } catch (err) {
+        console.error("Error forfeiting games:", err.message);
+        throw new Error("Failed to forfeit games.");
+    }
+}
+
 module.exports = {
     deleteLiveMatch,
+    forfeitAllGames,
     saveStandingsSnapshot,
     getLocalMatchFromMatchId,
     getAllLiveMatches,
