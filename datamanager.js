@@ -1376,14 +1376,26 @@ async function saveStandingsSnapshot(tournamentId, standings) {
     }
 }
 async function forfeitAllGames(tournamentId, userId) {
-    // Corrected query: Only uses the necessary parameters
+    // Updated query to set winner, score, and state
     const query = `
         UPDATE Matches
-        SET winner_id = CASE
-            WHEN player1_id = $2 THEN player2_id
-            WHEN player2_id = $2 THEN player1_id
-            ELSE winner_id
-        END
+        SET 
+            winner_id = CASE
+                WHEN player1_id = $2 THEN player2_id
+                WHEN player2_id = $2 THEN player1_id
+                ELSE winner_id
+            END,
+            player1_score = CASE
+                WHEN player1_id = $2 THEN 0
+                WHEN player2_id = $2 THEN 4
+                ELSE player1_score
+            END,
+            player2_score = CASE
+                WHEN player2_id = $2 THEN 0
+                WHEN player1_id = $2 THEN 4
+                ELSE player2_score
+            END,
+            state = 'forfeited'
         WHERE tournament_id = $1
         AND state = 'open'
         AND (player1_id = $2 OR player2_id = $2)
