@@ -23,8 +23,10 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and Push Docker Image
+      id: build  # Add an ID to access outputs in later steps
       run: |
         TIMESTAMP=$(date +%s)
+        echo "IMAGE_TAG=season3-dev-$TIMESTAMP" >> $GITHUB_ENV
         docker build --no-cache -t yakoob19/discord-bot:season3-dev-$TIMESTAMP --build-arg NODE_ENV=development .
         docker push yakoob19/discord-bot:season3-dev-$TIMESTAMP
 
@@ -37,7 +39,7 @@ jobs:
 
     - name: Deploy to Minikube
       run: |
-        kubectl set image deployment/discord-bot-dev discord-bot=yakoob19/discord-bot:season3-dev-$TIMESTAMP
+        kubectl set image deployment/discord-bot-dev discord-bot=yakoob19/discord-bot:${{ env.IMAGE_TAG }}
         kubectl rollout status deployment/discord-bot-dev
 
     - name: Rollback on Failure
