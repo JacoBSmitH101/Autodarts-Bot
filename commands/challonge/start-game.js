@@ -17,14 +17,12 @@ module.exports = {
         .setDescription("Start a game on Autodarts.io with default settings."),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
-        if (new Date() >= new Date("2025-02-23")) {
+        if (new Date() >= new Date("2025-02-24")) {
             interaction.followUp(
                 "This season is over. Please wait for the next season to start."
             );
             return;
         }
-
-        return;
         try {
             // Define the lobby settings
             const lobbyData = {
@@ -38,7 +36,7 @@ module.exports = {
                 },
                 bullOffMode: "Normal",
                 isPrivate: false,
-                legs: 3,
+                //legs: 3,
             };
 
             // Create the lobby
