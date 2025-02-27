@@ -145,7 +145,7 @@ class AutodartsAuthClient {
             });
         }
     }
-
+    //test
     async subscribe(channel, topic, callback) {
         try {
             await this.ensureWebSocketOpen();
