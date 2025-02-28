@@ -781,6 +781,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         console.log(
             `${timestamp} User: ${interaction.user.username}#${interaction.user.discriminator} (${interaction.user.id}) ran command ${interaction.commandName}`
         );
+
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
