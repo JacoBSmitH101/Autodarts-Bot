@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: discord-bot-pdb
+spec:
+  minAvailable: 1  # Ensure at least one bot is always running
+  selector:
+    matchLabels:
+      app: discord-bot-dev

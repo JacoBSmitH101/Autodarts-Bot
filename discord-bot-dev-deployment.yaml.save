@@ -6,14 +6,13 @@ metadata:
   labels:
     app: discord-bot-dev
 spec:
-  replicas: 3  # 1 active, 2 standby
-  selector:
+  replicas: 2  selector:
     matchLabels:
       app: discord-bot-dev
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0  # Ensure no downtime
+      maxUnavailable: 0
       maxSurge: 1
   template:
     metadata:
@@ -32,18 +31,3 @@ spec:
                 secretKeyRef:
                   name: discord-token-dev
                   key: token
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "250m"
-              memory: "512Mi"
-          livenessProbe:
-            exec:
-              command: ["pgrep", "node"]  # Check if Node.js is running
-            initialDelaySeconds: 5
-            periodSeconds: 3
-            timeoutSeconds: 2
-            failureThreshold: 1  # Restart pod immediately after failure
-          restartPolicy: Always  # Ensures bot restarts on failure
