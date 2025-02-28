@@ -43,8 +43,8 @@ spec:
                       exec:
                           command: ["pgrep", "node"] # Check if Node.js is running
                       initialDelaySeconds: 5
-                      periodSeconds: 3
-                      timeoutSeconds: 2
+                      periodSeconds: 1
+                      timeoutSeconds: 1
                       failureThreshold: 1 # Restart pod immediately after failure
                   readinessProbe:
                       exec:
@@ -56,6 +56,6 @@ spec:
                                   "2",
                               ]
                       initialDelaySeconds: 5
-                      periodSeconds: 10
-                      timeoutSeconds: 2
+                      periodSeconds: 1
+                      timeoutSeconds: 1
                       failureThreshold: 1
