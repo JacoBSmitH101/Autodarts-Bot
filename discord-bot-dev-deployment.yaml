@@ -22,7 +22,7 @@ spec:
         spec:
             containers:
                 - name: discord-bot
-                  image: yakoob19/discord-bot:latest
+                  image: yakoob19/discord-bot:dev-latest
                   imagePullPolicy: Always
                   env:
                       - name: NODE_ENV
