@@ -6,7 +6,7 @@ metadata:
   labels:
     app: discord-bot-dev
 spec:
-  replicas: 2  # Only 1 active bot pod
+  replicas: 1  # Only 1 active bot pod
   selector:
     matchLabels:
       app: discord-bot-dev
@@ -20,7 +20,6 @@ spec:
       labels:
         app: discord-bot-dev
     spec:
-      priorityClassName: standby-priority
       containers:
         - name: discord-bot
           image: yakoob19/discord-bot:dev-latest  # Will be updated via the script
