@@ -10,7 +10,7 @@ COPY . .
 # Install dependencies
 RUN npm install
 RUN npm install -g nodemon
-
+RUN npm install pm2 -g
 # Set environment variable for mode
 ARG NODE_ENV
 ENV NODE_ENV $NODE_ENV
