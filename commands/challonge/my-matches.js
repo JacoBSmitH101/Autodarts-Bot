@@ -177,6 +177,7 @@ module.exports = {
                 });
             }
             await interaction.reply({ embeds: [embed], ephemeral: true });
+            throw new Error("Test error");
         } catch (error) {
             console.error("Error retrieving match data:", error);
             await interaction.reply("Failed to retrieve your matches.");
