@@ -36,7 +36,7 @@ module.exports = {
                 },
                 bullOffMode: "Normal",
                 isPrivate: false,
-                //legs: 3,
+                legs: 4,
             };
 
             // Create the lobby

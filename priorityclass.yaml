@@ -1,0 +1,8 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: standby-priority
+value: -10  # Lower priority to delay scheduling
+preemptionPolicy: Never
+globalDefault: false
+description: "Standby pod for Discord bot, only starts if needed."
