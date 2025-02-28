@@ -800,6 +800,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         } catch (error) {
             console.error("Error sending error message:", error);
         }
+        throw error;
     }
 });
 
