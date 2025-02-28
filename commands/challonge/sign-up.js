@@ -60,7 +60,7 @@ module.exports = {
             );
             const embed = new EmbedBuilder()
                 .setColor(0xff0000) // Red color for an error
-                .setTitle("Sign-Up Failed")
+                .setTitle("Sign-Ups Closed!")
                 .setDescription(
                     "Sign-ups for this tournament are currently closed."
                 )
