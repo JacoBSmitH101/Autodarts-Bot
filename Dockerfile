@@ -16,4 +16,6 @@ ARG NODE_ENV
 ENV NODE_ENV $NODE_ENV
 
 # Run the bot based on the environment
-CMD ["sh", "-c", "if [ \"$NODE_ENV\" = \"development\" ]; then node index.js; else node index.js; fi"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
