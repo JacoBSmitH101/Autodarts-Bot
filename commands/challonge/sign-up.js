@@ -62,7 +62,7 @@ module.exports = {
                 .setColor(0xff0000) // Red color for an error
                 .setTitle("Sign-Ups Closed!")
                 .setDescription("Sign-ups for this tournament are closed.")
-                .setFooter({ text: "Please try again later!" })
+                .setFooter({ text: "Please try again next season" })
                 .setTimestamp();
 
             return interaction.reply({ embeds: [embed], ephemeral: true });
