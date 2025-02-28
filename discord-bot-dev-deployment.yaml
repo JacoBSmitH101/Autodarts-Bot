@@ -1,61 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: discord-bot-dev
-    namespace: default
-    labels:
-        app: discord-bot-dev
+  name: discord-bot-dev
+  namespace: dev
+  labels:
+    app: discord-bot-dev
 spec:
-    replicas: 3 # 1 active, 2 standby
-    selector:
-        matchLabels:
-            app: discord-bot-dev
-    strategy:
-        type: RollingUpdate
-        rollingUpdate:
-            maxUnavailable: 0 # Ensure no downtime
-            maxSurge: 1
-    template:
-        metadata:
-            labels:
-                app: discord-bot-dev
-        spec:
-            containers:
-                - name: discord-bot
-                  image: yakoob19/discord-bot:dev-latest
-                  imagePullPolicy: Always
-                  env:
-                      - name: NODE_ENV
-                        value: "development"
-                      - name: DISCORD_TOKEN
-                        valueFrom:
-                            secretKeyRef:
-                                name: discord-token-dev
-                                key: token
-                  resources:
-                      requests:
-                          cpu: "100m"
-                          memory: "128Mi"
-                      limits:
-                          cpu: "250m"
-                          memory: "512Mi"
-                  livenessProbe:
-                      exec:
-                          command: ["pgrep", "node"] # Check if Node.js is running
-                      initialDelaySeconds: 5
-                      periodSeconds: 1
-                      timeoutSeconds: 1
-                      failureThreshold: 1 # Restart pod immediately after failure
-                  readinessProbe:
-                      exec:
-                          command:
-                              [
-                                  "test",
-                                  "$(kubectl get pods --selector=app=discord-bot-dev --field-selector=status.phase=Running | wc -l)",
-                                  "-lt",
-                                  "2",
-                              ]
-                      initialDelaySeconds: 5
-                      periodSeconds: 1
-                      timeoutSeconds: 1
-                      failureThreshold: 1
+  replicas: 2  # Only 1 active bot pod
+  selector:
+    matchLabels:
+      app: discord-bot-dev
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0  # Ensure no downtime
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: discord-bot-dev
+    spec:
+      priorityClassName: standby-priority
+      containers:
+        - name: discord-bot
+          image: yakoob19/discord-bot:dev-latest  # Will be updated via the script
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "development"
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-token-dev
+                  key: token
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "512Mi"
