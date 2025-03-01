@@ -36,7 +36,7 @@ module.exports = {
                 .setDescription("Your Autodarts Name")
                 .setRequired(true)
         )
-        .addNumberOption((option) =>
+        .addStringOption((option) =>
             option
                 .setName("last-100-average")
                 .setDescription("Your average for the last 100 legs")
@@ -110,7 +110,7 @@ module.exports = {
         // );
 
         // Now we fetch from the new inputs
-        const autodartName = interaction.options.getString("autodart-name");
+        const autodartName = interaction.options.getString("autodarts-name");
         console.log(
             `[${new Date().toISOString()}] Autodarts name: ${autodartName}`
         );
@@ -118,6 +118,8 @@ module.exports = {
         let autodartUsername = autodartName;
 
         let average = interaction.options.getNumber("average");
+        //make average a float with 2 decimal places
+        average = Math.round(average * 100) / 100;
         console.log(
             `[${new Date().toISOString()}] Provided average: ${average}`
         );
