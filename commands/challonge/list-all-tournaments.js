@@ -51,7 +51,7 @@ module.exports = {
             });
 
             // Send the embed in response
-            await interaction.reply({ embeds: [embed] });
+            await interaction.reply({ embeds: [embed], ephemeral: true });
         } catch (error) {
             console.error(error);
             await interaction.reply(

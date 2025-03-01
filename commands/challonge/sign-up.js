@@ -42,6 +42,23 @@ module.exports = {
                 interaction.user.tag
             } (${interaction.user.id})`
         );
+        //if date before 02/03/2025 then reject
+        const currentDate = new Date();
+        const startDate = new Date("2025-03-02");
+        if (currentDate < startDate) {
+            console.log(
+                `[${new Date().toISOString()}] Sign-up rejected - date before 02/03/2025`
+            );
+            const embed = new EmbedBuilder()
+
+                .setColor(0xff0000) // Red color for an error
+                .setTitle("Sign-Ups not open yet!!!")
+                .setDescription("Sign-ups for this tournament are closed.")
+                .setFooter({ text: "Please try again next season" })
+                .setTimestamp();
+
+            return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
 
         const tournamentName = interaction.options.getString("tournament");
         console.log(
@@ -275,7 +292,7 @@ module.exports = {
 
             // Fetch tournament names from the database
             const tournaments = await fetchTournamentsFromDatabase();
-
+            //filter out tournaments that are not pending
             // Filter tournaments based on user input and limit results to 25
             const filteredTournaments = tournaments
                 .filter((tournament) =>
