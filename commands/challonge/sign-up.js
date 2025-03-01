@@ -44,7 +44,7 @@ module.exports = {
         );
         //if date before 02/03/2025 then reject
         const currentDate = new Date();
-        const startDate = new Date("2025-03-02");
+        const startDate = new Date("2025-03-01");
         if (currentDate < startDate) {
             console.log(
                 `[${new Date().toISOString()}] Sign-up rejected - date before 02/03/2025`
