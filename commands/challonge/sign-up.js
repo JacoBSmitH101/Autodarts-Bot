@@ -22,10 +22,24 @@ module.exports = {
                 .setRequired(true)
                 .setAutocomplete(true)
         )
+        // Commented out the old Autodart profile URL requirement
+        // .addStringOption((option) =>
+        //     option
+        //         .setName("autodart-profile-url")
+        //         .setDescription("Autodart URL")
+        //         .setRequired(true)
+        // )
+        // New options for autodarts name and average
         .addStringOption((option) =>
             option
-                .setName("autodart-profile-url")
-                .setDescription("Autodart URL")
+                .setName("autodarts-name")
+                .setDescription("Your Autodarts Name")
+                .setRequired(true)
+        )
+        .addNumberOption((option) =>
+            option
+                .setName("last-100-average")
+                .setDescription("Your average for the last 100 legs")
                 .setRequired(true)
         )
         .addStringOption((option) =>
@@ -45,7 +59,11 @@ module.exports = {
         //if date before 02/03/2025 then reject
         const currentDate = new Date();
         const startDate = new Date("2025-03-02");
-        if (currentDate < startDate) {
+        //if user is admin, allow sign-up
+        if (
+            currentDate < startDate &&
+            !interaction.member.permissions.has("ADMINISTRATOR")
+        ) {
             console.log(
                 `[${new Date().toISOString()}] Sign-up rejected - date before 02/03/2025`
             );
@@ -84,16 +102,27 @@ module.exports = {
 
             return interaction.reply({ embeds: [embed], ephemeral: true });
         }
-        const profileUrl = interaction.options.getString(
-            "autodart-profile-url"
-        );
+
+        // Commented out old profileUrl logic
+        // const profileUrl = interaction.options.getString("autodart-profile-url");
+        // console.log(
+        //     `[${new Date().toISOString()}] Autodarts profile URL: ${profileUrl}`
+        // );
+
+        // Now we fetch from the new inputs
+        const autodartName = interaction.options.getString("autodart-name");
         console.log(
-            `[${new Date().toISOString()}] Autodarts profile URL: ${profileUrl}`
+            `[${new Date().toISOString()}] Autodarts name: ${autodartName}`
         );
 
-        let autodartUsername = "Test User" + Math.floor(Math.random() * 10000);
-        let average = 25;
-        //get challonge name if provided
+        let autodartUsername = autodartName;
+
+        let average = interaction.options.getNumber("average");
+        console.log(
+            `[${new Date().toISOString()}] Provided average: ${average}`
+        );
+
+        // get challonge name if provided
         const challongeName =
             interaction.options.getString("challonge-username");
 
@@ -103,69 +132,66 @@ module.exports = {
             );
         }
 
-        ///first validate if either it starts with https://play.autodarts.io/users/
-        //or is in the form bb229295-742d-429f-bbbf-fe4a179ef537
+        // Commented out code for validating and retrieving data from profile URL:
+        // const regex = new RegExp(
+        //     "^(https://play.autodarts.io/users/|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$"
+        // );
+        // if (!regex.test(profileUrl)) {
+        //     console.log(
+        //         `[${new Date().toISOString()}] Invalid profile URL format: ${profileUrl}`
+        //     );
+        //     return interaction.reply(
+        //         "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+        //     );
+        // }
 
-        const regex = new RegExp(
-            "^(https://play.autodarts.io/users/|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$"
-        );
+        // //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
+        // if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
+        //     try {
+        //         console.log(
+        //             `[${new Date().toISOString()}] Fetching username from ID: ${profileUrl}`
+        //         );
+        //         autodartUsername = await getAutodartsUsernameFromID(
+        //             profileUrl,
+        //             interaction.client.keycloakClient
+        //         );
+        //         if (!autodartUsername) {
+        //             console.log(
+        //                 `[${new Date().toISOString()}] Failed to get username for ID: ${profileUrl}`
+        //             );
+        //             return interaction.reply(
+        //                 "Invalid Autodarts profile URL or ID. Please provide a valid URL."
+        //             );
+        //         }
+        //     } catch (error) {
+        //         console.error(
+        //             `[${new Date().toISOString()}] Error getting autodarts username:`,
+        //             error
+        //         );
+        //         return interaction.reply(
+        //             "An error occurred while fetching the Autodarts username. Please try again later."
+        //         );
+        //     }
+        // } else {
+        //     console.log(
+        //         `[${new Date().toISOString()}] Fetching username from URL: ${profileUrl}`
+        //     );
+        //     autodartUsername = await getAutodartsUsernameFromURL(
+        //         profileUrl,
+        //         interaction.client.keycloakClient
+        //     );
+        // }
+        // console.log(
+        //     `[${new Date().toISOString()}] Retrieved autodarts username: ${autodartUsername}`
+        // );
 
-        if (!regex.test(profileUrl)) {
-            console.log(
-                `[${new Date().toISOString()}] Invalid profile URL format: ${profileUrl}`
-            );
-            return interaction.reply(
-                "Invalid Autodarts profile URL or ID. Please provide a valid URL."
-            );
-        }
-
-        //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
-        if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
-            try {
-                console.log(
-                    `[${new Date().toISOString()}] Fetching username from ID: ${profileUrl}`
-                );
-                autodartUsername = await getAutodartsUsernameFromID(
-                    profileUrl,
-                    interaction.client.keycloakClient
-                );
-                if (!autodartUsername) {
-                    console.log(
-                        `[${new Date().toISOString()}] Failed to get username for ID: ${profileUrl}`
-                    );
-                    return interaction.reply(
-                        "Invalid Autodarts profile URL or ID. Please provide a valid URL."
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    `[${new Date().toISOString()}] Error getting autodarts username:`,
-                    error
-                );
-                return interaction.reply(
-                    "An error occurred while fetching the Autodarts username. Please try again later."
-                );
-            }
-        } else {
-            console.log(
-                `[${new Date().toISOString()}] Fetching username from URL: ${profileUrl}`
-            );
-            autodartUsername = await getAutodartsUsernameFromURL(
-                profileUrl,
-                interaction.client.keycloakClient
-            );
-        }
-        console.log(
-            `[${new Date().toISOString()}] Retrieved autodarts username: ${autodartUsername}`
-        );
-
-        average = await getLast100Average(
-            profileUrl,
-            interaction.client.keycloakClient
-        );
-        console.log(
-            `[${new Date().toISOString()}] Retrieved 100-leg average: ${average}`
-        );
+        // average = await getLast100Average(
+        //     profileUrl,
+        //     interaction.client.keycloakClient
+        // );
+        // console.log(
+        //     `[${new Date().toISOString()}] Retrieved 100-leg average: ${average}`
+        // );
 
         const testId = interaction.options.getString("test_user_id");
         const discordId = testId || interaction.user.id;
@@ -225,13 +251,15 @@ module.exports = {
                 `[${new Date().toISOString()}] Challonge registration successful. Participant ID: ${challongeParticipantId}`
             );
 
+            // For the upsert, we no longer have a real profileUrl, so we can store "N/A" or something similar
+            // or we can store an empty string if needed.
             await upsertUser(
                 discordId,
                 interaction.user.tag,
                 autodartUsername,
                 challongeParticipantId,
                 average,
-                profileUrl
+                "" // or store an empty string if you prefer
             );
             await upsertParticipant(
                 discordId,
@@ -312,6 +340,9 @@ module.exports = {
     },
 };
 
+// Commented out the old helper functions for retrieving from the URL/ID and last 100 average
+
+/*
 const getAutodartsUsernameFromURL = async (profileUrl, keycloakClient) => {
     console.log(
         `[${new Date().toISOString()}] Fetching Autodarts username from URL: ${profileUrl}`
@@ -322,9 +353,7 @@ const getAutodartsUsernameFromURL = async (profileUrl, keycloakClient) => {
     const headers = { Authorization: `Bearer ${keycloakClient.accessToken}` };
     const response = await axios.get(apiURL, { headers });
     console.log(
-        `[${new Date().toISOString()}] Retrieved username: ${
-            response.data.name
-        }`
+        `[${new Date().toISOString()}] Retrieved username: ${response.data.name}`
     );
     return response.data.name;
 };
@@ -343,9 +372,7 @@ const getAutodartsUsernameFromID = async (userId, keycloakClient) => {
         return false;
     }
     console.log(
-        `[${new Date().toISOString()}] Retrieved username: ${
-            response.data.name
-        }`
+        `[${new Date().toISOString()}] Retrieved username: ${response.data.name}`
     );
     return response.data.name;
 };
@@ -367,3 +394,4 @@ const getLast100Average = async (profileUrl, keycloakClient) => {
     );
     return roundedAvg;
 };
+*/
