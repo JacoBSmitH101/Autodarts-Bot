@@ -117,7 +117,7 @@ module.exports = {
 
         let autodartUsername = autodartName;
 
-        let average = interaction.options.getNumber("average");
+        let average = interaction.options.getString("average");
         //make average a float with 2 decimal places
         average = Math.round(average * 100) / 100;
         console.log(
