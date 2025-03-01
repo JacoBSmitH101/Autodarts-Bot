@@ -293,11 +293,8 @@ module.exports = {
             // Fetch tournament names from the database
             const tournaments = await fetchTournamentsFromDatabase();
             //filter out tournaments that are not pending
-            const pendingTournaments = tournaments.filter(
-                (tournament) => tournament.status === "pending"
-            );
             // Filter tournaments based on user input and limit results to 25
-            const filteredTournaments = pendingTournaments
+            const filteredTournaments = tournaments
                 .filter((tournament) =>
                     tournament.name
                         .toLowerCase()
