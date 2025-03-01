@@ -32,13 +32,13 @@ module.exports = {
         // New options for autodarts name and average
         .addStringOption((option) =>
             option
-                .setName("autodart-name")
+                .setName("autodarts-name")
                 .setDescription("Your Autodarts Name")
                 .setRequired(true)
         )
         .addNumberOption((option) =>
             option
-                .setName("average")
+                .setName("last-100-average")
                 .setDescription("Your average for the last 100 legs")
                 .setRequired(true)
         )
@@ -58,8 +58,12 @@ module.exports = {
         );
         //if date before 02/03/2025 then reject
         const currentDate = new Date();
-        const startDate = new Date("2025-03-01");
-        if (currentDate < startDate) {
+        const startDate = new Date("2025-03-02");
+        //if user is admin, allow sign-up
+        if (
+            currentDate < startDate &&
+            !interaction.member.permissions.has("ADMINISTRATOR")
+        ) {
             console.log(
                 `[${new Date().toISOString()}] Sign-up rejected - date before 02/03/2025`
             );
@@ -255,7 +259,7 @@ module.exports = {
                 autodartUsername,
                 challongeParticipantId,
                 average,
-                "N/A" // or store an empty string if you prefer
+                "" // or store an empty string if you prefer
             );
             await upsertParticipant(
                 discordId,
