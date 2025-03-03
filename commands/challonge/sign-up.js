@@ -118,6 +118,8 @@ module.exports = {
         let autodartUsername = autodartName;
 
         let average = interaction.options.getString("last-100-average");
+        //check if average has been used with a . or , and replace with .
+        average = average.replace(",", ".");
         //make average a float with 2 decimal places
         average = Math.round(average * 100) / 100;
         console.log(
