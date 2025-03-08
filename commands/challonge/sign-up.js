@@ -80,11 +80,24 @@ module.exports = {
             return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
-        const autodartUsername =
-            interaction.options.getString("autodarts-name");
-        let average = parseFloat(
-            interaction.options.getString("last-100-average")
+        // Commented out old profileUrl logic
+        // const profileUrl = interaction.options.getString("autodart-profile-url");
+        // console.log(
+        //     `[${new Date().toISOString()}] Autodarts profile URL: ${profileUrl}`
+        // );
+
+        // Now we fetch from the new inputs
+        const autodartName = interaction.options.getString("autodarts-name");
+        console.log(
+            `[${new Date().toISOString()}] Autodarts name: ${autodartName}`
         );
+
+        let autodartUsername = autodartName;
+
+        let average = interaction.options.getString("last-100-average");
+        //check if average has been used with a . or , and replace with .
+        average = average.replace(",", ".");
+        //make average a float with 2 decimal places
         average = Math.round(average * 100) / 100;
         const challongeName =
             interaction.options.getString("challonge-username");
