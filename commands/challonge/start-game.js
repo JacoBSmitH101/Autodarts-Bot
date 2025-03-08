@@ -9,22 +9,24 @@ const {
     getMatchFromMatchId,
     createNewLiveMatch,
 } = require("../../datamanager");
-const { PermissionFlagsBits } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("start-game")
-        .setDescription("Start a game on Autodarts.io with default settings."),
+        .setDescription("Start a game on Autodarts.io with default settings.")
+        .addBooleanOption((option) =>
+            option
+                .setName("private")
+                .setDescription("Make lobby private")
+                .setRequired(false)
+        ),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
-        // if (new Date() >= new Date("2025-02-24")) {
-        //     interaction.followUp(
-        //         "This season is over. Please wait for the next season to start."
-        //     );
-        //     return;
-        // }
+
         try {
-            // Define the lobby settings
+            const isPrivate =
+                interaction.options.getBoolean("private") ?? false;
+
             const lobbyData = {
                 variant: "X01",
                 settings: {
@@ -35,37 +37,28 @@ module.exports = {
                     maxRounds: 80,
                 },
                 bullOffMode: "Normal",
-                isPrivate: false,
+                isPrivate: isPrivate,
                 legs: 4,
             };
 
-            // Create the lobby
             const lobbyResponse =
                 await interaction.client.keycloakClient.createLobby(lobbyData);
 
             if (!lobbyResponse) {
                 throw new Error("Failed to create the game lobby.");
             }
-            const autodarts_match_id = lobbyResponse.id;
-            console.log("autodarts_match_id", autodarts_match_id);
 
-            // Construct the full URL for the lobby
+            const autodarts_match_id = lobbyResponse.id;
             const lobbyUrl = `https://play.autodarts.io/lobbies/${autodarts_match_id}`;
 
-            // Get channel name from interaction
             const channel = interaction.channel;
-
-            // Extract the match ID from the channel name
             const matchId = channel.name.match(/\[ID:(\d+)\]/)?.[1];
-
-            // Get match info from the database
             const matchData = await getMatchFromMatchId(matchId);
 
             if (!matchData) {
                 throw new Error("Failed to get match data from the database.");
             }
 
-            // Create the embed with match details
             const embed = new EmbedBuilder()
                 .setTitle(
                     "🎯 Get ready!! ⚠️ **JOIN USING THE LINK PROVIDED BELOW** ⚠️"
@@ -73,36 +66,29 @@ module.exports = {
                 .setDescription(
                     `Click the button below to join your game on Autodarts:\n\n**[Join Your Match Now!](${lobbyUrl})** or copy this link: ${lobbyUrl}`
                 )
-                .setColor(0xe74c3c) // Warning red color
+                .setColor(0xe74c3c)
                 .addFields(
                     {
                         name: "⚠️ Important Match Rules",
                         value: "Play **Best of 6** legs:\n- Match ends **3-3** (Draw)\n- Or **First to 4** (Win)",
-                        inline: false,
                     },
                     {
                         name: "⚠️ Final Reminder",
                         value: "You must manually **click Finish** to end the match! Be careful **not to play extra legs** beyond the agreed Best of 6 format.",
-                        inline: false,
                     }
                 )
                 .setFooter({ text: "Good luck and have fun!" })
                 .setTimestamp();
 
-            // Create the Abort button
             const abortButton = new ButtonBuilder()
-                .setCustomId(`abort_lobbyCreate_${autodarts_match_id}`) // Unique ID for the button
+                .setCustomId(`abort_lobbyCreate_${autodarts_match_id}`)
                 .setLabel(
                     ` ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎Cancel‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎ ‎ ‎ ‎ ‎‎ ‎ ‎`
                 )
-                .setStyle(ButtonStyle.Danger); // Red button
+                .setStyle(ButtonStyle.Danger);
 
-            // Add the button to an ActionRow
             const actionRow = new ActionRowBuilder().addComponents(abortButton);
 
-            // Respond with the embed and button
-
-            // Insert match details into the database
             await createNewLiveMatch(
                 matchId,
                 matchData.tournament_id,
@@ -111,6 +97,7 @@ module.exports = {
                 autodarts_match_id,
                 interaction.channel.id
             );
+
             await interaction.followUp({
                 embeds: [embed],
                 components: [actionRow],
@@ -118,10 +105,9 @@ module.exports = {
             });
 
             await interaction.client.keycloakClient.subscribe(
-                "autodarts.lobbies", // Channel
-                `${autodarts_match_id}.state`, // Topic
+                "autodarts.lobbies",
+                `${autodarts_match_id}.state`,
                 async (message) => {
-                    //console.log("Received lobby event:", message);
                     interaction.client.matchHandler.lobby_event(message);
                 },
                 (ws) => {
@@ -130,20 +116,13 @@ module.exports = {
             );
         } catch (error) {
             console.error("Error:", error);
-            //TODO this needs to be actuall working
-            if (
-                error.message &&
-                error.message.includes("Failed to create live match")
-            ) {
+
+            if (error.message.includes("Failed to create live match")) {
                 await interaction.followUp({
                     content: "This game has already been opened.",
                     ephemeral: true,
                 });
-                return;
-            } else if (
-                error.message &&
-                error.message.includes("Failed to get match data")
-            ) {
+            } else if (error.message.includes("Failed to get match data")) {
                 await interaction.followUp({
                     content:
                         "This command can only be used in a match channel.",
