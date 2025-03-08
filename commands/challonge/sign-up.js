@@ -22,14 +22,6 @@ module.exports = {
                 .setRequired(true)
                 .setAutocomplete(true)
         )
-        // Commented out the old Autodart profile URL requirement
-        // .addStringOption((option) =>
-        //     option
-        //         .setName("autodart-profile-url")
-        //         .setDescription("Autodart URL")
-        //         .setRequired(true)
-        // )
-        // New options for autodarts name and average
         .addStringOption((option) =>
             option
                 .setName("autodarts-name")
@@ -47,29 +39,24 @@ module.exports = {
                 .setName("challonge-username")
                 .setDescription("(Optional) Challonge username")
                 .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("test-user-id")
+                .setDescription("(Optional) Discord ID for testing")
+                .setRequired(false)
         ),
 
     async execute(interaction) {
-        //TODO REVIEW BEFORE NEXT SEASON
-        console.log(
-            `[${new Date().toISOString()}] Sign-up command initiated by ${
-                interaction.user.tag
-            } (${interaction.user.id})`
-        );
-        //if date before 02/03/2025 then reject
         const currentDate = new Date();
         const startDate = new Date("2025-03-02");
-        //if user is admin, allow sign-up
+
         if (
             currentDate < startDate &&
             !interaction.member.permissions.has("ADMINISTRATOR")
         ) {
-            console.log(
-                `[${new Date().toISOString()}] Sign-up rejected - date before 02/03/2025`
-            );
             const embed = new EmbedBuilder()
-
-                .setColor(0xff0000) // Red color for an error
+                .setColor(0xff0000)
                 .setTitle("Sign-Ups not open yet!!!")
                 .setDescription("Sign-ups for this tournament are closed.")
                 .setFooter({ text: "Please try again next season" })
@@ -79,22 +66,12 @@ module.exports = {
         }
 
         const tournamentName = interaction.options.getString("tournament");
-        console.log(
-            `[${new Date().toISOString()}] Tournament requested: ${tournamentName}`
-        );
-
         const tournamentId = await getTournamentIdByName(tournamentName);
         const status = await getTournamentStatus(tournamentId);
-        console.log(
-            `[${new Date().toISOString()}] Tournament status: ${status}`
-        );
 
         if (status !== "pending") {
-            console.log(
-                `[${new Date().toISOString()}] Sign-up rejected - tournament not pending`
-            );
             const embed = new EmbedBuilder()
-                .setColor(0xff0000) // Red color for an error
+                .setColor(0xff0000)
                 .setTitle("Sign-Ups Closed!")
                 .setDescription("Sign-ups for this tournament are closed.")
                 .setFooter({ text: "Please try again next season" })
@@ -103,114 +80,26 @@ module.exports = {
             return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
-        // Commented out old profileUrl logic
-        // const profileUrl = interaction.options.getString("autodart-profile-url");
-        // console.log(
-        //     `[${new Date().toISOString()}] Autodarts profile URL: ${profileUrl}`
-        // );
-
-        // Now we fetch from the new inputs
-        const autodartName = interaction.options.getString("autodarts-name");
-        console.log(
-            `[${new Date().toISOString()}] Autodarts name: ${autodartName}`
+        const autodartUsername =
+            interaction.options.getString("autodarts-name");
+        let average = parseFloat(
+            interaction.options.getString("last-100-average")
         );
-
-        let autodartUsername = autodartName;
-
-        let average = interaction.options.getString("average");
-        //make average a float with 2 decimal places
         average = Math.round(average * 100) / 100;
-        console.log(
-            `[${new Date().toISOString()}] Provided average: ${average}`
-        );
-
-        // get challonge name if provided
         const challongeName =
             interaction.options.getString("challonge-username");
-
-        if (challongeName) {
-            console.log(
-                `[${new Date().toISOString()}] Challonge username provided: ${challongeName}`
-            );
-        }
-
-        // Commented out code for validating and retrieving data from profile URL:
-        // const regex = new RegExp(
-        //     "^(https://play.autodarts.io/users/|([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$"
-        // );
-        // if (!regex.test(profileUrl)) {
-        //     console.log(
-        //         `[${new Date().toISOString()}] Invalid profile URL format: ${profileUrl}`
-        //     );
-        //     return interaction.reply(
-        //         "Invalid Autodarts profile URL or ID. Please provide a valid URL."
-        //     );
-        // }
-
-        // //check if url is valid eg: https://play.autodarts.io/users/bb229295-742d-429f-bbbf-fe4a179ef537
-        // if (!profileUrl.startsWith("https://play.autodarts.io/users/")) {
-        //     try {
-        //         console.log(
-        //             `[${new Date().toISOString()}] Fetching username from ID: ${profileUrl}`
-        //         );
-        //         autodartUsername = await getAutodartsUsernameFromID(
-        //             profileUrl,
-        //             interaction.client.keycloakClient
-        //         );
-        //         if (!autodartUsername) {
-        //             console.log(
-        //                 `[${new Date().toISOString()}] Failed to get username for ID: ${profileUrl}`
-        //             );
-        //             return interaction.reply(
-        //                 "Invalid Autodarts profile URL or ID. Please provide a valid URL."
-        //             );
-        //         }
-        //     } catch (error) {
-        //         console.error(
-        //             `[${new Date().toISOString()}] Error getting autodarts username:`,
-        //             error
-        //         );
-        //         return interaction.reply(
-        //             "An error occurred while fetching the Autodarts username. Please try again later."
-        //         );
-        //     }
-        // } else {
-        //     console.log(
-        //         `[${new Date().toISOString()}] Fetching username from URL: ${profileUrl}`
-        //     );
-        //     autodartUsername = await getAutodartsUsernameFromURL(
-        //         profileUrl,
-        //         interaction.client.keycloakClient
-        //     );
-        // }
-        // console.log(
-        //     `[${new Date().toISOString()}] Retrieved autodarts username: ${autodartUsername}`
-        // );
-
-        // average = await getLast100Average(
-        //     profileUrl,
-        //     interaction.client.keycloakClient
-        // );
-        // console.log(
-        //     `[${new Date().toISOString()}] Retrieved 100-leg average: ${average}`
-        // );
-
-        const testId = interaction.options.getString("test_user_id");
+        const testId = interaction.options.getString("test-user-id");
         const discordId = testId || interaction.user.id;
 
         try {
-            //first check if already signed up
             const user = await getParticipantDataFromTournamentUserId(
                 tournamentId,
                 discordId
             );
 
             if (user) {
-                console.log(
-                    `[${new Date().toISOString()}] User ${discordId} already signed up for tournament ${tournamentId}`
-                );
                 const embed = new EmbedBuilder()
-                    .setColor(0xffcc00) // Yellow color for a warning
+                    .setColor(0xffcc00)
                     .setTitle("Already Signed Up")
                     .setDescription(
                         "You're already signed up for this tournament!"
@@ -220,8 +109,6 @@ module.exports = {
 
                 return interaction.reply({ embeds: [embed], ephemeral: true });
             }
-
-            //discordid, usertag, autodartusername, average, profileurl
 
             const apiUrl = `https://api.challonge.com/v1/tournaments/${tournamentId}/participants.json`;
             const participantName = `${interaction.user.tag} (${autodartUsername})`;
@@ -233,43 +120,28 @@ module.exports = {
                 },
             };
 
-            console.log(
-                `[${new Date().toISOString()}] Registering participant with Challonge: ${participantName}`
-            );
             const response = await axios.post(apiUrl, data, { params });
 
             if (response.status !== 200 || !response.data.participant) {
-                console.error(
-                    `[${new Date().toISOString()}] Unexpected response from Challonge:`,
-                    response.data
-                );
                 return interaction.reply(
                     "Unexpected response from Challonge. Please try again later."
                 );
             }
 
             const challongeParticipantId = response.data.participant.id;
-            console.log(
-                `[${new Date().toISOString()}] Challonge registration successful. Participant ID: ${challongeParticipantId}`
-            );
 
-            // For the upsert, we no longer have a real profileUrl, so we can store "N/A" or something similar
-            // or we can store an empty string if needed.
             await upsertUser(
                 discordId,
                 interaction.user.tag,
                 autodartUsername,
                 challongeParticipantId,
                 average,
-                "" // or store an empty string if you prefer
+                ""
             );
             await upsertParticipant(
                 discordId,
                 tournamentId,
                 challongeParticipantId
-            );
-            console.log(
-                `[${new Date().toISOString()}] Database records updated successfully`
             );
 
             const embed = new EmbedBuilder()
@@ -282,14 +154,10 @@ module.exports = {
                 .addFields(
                     {
                         name: "Participant",
-                        value: `${interaction.user.tag} (${autodartUsername})`,
+                        value: participantName,
                         inline: true,
                     },
-                    {
-                        name: "Tournament",
-                        value: `${tournamentName}`,
-                        inline: true,
-                    },
+                    { name: "Tournament", value: tournamentName, inline: true },
                     {
                         name: "100-Leg Average",
                         value: `${average}`,
@@ -299,19 +167,10 @@ module.exports = {
                 .setFooter({ text: "Good luck!" })
                 .setTimestamp();
 
-            console.log(
-                `[${new Date().toISOString()}] Sign-up process completed successfully for ${
-                    interaction.user.tag
-                }`
-            );
             interaction.reply({ embeds: [embed] });
         } catch (error) {
-            console.error(
-                `[${new Date().toISOString()}] Error signing up for tournament:`,
-                error
-            );
             interaction.reply(
-                "An error occurred while signing up for the tournament. This is likely due to you already being signed up. Please contact an admin if you believe this is an error."
+                "An error occurred while signing up for the tournament. Please contact an admin if you believe this is an error."
             );
         }
     },
@@ -320,10 +179,7 @@ module.exports = {
         if (interaction.options.getFocused(true).name === "tournament") {
             const focusedValue = interaction.options.getFocused();
 
-            // Fetch tournament names from the database
             const tournaments = await fetchTournamentsFromDatabase();
-            //filter out tournaments that are not pending
-            // Filter tournaments based on user input and limit results to 25
             const filteredTournaments = tournaments
                 .filter((tournament) =>
                     tournament.name
