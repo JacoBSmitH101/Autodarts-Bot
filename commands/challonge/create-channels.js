@@ -16,7 +16,7 @@ module.exports = {
     async execute(interaction) {
         interaction.deferReply({ ephemeral: true });
         //TODO make sure this is set for production
-        await createTournmentChannels(
+        await createTournamentChannels(
             15904276,
             interaction,
             {
