@@ -1242,7 +1242,7 @@ async function createNewLiveMatch(
 async function getLiveMatchDataFromAutodartsMatchId(autodartsMatchId) {
     const query = `SELECT * FROM live_matches WHERE autodarts_match_id = $1`;
     const values = [autodartsMatchId];
-
+    //
     try {
         const result = await pool.query(query, values);
         if (result.rows.length === 0) return null;
