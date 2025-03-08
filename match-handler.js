@@ -225,12 +225,12 @@ class MatchHandler {
             return;
 
         const {
-            player1_autodarts_id,
-            player2_autodarts_id,
+            player1_autodarts_name,
+            player2_autodarts_name,
             match_channel_interaction_id,
         } = match_data;
 
-        if (!player1_autodarts_id || !player2_autodarts_id) {
+        if (!player1_autodarts_name || !player2_autodarts_name) {
             this.lobbyLocks[lobbyId] = false;
             return;
         }
@@ -242,9 +242,10 @@ class MatchHandler {
         const removalPromises = [];
         message.data.players.forEach((player, index) => {
             const player_id = player.userId;
-            if (player_id === player1_autodarts_id) {
+            const player_name = player.name;
+            if (player_name === player1_autodarts_name) {
                 player1_in = true;
-            } else if (player_id === player2_autodarts_id) {
+            } else if (player_name === player2_autodarts_name) {
                 player2_in = true;
             } else {
                 // Remove non-matching players
