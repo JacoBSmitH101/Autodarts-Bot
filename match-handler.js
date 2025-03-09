@@ -300,38 +300,36 @@ class MatchHandler {
                             .setStyle(ButtonStyle.Success)
                     );
 
-                    // Fetch the original interaction message (if needed)
-                    const interactionMessage = await thread.messages.fetch(
-                        match_channel_interaction_id
-                    );
+                    // // Fetch the original interaction message (if needed)
+                    // const interactionMessage = await thread.messages.fetch(
+                    //     match_channel_interaction_id
+                    // );
 
-                    if (interactionMessage) {
-                        // Check if the start prompt has already been sent
-                        const existingStartPrompt =
-                            interactionMessage.components.some((row) =>
-                                row.components.some(
-                                    (button) =>
-                                        button.customId ===
-                                        `start_autoMatch_${lobbyId}`
-                                )
-                            );
+                    // if (interactionMessage) {
+                    //     // Check if the start prompt has already been sent
+                    //     const existingStartPrompt =
+                    //         interactionMessage.components.some((row) =>
+                    //             row.components.some(
+                    //                 (button) =>
+                    //                     button.customId ===
+                    //                     `start_autoMatch_${lobbyId}`
+                    //             )
+                    //         );
 
-                        if (!existingStartPrompt) {
-                            await interactionMessage.reply({
-                                embeds: [embed],
-                                components: [row],
-                            });
-                            if (process.env.DEBUG === "true") {
-                                console.log(
-                                    `Start prompt sent for lobby ${lobbyId}.`
-                                );
-                            }
-                        } else if (process.env.DEBUG === "true") {
-                            console.log(
-                                `Start prompt already exists for lobby ${lobbyId}.`
-                            );
-                        }
+                    //     if (!existingStartPrompt) {
+                    await interactionMessage.reply({
+                        embeds: [embed],
+                        components: [row],
+                    });
+                    if (process.env.DEBUG === "true") {
+                        console.log(`Start prompt sent for lobby ${lobbyId}.`);
                     }
+                    // } else if (process.env.DEBUG === "true") {
+                    //     console.log(
+                    //         `Start prompt already exists for lobby ${lobbyId}.`
+                    //     );
+                    // }
+                    //}
                 } else {
                     console.error(
                         "Thread not found or incorrect channel type."
