@@ -20,6 +20,7 @@ module.exports = {
                 .setDescription("Make lobby private")
                 .setRequired(false)
         ),
+    //show up please
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
 
