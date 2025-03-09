@@ -95,9 +95,10 @@ module.exports = {
                 matchData.player1_id,
                 matchData.player2_id,
                 autodarts_match_id,
-                //interaction.channel.id
-                interaction.id
+                interaction.channel.id
             );
+            console.log("Created new live match in the database.");
+            console.log(interaction.channel.id);
 
             await interaction.followUp({
                 embeds: [embed],
