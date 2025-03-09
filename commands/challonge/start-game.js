@@ -30,7 +30,7 @@ module.exports = {
             const lobbyData = {
                 variant: "X01",
                 settings: {
-                    baseScore: 501,
+                    baseScore: 121,
                     inMode: "Straight",
                     outMode: "Double",
                     bullMode: "25/50",
@@ -38,7 +38,7 @@ module.exports = {
                 },
                 bullOffMode: "Normal",
                 isPrivate: isPrivate,
-                legs: 4,
+                legs: 1,
             };
 
             const lobbyResponse =
