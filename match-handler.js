@@ -243,6 +243,7 @@ class MatchHandler {
         message.data.players.forEach((player, index) => {
             const player_id = player.userId;
             const player_name = player.name;
+            console.log(player_name);
             if (player_name === player1_autodarts_name) {
                 player1_in = true;
             } else if (player_name === player2_autodarts_name) {
@@ -257,6 +258,8 @@ class MatchHandler {
                 );
             }
         });
+
+        console.log(player1_in, player2_in);
 
         // Execute all removals concurrently
         await Promise.all(removalPromises);
