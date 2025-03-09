@@ -301,9 +301,9 @@ class MatchHandler {
                     );
 
                     // // Fetch the original interaction message (if needed)
-                    const interactionMessage = await thread.messages.fetch(
-                        match_channel_interaction_id
-                    );
+                    // const interactionMessage = await thread.messages.fetch(
+                    //     match_channel_interaction_id
+                    // );
 
                     // if (interactionMessage) {
                     //     // Check if the start prompt has already been sent
@@ -317,10 +317,16 @@ class MatchHandler {
                     //         );
 
                     //     if (!existingStartPrompt) {
-                    await interactionMessage.reply({
+                    // await interactionMessage.reply({
+                    //     embeds: [embed],
+                    //     components: [row],
+                    // });
+                    //lets just send a new  message
+                    await thread.send({
                         embeds: [embed],
                         components: [row],
                     });
+
                     if (process.env.DEBUG === "true") {
                         console.log(`Start prompt sent for lobby ${lobbyId}.`);
                     }
