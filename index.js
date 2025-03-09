@@ -642,12 +642,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const data = await getLiveMatchDataFromAutodartsMatchId(
                     lobbyId
                 );
-                const int = await interaction.channel.messages.fetch(
-                    data.match_channel_interaction_id
-                );
-                await int.edit({
-                    components: [],
-                });
+                // const int = await interaction.channel.messages.fetch(
+                //     data.match_channel_interaction_id
+                // );
+                // await int.edit({
+                //     components: [],
+                // });
 
                 //TODO then continue match handling
                 //first unsubscribe from the lobby
