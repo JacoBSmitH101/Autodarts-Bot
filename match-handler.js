@@ -301,9 +301,9 @@ class MatchHandler {
                     );
 
                     // // Fetch the original interaction message (if needed)
-                    // const interactionMessage = await thread.messages.fetch(
-                    //     match_channel_interaction_id
-                    // );
+                    const interactionMessage = await thread.messages.fetch(
+                        match_channel_interaction_id
+                    );
 
                     // if (interactionMessage) {
                     //     // Check if the start prompt has already been sent
