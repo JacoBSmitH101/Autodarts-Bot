@@ -95,7 +95,8 @@ module.exports = {
                 matchData.player1_id,
                 matchData.player2_id,
                 autodarts_match_id,
-                interaction.channel.id
+                //interaction.channel.id
+                interaction.id
             );
 
             await interaction.followUp({
