@@ -281,28 +281,30 @@ class MatchHandler {
             // Immediately set the match status to "start offered" to prevent reprocessing
             await updateLiveMatchStatus(lobbyId, "start offered");
 
-            const channel = this.client.channels.cache.get(
-                match_channel_interaction_id
-            );
-            if (channel) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 All players in!`)
-                    .setDescription(`Press the button below to begin`)
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp();
-
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`start_autoMatch_${lobbyId}`)
-                        .setLabel("Start Match")
-                        .setStyle(ButtonStyle.Success)
+            try {
+                const thread = await this.client.channels.fetch(
+                    match_channel_interaction_id
                 );
 
-                try {
-                    // Fetch the interaction message once
-                    const interactionMessage = await channel.messages.fetch(
+                if (thread && thread.isThread()) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 All players in!`)
+                        .setDescription(`Press the button below to begin`)
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp();
+
+                    const row = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`start_autoMatch_${lobbyId}`)
+                            .setLabel("Start Match")
+                            .setStyle(ButtonStyle.Success)
+                    );
+
+                    // Fetch the original interaction message (if needed)
+                    const interactionMessage = await thread.messages.fetch(
                         match_channel_interaction_id
                     );
+
                     if (interactionMessage) {
                         // Check if the start prompt has already been sent
                         const existingStartPrompt =
@@ -324,24 +326,24 @@ class MatchHandler {
                                     `Start prompt sent for lobby ${lobbyId}.`
                                 );
                             }
-                        } else {
-                            if (process.env.DEBUG === "true") {
-                                console.log(
-                                    `Start prompt already exists for lobby ${lobbyId}.`
-                                );
-                            }
+                        } else if (process.env.DEBUG === "true") {
+                            console.log(
+                                `Start prompt already exists for lobby ${lobbyId}.`
+                            );
                         }
                     }
-                } catch (error) {
+                } else {
                     console.error(
-                        "Failed to fetch or reply to interaction message:",
-                        error
+                        "Thread not found or incorrect channel type."
                     );
-                    // Optionally revert the status if necessary
-                    await updateLiveMatchStatus(lobbyId, "active"); // Or another appropriate status
+                    await updateLiveMatchStatus(lobbyId, "active"); // Revert if necessary
                 }
-            } else {
-                console.log("Channel not found");
+            } catch (error) {
+                console.error(
+                    "Failed to fetch or reply to thread message:",
+                    error
+                );
+                await updateLiveMatchStatus(lobbyId, "active"); // Revert if necessary
             }
         }
 
