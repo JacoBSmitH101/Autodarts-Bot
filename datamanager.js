@@ -1016,8 +1016,8 @@ async function createTournamentChannels(
 
                     // Add both players to the thread (if you want private threads, adjust accordingly)
                     try {
-                        await thread.members.add(player1DiscordId);
-                        await thread.members.add(player2DiscordId);
+                        //await thread.members.add(player1DiscordId);
+                        //await thread.members.add(player2DiscordId);
                         // if (player1DiscordId == 414395899570290690) {
                         //     await thread.members.add(player1DiscordId);
                         // }
