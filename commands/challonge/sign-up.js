@@ -39,13 +39,13 @@ module.exports = {
                 .setName("challonge-username")
                 .setDescription("(Optional) Challonge username")
                 .setRequired(false)
-        )
-        .addStringOption((option) =>
-            option
-                .setName("test-user-id")
-                .setDescription("(Optional) Discord ID for testing")
-                .setRequired(false)
         ),
+    // .addStringOption((option) =>
+    //     option
+    //         .setName("test-user-id")
+    //         .setDescription("(Optional) Discord ID for testing")
+    //         .setRequired(false)
+    // ),
 
     async execute(interaction) {
         const currentDate = new Date();
