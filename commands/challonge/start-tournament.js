@@ -88,11 +88,12 @@ module.exports = {
         // console.log(response.data);
         await updateParticipantMatchPlayerIdsAndMatches(tournamentId);
         await updateTournamentStatus(tournamentId, "started");
-        createTournamentChannels(
-            tournamentId,
-            interaction,
-            parentCategory ? parentCategory : null
-        );
+        // createTournamentChannels(
+        //     tournamentId,
+        //     interaction,
+        //     parentCategory ? parentCategory : null,
+        //     interaction.client
+        // );
         await interaction.reply(`Tournament "${tournamentName}" started.`);
     },
 };

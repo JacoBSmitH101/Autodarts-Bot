@@ -1016,14 +1016,14 @@ async function createTournamentChannels(
 
                     // Add both players to the thread (if you want private threads, adjust accordingly)
                     try {
-                        // await thread.members.add(player1DiscordId);
-                        // await thread.members.add(player2DiscordId);
-                        if (player1DiscordId == 414395899570290690) {
-                            await thread.members.add(player1DiscordId);
-                        }
-                        if (player2DiscordId == 414395899570290690) {
-                            await thread.members.add(player2DiscordId);
-                        }
+                        //await thread.members.add(player1DiscordId);
+                        //await thread.members.add(player2DiscordId);
+                        // if (player1DiscordId == 414395899570290690) {
+                        //     await thread.members.add(player1DiscordId);
+                        // }
+                        // if (player2DiscordId == 414395899570290690) {
+                        //     await thread.members.add(player2DiscordId);
+                        // }
                     } catch (addErr) {
                         console.error("Error adding user to thread: ", addErr);
                     }
@@ -1242,7 +1242,7 @@ async function createNewLiveMatch(
 async function getLiveMatchDataFromAutodartsMatchId(autodartsMatchId) {
     const query = `SELECT * FROM live_matches WHERE autodarts_match_id = $1`;
     const values = [autodartsMatchId];
-
+    //
     try {
         const result = await pool.query(query, values);
         if (result.rows.length === 0) return null;

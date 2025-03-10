@@ -225,12 +225,12 @@ class MatchHandler {
             return;
 
         const {
-            player1_autodarts_id,
-            player2_autodarts_id,
+            player1_autodarts_name,
+            player2_autodarts_name,
             match_channel_interaction_id,
         } = match_data;
 
-        if (!player1_autodarts_id || !player2_autodarts_id) {
+        if (!player1_autodarts_name || !player2_autodarts_name) {
             this.lobbyLocks[lobbyId] = false;
             return;
         }
@@ -242,9 +242,11 @@ class MatchHandler {
         const removalPromises = [];
         message.data.players.forEach((player, index) => {
             const player_id = player.userId;
-            if (player_id === player1_autodarts_id) {
+            const player_name = player.name;
+            console.log(player_name);
+            if (player_name === player1_autodarts_name) {
                 player1_in = true;
-            } else if (player_id === player2_autodarts_id) {
+            } else if (player_name === player2_autodarts_name) {
                 player2_in = true;
             } else {
                 // Remove non-matching players
@@ -256,6 +258,8 @@ class MatchHandler {
                 );
             }
         });
+        //for testing again
+        console.log(player1_in, player2_in);
 
         // Execute all removals concurrently
         await Promise.all(removalPromises);
@@ -277,67 +281,73 @@ class MatchHandler {
             // Immediately set the match status to "start offered" to prevent reprocessing
             await updateLiveMatchStatus(lobbyId, "start offered");
 
-            const channel = this.client.channels.cache.get(
-                match_channel_interaction_id
-            );
-            if (channel) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`🎯 All players in!`)
-                    .setDescription(`Press the button below to begin`)
-                    .setColor(0x00ff00) // Green color for active match
-                    .setTimestamp();
-
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`start_autoMatch_${lobbyId}`)
-                        .setLabel("Start Match")
-                        .setStyle(ButtonStyle.Success)
+            try {
+                const thread = await this.client.channels.fetch(
+                    match_channel_interaction_id
                 );
 
-                try {
-                    // Fetch the interaction message once
-                    const interactionMessage = await channel.messages.fetch(
-                        match_channel_interaction_id
-                    );
-                    if (interactionMessage) {
-                        // Check if the start prompt has already been sent
-                        const existingStartPrompt =
-                            interactionMessage.components.some((row) =>
-                                row.components.some(
-                                    (button) =>
-                                        button.customId ===
-                                        `start_autoMatch_${lobbyId}`
-                                )
-                            );
+                if (thread && thread.isThread()) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`🎯 All players in!`)
+                        .setDescription(`Press the button below to begin`)
+                        .setColor(0x00ff00) // Green color for active match
+                        .setTimestamp();
 
-                        if (!existingStartPrompt) {
-                            await interactionMessage.reply({
-                                embeds: [embed],
-                                components: [row],
-                            });
-                            if (process.env.DEBUG === "true") {
-                                console.log(
-                                    `Start prompt sent for lobby ${lobbyId}.`
-                                );
-                            }
-                        } else {
-                            if (process.env.DEBUG === "true") {
-                                console.log(
-                                    `Start prompt already exists for lobby ${lobbyId}.`
-                                );
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error(
-                        "Failed to fetch or reply to interaction message:",
-                        error
+                    const row = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`start_autoMatch_${lobbyId}`)
+                            .setLabel("Start Match")
+                            .setStyle(ButtonStyle.Success)
                     );
-                    // Optionally revert the status if necessary
-                    await updateLiveMatchStatus(lobbyId, "active"); // Or another appropriate status
+
+                    // // Fetch the original interaction message (if needed)
+                    // const interactionMessage = await thread.messages.fetch(
+                    //     match_channel_interaction_id
+                    // );
+
+                    // if (interactionMessage) {
+                    //     // Check if the start prompt has already been sent
+                    //     const existingStartPrompt =
+                    //         interactionMessage.components.some((row) =>
+                    //             row.components.some(
+                    //                 (button) =>
+                    //                     button.customId ===
+                    //                     `start_autoMatch_${lobbyId}`
+                    //             )
+                    //         );
+
+                    //     if (!existingStartPrompt) {
+                    // await interactionMessage.reply({
+                    //     embeds: [embed],
+                    //     components: [row],
+                    // });
+                    //lets just send a new  message
+                    await thread.send({
+                        embeds: [embed],
+                        components: [row],
+                    });
+
+                    if (process.env.DEBUG === "true") {
+                        console.log(`Start prompt sent for lobby ${lobbyId}.`);
+                    }
+                    // } else if (process.env.DEBUG === "true") {
+                    //     console.log(
+                    //         `Start prompt already exists for lobby ${lobbyId}.`
+                    //     );
+                    // }
+                    //}
+                } else {
+                    console.error(
+                        "Thread not found or incorrect channel type."
+                    );
+                    await updateLiveMatchStatus(lobbyId, "active"); // Revert if necessary
                 }
-            } else {
-                console.log("Channel not found");
+            } catch (error) {
+                console.error(
+                    "Failed to fetch or reply to thread message:",
+                    error
+                );
+                await updateLiveMatchStatus(lobbyId, "active"); // Revert if necessary
             }
         }
 

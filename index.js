@@ -173,23 +173,23 @@ for (const folder of commandFolders) {
 client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 
-    // try {
-    //     // Subscribe to "autodarts.matches" events
-    //     await client.keycloakClient.subscribe(
-    //         "autodarts.matches", // Channel
-    //         "matches", // Topic
-    //         async (message) => {
-    //             if (message.data.event === "create") {
-    //                 handleNewMatch(message);
-    //             }
-    //         },
-    //         (ws) => {
-    //             console.log("Subscribed to matches");
-    //         }
-    //     );
-    // } catch (error) {
-    //     console.error("Failed to subscribe to matches:", error);
-    // }
+    try {
+        // Subscribe to "autodarts.matches" events
+        await client.keycloakClient.subscribe(
+            "autodarts.matches", // Channel
+            "matches", // Topic
+            async (message) => {
+                if (message.data.event === "create") {
+                    handleNewMatch(message);
+                }
+            },
+            (ws) => {
+                console.log("Subscribed to matches");
+            }
+        );
+    } catch (error) {
+        console.error("Failed to subscribe to matches:", error);
+    }
 
     //look through all rows in live_matches table and subscribe to each match if status is not waiting for players
     const matches = await getAllLiveMatches();
@@ -642,12 +642,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const data = await getLiveMatchDataFromAutodartsMatchId(
                     lobbyId
                 );
-                const int = await interaction.channel.messages.fetch(
-                    data.match_channel_interaction_id
-                );
-                await int.edit({
-                    components: [],
-                });
+                // const int = await interaction.channel.messages.fetch(
+                //     data.match_channel_interaction_id
+                // );
+                // await int.edit({
+                //     components: [],
+                // });
 
                 //TODO then continue match handling
                 //first unsubscribe from the lobby
