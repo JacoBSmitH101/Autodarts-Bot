@@ -41,6 +41,7 @@ module.exports = {
             };
 
             const statsResponse = await axios.get(matchStatsUrl, { headers });
+            console.log(statsResponse.data);
             const stats = await statsResponse.data;
 
             const db_match = await getLocalMatchFromMatchId(match_id);
