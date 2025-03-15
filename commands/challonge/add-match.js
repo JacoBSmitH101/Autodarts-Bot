@@ -30,9 +30,9 @@ module.exports = {
             const match = await getLiveMatchDataFromAutodartsMatchId(
                 matchUrl.split("/").pop()
             );
-            if (!match) {
-                return interaction.editReply("No match found with this URL.");
-            }
+            // if (!match) {
+            //     return interaction.editReply("No match found with this URL.");
+            // }
 
             const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${match.autodarts_match_id}/stats`;
             const headers = {
