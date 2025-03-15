@@ -59,7 +59,7 @@ module.exports = {
                 `https://api.autodarts.io/as/v0/matches/${matchId}/stats`,
                 {
                     headers: {
-                        Authorization: `Bearer ${interaction.client.accessToken}`,
+                        Authorization: `Bearer ${interaction.keyclockClient.accessToken}`,
                     },
                 }
             );
