@@ -25,6 +25,7 @@ module.exports = {
 
         const matchUrl = interaction.options.getString("autodarts-match-url");
         const matchId = matchUrl.split("/").pop();
+        console.log(matchId);
 
         try {
             const match = await getLiveMatchDataFromAutodartsMatchId(
