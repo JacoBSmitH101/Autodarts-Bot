@@ -33,13 +33,13 @@ module.exports = {
         const scoreInput = interaction.options.getString("score");
         const matchId = matchUrl.split("/").pop();
 
-        if (!/^\d+-\d+$/.test(score)) {
+        if (!/^\d+-\d+$/.test(scoreInput)) {
             return interaction.editReply(
                 "Invalid score format. Please enter it as x-y."
             );
         }
 
-        const [score1, score2] = score.split("-").map(Number);
+        const [score1, score2] = scoreInput.split("-").map(Number);
         if (score1 < 4 && score2 < 4) {
             return interaction.editReply(
                 "At least one player must reach 4 legs to complete the match."
