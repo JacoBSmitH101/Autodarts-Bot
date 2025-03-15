@@ -56,7 +56,7 @@ module.exports = {
             const matchId = matchUrl.split("/").pop();
 
             const statsResponse = await axios.get(
-                `https://api.autodarts.io/matches/${matchId}/stats`,
+                `https://api.autodarts.io/as/v0/matches/${matchId}/stats`,
                 {
                     headers: {
                         Authorization: `Bearer ${interaction.client.accessToken}`,
