@@ -28,9 +28,9 @@ module.exports = {
         console.log(matchId);
 
         try {
-            const match = await getLiveMatchDataFromAutodartsMatchId(
-                matchUrl.split("/").pop()
-            );
+            const channel = interaction.channel;
+            const match_id = channel.name.match(/\[ID:(\d+)\]/)?.[1];
+
             // if (!match) {
             //     return interaction.editReply("No match found with this URL.");
             // }
@@ -43,7 +43,7 @@ module.exports = {
             const statsResponse = await axios.get(matchStatsUrl, { headers });
             const stats = await statsResponse.data;
 
-            const db_match = await getLocalMatchFromMatchId(match.match_id);
+            const db_match = await getLocalMatchFromMatchId(match_id);
 
             // Check if match is already marked as complete
             if (db_match.state === "complete") {
