@@ -1,7 +1,5 @@
 const {
-    getLiveMatchDataFromAutodartsMatchId,
     getLocalMatchFromMatchId,
-    updateLiveInteraction,
     updateLocalMatch,
     saveAdStats,
     deleteLiveMatch,
@@ -18,109 +16,112 @@ module.exports = {
                 .setName("autodarts-match-url")
                 .setDescription("URL of the Autodarts match")
                 .setRequired(true)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("score")
+                .setDescription(
+                    "Manually enter the score (format x-y, first to 4)"
+                )
+                .setRequired(true)
         ),
 
     async execute(interaction) {
         await interaction.deferReply();
 
         const matchUrl = interaction.options.getString("autodarts-match-url");
+        const scoreInput = interaction.options.getString("score");
         const matchId = matchUrl.split("/").pop();
-        console.log(matchId);
+
+        if (!/^\d+-\d+$/.test(score)) {
+            return interaction.editReply(
+                "Invalid score format. Please enter it as x-y."
+            );
+        }
+
+        const [score1, score2] = score.split("-").map(Number);
+        if (score1 < 4 && score2 < 4) {
+            return interaction.editReply(
+                "At least one player must reach 4 legs to complete the match."
+            );
+        }
 
         try {
             const channel = interaction.channel;
             const match_id = channel.name.match(/\[ID:(\d+)\]/)?.[1];
 
-            // if (!match) {
-            //     return interaction.editReply("No match found with this URL.");
-            // }
+            const matchUrl = interaction.options.getString(
+                "autodarts-match-url"
+            );
+            const matchId = matchUrl.split("/").pop();
 
-            const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
-            const headers = {
-                Authorization: `Bearer ${interaction.client.keycloakClient.accessToken}`,
-            };
-
-            const statsResponse = await axios.get(matchStatsUrl, { headers });
-            console.log(statsResponse.data);
-            const stats = await statsResponse.data;
+            const statsResponse = await axios.get(
+                `https://api.autodarts.io/matches/${matchId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${interaction.client.accessToken}`,
+                    },
+                }
+            );
+            const stats = statsResponse.data;
 
             const db_match = await getLocalMatchFromMatchId(match_id);
 
             // Check if match is already marked as complete
-            if (db_match.state === "complete") {
-                return interaction.editReply("Match is already completed.");
+            if (db_match.completed) {
+                return interaction.editReply(
+                    "This match is already marked as complete."
+                );
             }
 
-            // Build the embed with match details
             const embed = new EmbedBuilder()
-                .setColor(
-                    stats.data.scores[0].legs === stats.data.scores[1].legs
-                        ? "#ffaa00"
-                        : "#00ff00"
-                )
+                .setColor(score1 === score2 ? "#ffaa00" : "#00ff00")
                 .setTitle("🎯 Match Finished!")
                 .setDescription(
-                    `Match between ${stats.data.players[0].name} and ${stats.data.scores[1].name} is completed.`
+                    `Match between **${stats.players[0].name}** and **${statsResponse.data.players[1].name}** is completed.`
                 )
                 .addFields(
                     {
-                        name: stats.data.players[0].name,
-                        value: `Legs Won: ${
-                            stats.data.scores[0].legs
-                        }\nAverage: ${stats.data.scores[0].average.toFixed(2)}`,
+                        name: statsResponse.data.players[0].name,
+                        value: `Legs Won: ${score1}`,
                         inline: true,
                     },
                     {
-                        name: stats.data.players[1].name,
-                        value: `Legs Won: ${
-                            stats.data.scores[1].legs
-                        }\nAverage: ${stats.data.scores[1].average.toFixed(2)}`,
+                        name: statsResponse.data.players[1].name,
+                        value: `Legs Won: ${score2}`,
                         inline: true,
                     }
-                )
-                .setTitle("🎯 Match Finished!")
-                .setDescription(
-                    `Match results have been updated. [View Match](${matchUrl})`
                 );
 
             await interaction.editReply({ embeds: [embed] });
 
-            const winnerIndex = stats.data.winner;
-            const winnerUserId =
-                winnerIndex !== null
-                    ? stats.data.players[winnerIndex].id
-                    : null;
-            const winnerChallongeId =
-                winnerIndex !== null
-                    ? winnerIndex === 0
-                        ? db_match.player1_id
-                        : db_match.player2_id
-                    : "tie";
+            let winnerChallongeId;
+            if (score1 > score2) winnerChallongeId = db_match.player1_id;
+            else if (score2 > score1) winnerChallongeId = db_match.player2_id;
+            else winnerChallongeId = "tie";
 
-            const scores_csv = `${stats.data.scores[0].legs}-${stats.data.scores[1].legs}`;
-
-            // Update match details in local DB
-            await updateLocalMatch({
-                matchId: matchId,
-                db_match: db_match,
-                scores_csv,
+            // Update match completion in database
+            await updateLocalMatch(matchId, {
+                scores: `${score1}-${score2}`,
                 winnerChallongeId,
-                state: "complete",
+                completed: true,
             });
 
-            // Save match stats to DB
+            // Save stats if needed
             await saveAdStats(
                 db_match.match_id,
                 db_match.tournament_id,
-                stats.data
+                statsResponse.data
             );
 
-            // Cleanup live match entry
+            // Delete live match entry
             await deleteLiveMatch(matchId);
+
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             console.error(error);
             await interaction.editReply(
-                "An error occurred while finishing the match. Please contact an admin."
+                "Failed to complete the match due to an error."
             );
         }
     },
