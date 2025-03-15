@@ -34,7 +34,7 @@ module.exports = {
             //     return interaction.editReply("No match found with this URL.");
             // }
 
-            const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${match.matchid}/stats`;
+            const matchStatsUrl = `https://api.autodarts.io/as/v0/matches/${matchId}/stats`;
             const headers = {
                 Authorization: `Bearer ${interaction.client.keycloakClient.accessToken}`,
             };
@@ -99,7 +99,7 @@ module.exports = {
 
             // Update match details in local DB
             await updateLocalMatch({
-                matchId: matchid,
+                matchId: matchId,
                 db_match: db_match,
                 scores_csv,
                 winnerChallongeId,
@@ -114,7 +114,7 @@ module.exports = {
             );
 
             // Cleanup live match entry
-            await deleteLiveMatch(match.autodarts_match_id);
+            await deleteLiveMatch(matchId);
         } catch (error) {
             console.error(error);
             await interaction.editReply(
