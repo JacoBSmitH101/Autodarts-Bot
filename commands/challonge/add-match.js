@@ -6,7 +6,7 @@ const {
 } = require("../../datamanager");
 const axios = require("axios");
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
-
+//test
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("add-match")
