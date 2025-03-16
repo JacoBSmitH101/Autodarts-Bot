@@ -103,10 +103,12 @@ module.exports = {
             else winnerChallongeId = "tie";
 
             // Update match completion in database
-            await updateLocalMatch(matchId, {
-                scores: `${score1}-${score2}`,
-                winnerChallongeId,
-                completed: true,
+            await updateLocalMatch({
+                scores_csv: `${score1}-${score2}`,
+                winnerChallongeId: winnerChallongeId,
+                state: "complete",
+                matchId: match_id,
+                db_match: db_match,
             });
 
             // Save stats if needed
