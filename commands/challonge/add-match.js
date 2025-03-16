@@ -73,6 +73,8 @@ module.exports = {
                     "This match is already marked as complete."
                 );
             }
+            console.log(score1);
+            console.log(score2);
 
             const embed = new EmbedBuilder()
                 .setColor(score1 === score2 ? 0xffaa00 : 0x00ff00)
