@@ -9,8 +9,10 @@ const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("finishmatch")
-        .setDescription("Manually finish an Autodarts match and update stats.")
+        .setName("add-match")
+        .setDescription(
+            "Manually finish an Autodarts match and update stats. DOES NOT UPDATE CHALLONGE"
+        )
         .addStringOption((option) =>
             option
                 .setName("autodarts-match-url")
