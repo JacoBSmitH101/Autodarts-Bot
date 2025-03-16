@@ -75,19 +75,19 @@ module.exports = {
             }
 
             const embed = new EmbedBuilder()
-                .setColor(score1 === score2 ? "#ffaa00" : "#00ff00")
+                .setColor(score1 === score2 ? 0xffaa00 : 0x00ff00)
                 .setTitle("🎯 Match Finished!")
                 .setDescription(
-                    `Match between **${stats.players[0].name}** and **${statsResponse.data.players[1].name}** is completed.`
+                    `Match between **${stats.players[0].name}** and **${stats.players[1].name}** is completed.`
                 )
                 .addFields(
                     {
-                        name: statsResponse.data.players[0].name,
+                        name: stats.players[0].name,
                         value: `Legs Won: ${score1}`,
                         inline: true,
                     },
                     {
-                        name: statsResponse.data.players[1].name,
+                        name: stats.players[1].name,
                         value: `Legs Won: ${score2}`,
                         inline: true,
                     }
