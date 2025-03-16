@@ -78,27 +78,6 @@ module.exports = {
             console.log(score1);
             console.log(score2);
 
-            const embed = new EmbedBuilder()
-                .setColor(score1 === score2 ? 0xffaa00 : 0x00ff00)
-                .setTitle("🎯 Match Finished!")
-                .setDescription(
-                    `Match between **${stats.players[0].name}** and **${stats.players[1].name}** is completed.`
-                )
-                .addFields(
-                    {
-                        name: stats.players[0].name,
-                        value: `Legs Won: ${score1}`,
-                        inline: true,
-                    },
-                    {
-                        name: stats.players[1].name,
-                        value: `Legs Won: ${score2}`,
-                        inline: true,
-                    }
-                );
-
-            await interaction.editReply({ embeds: [embed] });
-
             let winnerChallongeId;
             if (score1 > score2) winnerChallongeId = db_match.player1_id;
             else if (score2 > score1) winnerChallongeId = db_match.player2_id;
@@ -122,8 +101,7 @@ module.exports = {
 
             // Delete live match entry
             await deleteLiveMatch(matchId);
-
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply("Match manually added successfully.");
         } catch (error) {
             console.error(error);
             await interaction.editReply(
