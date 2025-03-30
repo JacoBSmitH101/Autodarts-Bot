@@ -48,6 +48,9 @@ module.exports = {
                     .slice(1)
                     .join(":")}`;
                 await thread.setName(newName);
+                //sleep for 1 second to avoid rate limiting
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                console.log(`Renamed thread with ID: ${thread.id}`);
             });
 
             await interaction.editReply("Thread renaming initiated.");
