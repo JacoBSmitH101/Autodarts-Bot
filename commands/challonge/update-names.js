@@ -37,8 +37,17 @@ module.exports = {
             threadsCollection.threads.forEach(async (thread) => {
                 // Insert your renaming logic here.
                 // Example placeholder: Rename thread to "New Thread Name"
-                await thread.setName("New Thread Name");
-                console.log(`Renaming thread with ID: ${thread.id}`);
+                const name = await thread.name;
+                // await thread.setName("New Thread Name");
+                // console.log(`Renaming thread with ID: ${thread.id}`);
+                //current name format has Round X: at the start, we want to have Week X: instead
+                //week one is matches 1-4, week 2 is 5-8, etc
+                const week = Math.ceil(name.split(" ")[1] / 4);
+                const newName = `Week ${week}: ${name
+                    .split(":")
+                    .slice(1)
+                    .join(":")}`;
+                await thread.setName(newName);
             });
 
             await interaction.editReply("Thread renaming initiated.");
