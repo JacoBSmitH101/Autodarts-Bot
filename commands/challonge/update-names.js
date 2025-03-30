@@ -32,7 +32,7 @@ module.exports = {
                     "No active threads found in this channel."
                 );
             }
-
+            console.log(`Found ${threadsCollection.threads.size} threads.`);
             // Iterate over each thread and rename it.
             threadsCollection.threads.forEach(async (thread) => {
                 // Insert your renaming logic here.
