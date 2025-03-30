@@ -33,25 +33,41 @@ module.exports = {
                 );
             }
             console.log(`Found ${threadsCollection.threads.size} threads.`);
-            // Iterate over each thread and rename it.
-            threadsCollection.threads.forEach(async (thread) => {
-                // Insert your renaming logic here.
-                // Example placeholder: Rename thread to "New Thread Name"
-                const name = await thread.name;
-                // await thread.setName("New Thread Name");
-                // console.log(`Renaming thread with ID: ${thread.id}`);
-                //current name format has Round X: at the start, we want to have Week X: instead
-                //week one is matches 1-4, week 2 is 5-8, etc
-                const week = Math.ceil(parseInt(name.split(" ")[1]) / 4);
+
+            // Iterate over each thread sequentially.
+            for (const thread of threadsCollection.threads.values()) {
+                // Get the current thread name.
+                const name = thread.name; // No need for await here.
+
+                // Expecting format "Round X: ...". If not, skip this thread.
+                const parts = name.split(" ");
+                if (parts.length < 2 || isNaN(parseInt(parts[1], 10))) {
+                    console.log(
+                        `Skipping thread ${thread.id}, unexpected name format: ${name}`
+                    );
+                    continue;
+                }
+
+                // Calculate week: week one is rounds 1-4, week two is rounds 5-8, etc.
+                const roundNumber = parseInt(parts[1], 10);
+                const week = Math.ceil(roundNumber / 4);
+
+                // Construct the new name.
                 const newName = `Week ${week}: ${name
                     .split(":")
                     .slice(1)
-                    .join(":")}`;
+                    .join(":")
+                    .trim()}`;
+
+                // Rename the thread.
                 await thread.setName(newName);
-                //sleep for 1 second to avoid rate limiting
+                console.log(
+                    `Renamed thread with ID: ${thread.id} to "${newName}"`
+                );
+
+                // Sleep for 1 second to avoid rate limiting.
                 await new Promise((resolve) => setTimeout(resolve, 1000));
-                console.log(`Renamed thread with ID: ${thread.id}`);
-            });
+            }
 
             await interaction.editReply("Thread renaming initiated.");
         } catch (error) {
