@@ -26,7 +26,7 @@ module.exports = {
 
             // Fetch active threads in the channel.
             // Note: This assumes the channel supports threads.
-            const threadsCollection = await channel.threads.fetchActive();
+            const threadsCollection = await channel.threads.fetch();
             if (!threadsCollection.threads.size) {
                 return interaction.editReply(
                     "No active threads found in this channel."
