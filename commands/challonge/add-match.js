@@ -81,7 +81,7 @@ module.exports = {
             let winnerChallongeId;
             if (score1 > score2) winnerChallongeId = db_match.player1_id;
             else if (score2 > score1) winnerChallongeId = db_match.player2_id;
-            else winnerChallongeId = "tie";
+            else winnerChallongeId = null;
 
             // Update match completion in database
             await updateLocalMatch({
