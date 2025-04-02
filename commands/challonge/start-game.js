@@ -23,7 +23,11 @@ module.exports = {
     //show up please
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: false });
-
+        //reply saying to start match yourselves as the bot is not working
+        interaction.followUp(
+            "Please start the match yourselves as the bot is currently having issues :)\nPost the link to the match here afterwards and tag @JacoBSmitH"
+        );
+        return;
         try {
             const isPrivate =
                 interaction.options.getBoolean("private") ?? false;
