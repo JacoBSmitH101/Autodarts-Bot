@@ -42,9 +42,9 @@ module.exports = {
         }
 
         const [score1, score2] = scoreInput.split("-").map(Number);
-        if (score1 < 4 && score2 < 4) {
+        if (score1 < 3 && score2 < 3) {
             return interaction.editReply(
-                "At least one player must reach 4 legs to complete the match."
+                "At least one player must reach 3 legs to complete the match."
             );
         }
 
