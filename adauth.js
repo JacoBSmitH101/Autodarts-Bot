@@ -18,7 +18,7 @@ class AutodartsAuthClient {
         this.password = password;
         this.debug = debug;
 
-        this.tokenLifetimeFraction = 0.9;
+        this.tokenLifetimeFraction = 0.5;
         this.tick = 3000;
         this.run = true;
 
