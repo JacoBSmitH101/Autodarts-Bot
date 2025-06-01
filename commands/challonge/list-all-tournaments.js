@@ -28,9 +28,9 @@ module.exports = {
 
             // Make the GET request to Challonge
             const response = await axios.get(apiUrl, { params });
-
             // Check if there are tournaments to list
             const tournaments = response.data;
+            console.log(tournaments);
             if (tournaments.length === 0) {
                 await interaction.reply("No tournaments found.");
                 return;
