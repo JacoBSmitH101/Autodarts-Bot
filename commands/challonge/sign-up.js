@@ -51,10 +51,7 @@ module.exports = {
         const currentDate = new Date();
         const startDate = new Date("2025-06-08");
 
-        if (
-            currentDate < startDate &&
-            !interaction.member.permissions.has("ADMINISTRATOR")
-        ) {
+        if (currentDate < startDate) {
             const embed = new EmbedBuilder()
                 .setColor(0xff0000)
                 .setTitle("Sign-Ups not open yet!!!")
