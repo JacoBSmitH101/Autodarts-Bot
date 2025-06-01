@@ -51,16 +51,16 @@ module.exports = {
         const currentDate = new Date();
         const startDate = new Date("2025-06-08");
 
-        if (currentDate < startDate) {
-            const embed = new EmbedBuilder()
-                .setColor(0xff0000)
-                .setTitle("Sign-Ups not open yet!!!")
-                .setDescription("Sign-ups for this tournament are closed.")
-                .setFooter({ text: "Please try again next season" })
-                .setTimestamp();
+        // if (currentDate < startDate) {
+        //     const embed = new EmbedBuilder()
+        //         .setColor(0xff0000)
+        //         .setTitle("Sign-Ups not open yet!!!")
+        //         .setDescription("Sign-ups for this tournament are closed.")
+        //         .setFooter({ text: "Please try again next season" })
+        //         .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
-        }
+        //     return interaction.reply({ embeds: [embed], ephemeral: true });
+        // }
 
         const tournamentName = interaction.options.getString("tournament");
         const tournamentId = await getTournamentIdByName(tournamentName);
