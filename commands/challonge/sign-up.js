@@ -49,7 +49,7 @@ module.exports = {
 
     async execute(interaction) {
         const currentDate = new Date();
-        const startDate = new Date("2025-06-01");
+        const startDate = new Date("2025-06-08");
 
         if (
             currentDate < startDate &&
