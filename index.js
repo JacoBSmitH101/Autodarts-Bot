@@ -297,23 +297,32 @@ client.on("messageCreate", async (message) => {
 
         // For testing, send a message to the channel
         const embed = new EmbedBuilder()
-            .setTitle("New Match Link Posted")
+            .setTitle("🎯 New Match Posted")
             .setDescription(
-                `Match between ${data.player1_name} and ${data.player2_name} with ID [ID:${data.matchId}]`
+                `**${data.player1_name}** vs **${data.player2_name}**\nMatch ID: \`${data.matchId}\``
             )
             .addFields(
                 {
-                    name: "Player 1 Score",
-                    value: data.player1_score.toString(),
+                    name: "📊 Player 1 Stats",
+                    value: `**Legs:** ${data.player1_score}\n**Average:** ${
+                        data.player1_avg ?? "N/A"
+                    }\n**Checkout %: **${data.player1_checkout ?? "N/A"}`,
+                    inline: true,
                 },
-                { name: "Player 2 Score", value: data.player2_score.toString() }
+                {
+                    name: "📊 Player 2 Stats",
+                    value: `**Legs:** ${data.player2_score}\n**Average:** ${
+                        data.player2_avg ?? "N/A"
+                    }\n**Checkout %: **${data.player2_checkout ?? "N/A"}`,
+                    inline: true,
+                }
             )
             .setColor(0x00ff00)
-            .setURL(match);
+            .setURL(match); // Replace `match` with actual URL if you have one
 
         // Send the embed to the channel
         const channel = message.channel;
-        await channel.send({ embeds: [embed] });
+        await message.reply({ embeds: [embed] });
     }
 });
 

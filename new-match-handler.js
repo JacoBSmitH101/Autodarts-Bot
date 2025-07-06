@@ -244,6 +244,19 @@ const link_posted = async (ad_matchId, keycloak, client) => {
         player2_name: statsResponse.data.players[1].name,
         player1_score: statsResponse.data.scores[0].legs,
         player2_score: statsResponse.data.scores[1].legs,
+        player1_avg:
+            Math.round(statsResponse.data.matchStats[0].average * 100) / 100,
+        player2_avg:
+            Math.round(statsResponse.data.matchStats[1].average * 100) / 100,
+        //checkout percent, comes as decimal so multiply by 100 and do rounding
+        player1_checkout:
+            Math.round(
+                statsResponse.data.matchStats[0].checkoutPercent * 10000
+            ) / 100,
+        player2_checkout:
+            Math.round(
+                statsResponse.data.matchStats[1].checkoutPercent * 10000
+            ) / 100,
         matchId: data.match_id,
     };
 };
