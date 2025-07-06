@@ -17,6 +17,7 @@ const {
     ActivityType,
 } = require("discord.js");
 const sqlite3 = require("sqlite3").verbose();
+const { link_posted } = require("./new-match-handler");
 const axios = require("axios");
 const AutodartsKeycloakClient = require("./adauth");
 const { handleConfirmRemove, handleCancelRemove } = require("./util"); //#endregion
@@ -129,7 +130,14 @@ const rest = new REST().setToken(process.env.TOKEN);
     }
 })();
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.Guilds,
+    ],
+});
 client.commands = new Collection();
 const keycloakClient = new AutodartsKeycloakClient({
     username,
@@ -273,6 +281,42 @@ cron.schedule("0 2 * * *", async () => {
     console.log("Daily snapshot taken at 2 AM!");
 });
 
+client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+
+    const autodartsLinkRegex =
+        /https:\/\/play\.autodarts\.io\/history\/matches\/[a-f0-9\-]{36}/i;
+
+    if (autodartsLinkRegex.test(message.content)) {
+        const match = message.content.match(autodartsLinkRegex)[0];
+
+        // You can now parse the match ID or do something useful with it
+        const matchId = match.split("/").pop();
+
+        const data = await link_posted(matchId, client.keycloakClient, client);
+
+        // For testing, send a message to the channel
+        const embed = new EmbedBuilder()
+            .setTitle("New Match Link Posted")
+            .setDescription(
+                `Match between ${data.player1_name} and ${data.player2_name} with ID [ID:${data.matchId}]`
+            )
+            .addFields(
+                {
+                    name: "Player 1 Score",
+                    value: data.player1_score.toString(),
+                },
+                { name: "Player 2 Score", value: data.player2_score.toString() }
+            )
+            .setColor(0x00ff00)
+            .setURL(match);
+
+        // Send the embed to the channel
+        const channel = message.channel;
+        await channel.send({ embeds: [embed] });
+    }
+});
+
 // Event: Interaction Create
 client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isAutocomplete()) {
@@ -289,482 +333,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         );
         return;
     }
-    if (interaction.isButton()) {
-        // Parse button ID into components
-        let [action, commandName, ...extra] = interaction.customId.split("_");
 
-        console.log(interaction.customId);
-        console.log(action);
-        //finally user name
-        try {
-            console.log(interaction.user.username);
-        } catch (error) {
-            console.log("Error getting user name");
-        }
-
-        console.log(interaction.customId);
-        // Route based on action and command name
-        if (commandName === "remove-tournament") {
-            if (action === "confirm") {
-                await handleConfirmRemove(interaction, extra);
-            } else if (action === "cancel") {
-                await handleCancelRemove(interaction);
-            }
-        }
-        if (commandName == "joinTestChannel") {
-            const testChannelID = "1299461110465826859";
-            const guild = await client.guilds.cache.get("1279646324987265086");
-
-            const member = await guild.members.fetch(interaction.user.id);
-            const channel = await client.channels.fetch(testChannelID);
-            const permissions = await channel.permissionsFor(member);
-
-            await channel.permissionOverwrites.edit(member, {
-                1024: true,
-            });
-            await interaction.reply({
-                content: "You have been granted access to the testing channel",
-                ephemeral: true,
-            });
-        }
-        if (commandName === "autoMatch") {
-            if (action === "confirm") {
-                const [submitterDiscordId, autodarts_match_id] = extra;
-
-                console.log("Confirming match");
-
-                const tournamentId = await getTournamentIdFromAutodartsMatchId(
-                    autodarts_match_id
-                );
-                console.log("Tournament ID:", tournamentId);
-                const submitterChallongeId =
-                    await getChallongeIdFromUserIdTournamentId(
-                        submitterDiscordId,
-                        tournamentId
-                    );
-                console.log("Submitter Challonge ID:", submitterChallongeId);
-                const player = await getMatchFromAutodartsMatchId(
-                    autodarts_match_id
-                );
-
-                if (
-                    !submitterChallongeId == player.player1_id &&
-                    !submitterChallongeId == player.player2_id
-                ) {
-                    await interaction.reply({
-                        content: "You are not in this match!",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-
-                if (
-                    (submitterChallongeId != player.player1_id &&
-                        player.player1_confirmed == -1) ||
-                    (submitterChallongeId != player.player2_id &&
-                        player.player2_confirmed == -1)
-                ) {
-                    await interaction.reply({
-                        content:
-                            "Other player has rejected the match! If this was unexpected, please contact an H3RBSKIx or JacoBSmitH.",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-
-                try {
-                    const confirmIndex =
-                        submitterChallongeId == player.player1_id ? 0 : 1;
-                    await confirmMatch(autodarts_match_id, confirmIndex);
-                    await interaction.message.delete();
-                    await interaction.reply({
-                        content: "Match confirmation recorded!",
-                        ephemeral: true,
-                    });
-                } catch (error) {
-                    console.error("Error confirming match:", error);
-                    await interaction.followUp({
-                        content: "Failed to confirm match.",
-                        ephemeral: true,
-                    });
-                }
-
-                // Process match confirmation status
-                const match = await getMatchFromAutodartsMatchId(
-                    autodarts_match_id
-                );
-                if (process.env.DEBUG == "True") {
-                    console.log("------------------");
-                    console.log("SUBMITTER", submitterChallongeId);
-                    console.log("PLAYER1", player.player1_id);
-                    console.log("PLAYER2", player.player2_id);
-                    console.log("CONFIRMED", match.player1_confirmed);
-                    console.log("CONFIRMED", match.player2_confirmed);
-                    console.log("MATCH", match);
-                    console.log("------------------");
-                }
-
-                if (
-                    match.player1_confirmed == 1 &&
-                    match.player2_confirmed == 1
-                ) {
-                    const guild = await client.guilds.cache.get(
-                        process.env.AD_GUILD
-                    );
-                    console.log("Both players have confirmed");
-                    const channel = await findThreadByMatchId(
-                        guild,
-                        match.match_id
-                    );
-
-                    let db_match =
-                        await getLocalMatchFromPlayersChallongeIdTournamentId(
-                            player.player1_id,
-                            player.player2_id,
-                            tournamentId
-                        );
-                    const api_url = `https://api.challonge.com/v1/tournaments/${match.tournament_id}/matches/${match.match_id}.json`;
-                    const params = { api_key: process.env.API_KEY };
-
-                    const winnerIndex =
-                        db_match.player1_score > db_match.player2_score
-                            ? 0
-                            : db_match.player1_score < db_match.player2_score
-                            ? 1
-                            : null;
-                    const winnerChallongeId =
-                        winnerIndex !== null
-                            ? winnerIndex === 0
-                                ? db_match.player1_id
-                                : db_match.player2_id
-                            : null;
-
-                    const scores_csv = `${db_match.player1_score}-${db_match.player2_score}`;
-                    const data = {
-                        match: {
-                            scores_csv: scores_csv,
-                            winner_id: winnerChallongeId,
-                        },
-                    };
-
-                    try {
-                        const response = await axios.put(api_url, data, {
-                            params,
-                        });
-                        if (response.status === 200) {
-                            console.log("Challonge match updated");
-                        }
-                    } catch (error) {
-                        console.error("Error updating challonge match:", error);
-                    }
-
-                    if (channel) {
-                        const player1_name = await getNameFromChallongeId(
-                            match.player1_id
-                        );
-                        const player2_name = await getNameFromChallongeId(
-                            match.player2_id
-                        );
-                        const embed = new EmbedBuilder()
-                            .setTitle("Match Confirmed")
-                            .setDescription(
-                                `Match between ${player1_name} and ${player2_name} has been confirmed. This thread will now be archived.`
-                            )
-                            .setColor(0x00ff00);
-
-                        await channel.send({ embeds: [embed] });
-
-                        // const { embedTitle, tables, tournamentUrl } =
-                        //     await calculateStandings(
-                        //         match.tournament_id,
-                        //         false,
-                        //         divisionNumber
-                        //     );
-                        // for (const tableContent of tables) {
-                        //     const embed = new EmbedBuilder()
-                        //         .setColor(0x3498db)
-                        //         .setTitle(embedTitle)
-                        //         .setDescription(`Division Standings`)
-                        //         .addFields({
-                        //             name: `${tournamentUrl}`,
-                        //             value: tableContent,
-                        //         })
-                        //         .setTimestamp();
-
-                        //     await channel.send({
-                        //         embeds: [embed],
-                        //     });
-                        // }
-                        channel.setArchived(true);
-
-                        //now update the live matches channel
-                        const liveMatchesChannel = client.channels.cache.get(
-                            process.env.LIVE_MATCHES_CHANNEL_ID
-                        );
-                        if (liveMatchesChannel) {
-                            const embed = new EmbedBuilder()
-                                .setTitle("Match Confirmed")
-                                .setDescription(
-                                    `Match between ${player1_name} and ${player2_name} has been confirmed`
-                                )
-                                .setColor(0x00ff00);
-                            await liveMatchesChannel.send({ embeds: [embed] });
-                        } else {
-                            console.log("Channel not found");
-                        }
-                    } else {
-                        await interaction.followUp({
-                            content:
-                                "Match confirmation recorded, but announcement channel not found.",
-                            ephemeral: true,
-                        });
-                    }
-                }
-            } else if (action === "reject") {
-                const [submitterDiscordId, autodarts_match_id] = extra;
-
-                const tournamentId = await getTournamentIdFromAutodartsMatchId(
-                    autodarts_match_id
-                );
-
-                const submitterChallongeId =
-                    await getChallongeIdFromUserIdTournamentId(
-                        submitterDiscordId,
-                        tournamentId
-                    );
-
-                const player = await getMatchFromAutodartsMatchId(
-                    autodarts_match_id
-                );
-
-                if (
-                    !submitterChallongeId == player.player1_id &&
-                    !submitterChallongeId == player.player2_id
-                ) {
-                    await interaction.reply({
-                        content: "You are not in this match!",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-
-                //dont need to check if the other player has confirmed as they have rejected
-                const isSubmitterPlayer1 =
-                    submitterChallongeId == player.player1_id;
-                await rejectMatch(
-                    autodarts_match_id,
-                    isSubmitterPlayer1 ? 0 : 1
-                );
-                await matchHandler.markMatchRejected(player);
-                const guild = await client.guilds.cache.get(
-                    process.env.AD_GUILD
-                );
-                const matchChannel = await findThreadByMatchId(
-                    guild,
-                    player.match_id
-                );
-                //just say match begun
-                const embed2 = new EmbedBuilder()
-                    .setTitle(`🎯 Match Started`)
-                    .setDescription(`Match has been rejected`)
-                    .setColor(0xff0000) // Green color for active match
-                    .setTimestamp();
-                await matchChannel.send({ embeds: [embed2] });
-                await interaction.reply({
-                    content:
-                        "Match rejection recorded, admins have been notified!",
-                    ephemeral: true,
-                });
-
-                moderatorChannelId = "1308190896159719437";
-
-                const moderatorChannel =
-                    client.channels.cache.get(moderatorChannelId);
-
-                if (!moderatorChannel) {
-                    console.error("Could not find the moderator channel.");
-                    return;
-                }
-
-                const player1_discord_id = await getUserIdFromChallongeId(
-                    player.player1_id
-                );
-                const player2_discord_id = await getUserIdFromChallongeId(
-                    player.player2_id
-                );
-
-                const message = await moderatorChannel.send(
-                    `Match between <@${player1_discord_id}> and <@${player2_discord_id}> has been rejected.
-                        Match ID: ${autodarts_match_id}
-                        Database match ID: ${player.match_id}`
-                );
-
-                try {
-                    //delete interaction message
-                    await interaction.message.delete();
-                } catch (error) {
-                    console.error("Error deleting interaction message:", error);
-                }
-            } else if (action === "start") {
-                const [lobbyId] = extra;
-
-                const status = await getLiveMatchStatus(lobbyId);
-
-                if (status !== "start offered") {
-                    await interaction.reply({
-                        content: "Match has already been started!",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-                try {
-                    await client.keycloakClient.startLobby(lobbyId);
-                } catch (error) {
-                    console.error("Error starting lobby:", error);
-                    await interaction.reply({
-                        content:
-                            "Error starting match! Please start your own lobby.",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-                await updateLiveMatchStatus(lobbyId, "bullup");
-
-                await interaction.reply({
-                    content: "Game started! Good luck have fun!",
-                    ephemeral: false,
-                });
-                //edit the original message to remove the button
-                await interaction.message.edit({
-                    components: [],
-                });
-                //get the origina message and remove button as well
-                const data = await getLiveMatchDataFromAutodartsMatchId(
-                    lobbyId
-                );
-                // const int = await interaction.channel.messages.fetch(
-                //     data.match_channel_interaction_id
-                // );
-                // await int.edit({
-                //     components: [],
-                // });
-
-                //TODO then continue match handling
-                //first unsubscribe from the lobby
-
-                await client.keycloakClient.unsubscribe(
-                    "autodarts.loobies",
-                    `${lobbyId}.events`
-                );
-
-                //update live_match row status to bull up
-
-                // await client.keycloakClient.subscribe(
-                //     "autodarts.matches",
-                //     `${lobbyId}.state`,
-                //     async (message) => {
-                //         matchHandler.match_update(message, data.tournament_id);
-                //     }
-                // );
-                await client.keycloakClient.subscribe(
-                    "autodarts.matches",
-                    `${lobbyId}.events`,
-                    async (message) => {
-                        matchHandler.match_event(message, data.tournament_id);
-                    }
-                );
-
-                //send message to live matches channel
-                const liveMatchesChannel = client.channels.cache.get(
-                    process.env.LIVE_MATCHES_CHANNEL_ID
-                );
-                const divisionNumber =
-                    await getParticipantDivisionNumberFromUserId(
-                        interaction.user.id,
-                        data.tournament_id
-                    );
-
-                if (liveMatchesChannel) {
-                    const embed = new EmbedBuilder()
-                        .setTitle(`Match started in Division ${divisionNumber}`)
-                        .setDescription(
-                            `Follow along with the match here! [Autodarts Match](https://play.autodarts.io/matches/${lobbyId})`
-                        )
-                        .setColor(0x00ff00);
-                    const msg = await liveMatchesChannel.send({
-                        embeds: [embed],
-                    });
-                    await updateLiveMatchStatus(lobbyId, "bullup");
-                    await updateLiveInteraction(lobbyId, msg.id);
-                } else {
-                    console.log("Channel not found");
-                }
-
-                //update live_matches table live_status_interaction_id
-            }
-        }
-
-        if (commandName === "lobbyCreate") {
-            if (action == "abort") {
-                const [matchId] = extra;
-                const data = await getLiveMatchDataFromAutodartsMatchId(
-                    matchId
-                );
-                if (data) {
-                    try {
-                        await client.keycloakClient.deleteLobby(matchId);
-                    } catch (error) {
-                        console.error("Error deleting lobby:", error);
-                    }
-                    await client.keycloakClient.unsubscribe(
-                        "autodarts.lobbies",
-                        `${matchId}.state`
-                    );
-                    await client.keycloakClient.unsubscribe(
-                        "autodarts.lobbies",
-                        `${matchId}.events`
-                    );
-                    await interaction.message.delete();
-
-                    await deleteLiveMatch(matchId);
-                    await interaction.reply({
-                        content: "Match creation cancelled!",
-                        ephemeral: true,
-                    });
-                } else {
-                    await interaction.reply({
-                        content: "Match not found!",
-                        ephemeral: true,
-                    });
-                }
-            }
-        }
-
-        if (commandName === "confirmMatch") {
-            extra = extra.join("_");
-            const [matchId, submitterId, opponentId] = extra.split("_");
-            if (action === "confirm") {
-                if (
-                    interaction.user.id === opponentId ||
-                    interaction.user.id === submitterId
-                ) {
-                    confirmMatch(interaction, extra);
-                } else {
-                    await interaction.reply({
-                        content: "You are not the opponent of this match!",
-                        ephemeral: true,
-                    });
-                }
-            } else if (action === "reject") {
-                if (
-                    interaction.user.id === opponentId ||
-                    interaction.user.id === submitterId
-                )
-                    rejectMatch(interaction);
-            }
-        }
-        return;
-    }
     if (!interaction.isChatInputCommand()) return;
     const command = interaction.client.commands.get(interaction.commandName);
 
