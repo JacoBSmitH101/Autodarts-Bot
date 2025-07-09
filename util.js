@@ -61,16 +61,17 @@ async function add_tournament(serverId, tournamentId) {
     return true;
 }
 const sqlite3 = require("sqlite3").verbose();
-require("dotenv").config();
-async function fetchTournamentsFromDatabase(active = true) {
-    return await fetchTournamentsFromDatabase2(active);
-}
-const { EmbedBuilder } = require("discord.js");
 const {
     getNameFromChallongeId,
     getAllMatchesFromTournamentId,
     fetchTournamentsFromDatabase2,
 } = require("./datamanager");
+require("dotenv").config();
+async function fetchTournamentsFromDatabase(active = true) {
+    return await fetchTournamentsFromDatabase2(active);
+}
+const { EmbedBuilder } = require("discord.js");
+
 async function handleCancelRemove(interaction) {
     await interaction.update({
         content: "Tournament removal canceled.",
