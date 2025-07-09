@@ -33,7 +33,7 @@ module.exports = {
         const tournaments = await fetchTournamentsFromDatabase(
             interaction.guildId
         );
-
+        console.log(tournaments);
         // Filter tournaments based on the user's input and limit results to 25 (Discord's max)
         const filteredTournaments = tournaments
             .filter((tournament) =>

@@ -1,5 +1,15 @@
 const axios = require("axios");
-
+const { Pool } = require("pg");
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false,
+    },
+});
 async function add_tournament(serverId, tournamentId) {
     const sqlite3 = require("sqlite3").verbose();
     const db = new sqlite3.Database("./data.db");
@@ -60,7 +70,7 @@ async function add_tournament(serverId, tournamentId) {
     db.close();
     return true;
 }
-require("dotenv").config();
+
 const sqlite3 = require("sqlite3").verbose();
 const {
     getNameFromChallongeId,
@@ -69,7 +79,20 @@ const {
 } = require("./datamanager");
 
 async function fetchTournamentsFromDatabase(active = true) {
-    return await fetchTournamentsFromDatabase2(active);
+    // console.log(typeof fetchTournamentsFromDatabase2);
+    // return await fetchTournamentsFromDatabase2(active);
+    try {
+        let query = `SELECT name FROM Tournaments`;
+        if (active) {
+            query += ` WHERE active = 1`;
+        }
+
+        const result = await pool.query(query); // No explicit connect/release needed
+        return result.rows;
+    } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        throw new Error("Failed to fetch tournaments.");
+    }
 }
 const { EmbedBuilder } = require("discord.js");
 
