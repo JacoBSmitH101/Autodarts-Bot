@@ -60,13 +60,14 @@ async function add_tournament(serverId, tournamentId) {
     db.close();
     return true;
 }
+require("dotenv").config();
 const sqlite3 = require("sqlite3").verbose();
 const {
     getNameFromChallongeId,
     getAllMatchesFromTournamentId,
     fetchTournamentsFromDatabase2,
 } = require("./datamanager");
-require("dotenv").config();
+
 async function fetchTournamentsFromDatabase(active = true) {
     return await fetchTournamentsFromDatabase2(active);
 }
