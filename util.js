@@ -87,7 +87,7 @@ async function fetchTournamentsFromDatabase(active = true) {
             query += ` WHERE active = 1`;
         }
 
-        const result = await pool.query(query); // No explicit connect/release needed
+        const result = await pool.query(query); // No explicit connect/release neededc
         return result.rows;
     } catch (error) {
         console.error("Error fetching tournaments:", error);
