@@ -41,7 +41,7 @@ const getMatchIdFromDiscordIds = async (
             //get match_id from matches table where each player id is playerX_id and can be either way around
             const player1_participant_id = player1_result.rows[0].challonge_id;
             const player2_participant_id = player2_result.rows[0].challonge_id;
-            const matchQuery = `SELECT match_id FROM matches WHERE (player1_id = $1 AND player2_id = $2) OR (player1_id = $2 AND player2_id = $1)`;
+            const matchQuery = `SELECT match_id, tournament_id FROM matches WHERE (player1_id = $1 AND player2_id = $2) OR (player1_id = $2 AND player2_id = $1)`;
             const matchResult = await pool.query(matchQuery, [
                 player1_participant_id,
                 player2_participant_id,
@@ -51,6 +51,7 @@ const getMatchIdFromDiscordIds = async (
                 console.log("Match ID found:", match_id);
                 return {
                     match_id: match_id,
+                    tournament_id: matchResult.rows[0].tournament_id,
                     player1_participant_id: player1_participant_id,
                     player2_participant_id: player2_participant_id,
                 };
@@ -93,7 +94,7 @@ const getMatchIdFromADNames = async (
             const player1_participant_id = player_results.rows[0].challonge_id;
             const player2_participant_id = player_results.rows[1].challonge_id;
 
-            const matchQuery = `SELECT match_id FROM matches WHERE (player1_id = $1 AND player2_id = $2) OR (player1_id = $2 AND player2_id = $1)`;
+            const matchQuery = `SELECT match_id, tournament_id FROM matches WHERE (player1_id = $1 AND player2_id = $2) OR (player1_id = $2 AND player2_id = $1)`;
             const matchResult = await pool.query(matchQuery, [
                 player1_participant_id,
                 player2_participant_id,
@@ -103,6 +104,7 @@ const getMatchIdFromADNames = async (
                 console.log("Match ID found:", match_id);
                 return {
                     match_id: match_id,
+                    tournament_id: matchResult.rows[0].tournament_id,
                     player1_participant_id: player1_participant_id,
                     player2_participant_id: player2_participant_id,
                 };
@@ -217,6 +219,31 @@ const link_posted = async (ad_matchId, keycloak, client) => {
         return null;
     }
     //we need to only run this if we 100% have all the data we need
+
+    let scores_csv = isCorrectOrder
+        ? `${player1_score}-${player2_score}`
+        : `${player2_score}-${player1_score}`;
+
+    const api_url = `https://api.challonge.com/v1/tournaments/${data.tournament_id}/matches/${data.match_id}.json`;
+    const params = {
+        api_key: process.env.API_KEY,
+    };
+    const data2 = {
+        match: {
+            scores_csv: scores_csv,
+            winner_id: winnerChallongeId,
+        },
+    };
+
+    // First update Challonge
+    try {
+        const response = await axios.put(api_url, data2, { params });
+        if (response.status === 200) {
+            console.log("Challonge match updated");
+        }
+    } catch (error) {
+        console.error("Error updating Challonge match:", error);
+    }
 
     query = `UPDATE matches SET state = 'complete', player1_score = $1, player2_score = $2, winner_id = $3 WHERE match_id = $4`;
     try {
