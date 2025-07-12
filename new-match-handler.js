@@ -231,7 +231,7 @@ const link_posted = async (ad_matchId, keycloak, client) => {
     const data2 = {
         match: {
             scores_csv: scores_csv,
-            winner_id: winnerChallongeId,
+            winner_id: winner_id,
         },
     };
 
