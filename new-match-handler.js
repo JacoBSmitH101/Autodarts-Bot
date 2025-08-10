@@ -245,6 +245,40 @@ const link_posted = async (ad_matchId, keycloak, client) => {
         console.error("Error updating Challonge match:", error);
     }
 
+    // after statsResponse is fetched and you resolved player1/2 participant ids:
+    await pool.query(
+        `
+  INSERT INTO ad_stats (
+    tournament_id, match_id, stats_data, is_valid,
+    player1_autodarts_id, player2_autodarts_id,
+    player1_name, player2_name,
+    player1_id, player2_id
+  )
+  VALUES ($1,$2,$3,true,$4,$5,$6,$7,$8,$9)
+  ON CONFLICT (tournament_id, match_id) DO UPDATE SET
+    stats_data = EXCLUDED.stats_data,
+    is_valid = true,
+    player1_autodarts_id = EXCLUDED.player1_autodarts_id,
+    player2_autodarts_id = EXCLUDED.player2_autodarts_id,
+    player1_name = EXCLUDED.player1_name,
+    player2_name = EXCLUDED.player2_name,
+    player1_id = EXCLUDED.player1_id,
+    player2_id = EXCLUDED.player2_id,
+    created_at = NOW()
+  `,
+        [
+            tournamentId,
+            matchId,
+            statsResponse.data, // whole JSON
+            player1_AD_id,
+            player2_AD_id,
+            statsResponse.data.players[0].name,
+            statsResponse.data.players[1].name,
+            player1_participant_id,
+            player2_participant_id,
+        ]
+    );
+
     query = `UPDATE matches SET state = 'complete', player1_score = $1, player2_score = $2, winner_id = $3 WHERE match_id = $4`;
     try {
         await pool.query(query, [

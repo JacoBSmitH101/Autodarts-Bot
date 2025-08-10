@@ -41,8 +41,11 @@ module.exports = {
                 .setTitle("Challonge Tournaments")
                 .setDescription("Here are the latest in-progress tournaments:")
                 .setColor(0x00ff99);
+            //limit tournaments to 20 max, slice the first ones away
 
             // Add each tournament as a field in the embed
+
+            tournaments = tournaments.slice(-25);
             tournaments.forEach((tournament) => {
                 embed.addFields({
                     name: tournament.tournament.name,
